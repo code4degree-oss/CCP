@@ -12,9 +12,10 @@ module.exports = {
     },
     {
       name: 'ams-backend',
-      script: 'venv/bin/gunicorn',
+      script: '/var/www/ams/ams-backend/venv/bin/gunicorn',
       args: '--workers 3 --bind 127.0.0.1:8000 ams_core.wsgi:application',
-      cwd: './ams-backend',
+      cwd: '/var/www/ams/ams-backend',
+      interpreter: '/var/www/ams/ams-backend/venv/bin/python3',
       env: {
         DJANGO_SETTINGS_MODULE: 'ams_core.settings',
       },
