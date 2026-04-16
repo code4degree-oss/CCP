@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+ams-ui/.next/
+ams-ui/node_modules/
+.env
+.DS_Store

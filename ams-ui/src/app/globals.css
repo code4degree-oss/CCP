@@ -1,0 +1,218 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --font-geist: 'IBM Plex Sans', sans-serif;
+  --font-geist-mono: 'IBM Plex Mono', monospace;
+  
+  /* Light Mode Colors */
+  --bg-base: #f9fafb;
+  --bg-surface: #ffffff;
+  --bg-card: #ffffff;
+  --bg-border: #e5e7eb;
+  --bg-hover: #f3f4f6;
+  
+  --txt-primary: #000000;
+  --txt-secondary: #374151;
+  --txt-muted: #4b5563;
+  --txt-inverse: #ffffff;
+
+  --scrollbar-thumb: var(--bg-border);
+}
+
+.dark {
+  /* Dark Mode Colors */
+  --bg-base: #0a0a0b;
+  --bg-surface: #111113;
+  --bg-card: #161618;
+  --bg-border: #222226;
+  --bg-hover: #1c1c20;
+  
+  --txt-primary: #f0f0f1;
+  --txt-secondary: #b0b0b8;
+  --txt-muted: #71717a;
+  --txt-inverse: #0a0a0b;
+
+  --scrollbar-thumb: var(--bg-border);
+}
+
+* { box-sizing: border-box; }
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--txt-primary);
+  font-family: var(--font-geist);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb); }
+
+/* Selection */
+::selection { background: rgba(244,164,64,.3); color: #f0f0f1; }
+
+/* Noise overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  opacity: .025;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Status badge colours */
+.status-admitted    { background: rgba(16,185,129,.12); color: #10b981; border-color: rgba(16,185,129,.2); }
+.status-pending     { background: rgba(245,158,11,.1);  color: #f59e0b; border-color: rgba(245,158,11,.2); }
+.status-review      { background: rgba(244,164,64,.12);  color: #f4a440; border-color: rgba(244,164,64,.2); }
+.status-rejected    { background: rgba(239,68,68,.1);   color: #ef4444; border-color: rgba(239,68,68,.2); }
+.status-lead        { background: rgba(139,92,246,.1);  color: #8b5cf6; border-color: rgba(139,92,246,.2); }
+.status-converted   { background: rgba(6,182,212,.1);   color: #06b6d4; border-color: rgba(6,182,212,.2); }
+
+/* Grid line bg */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(255,255,255,.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Sidebar active */
+.nav-active {
+  background: rgba(244,164,64,.12);
+  color: #f4a440;
+  border-right: 2px solid #f4a440;
+}
+
+/* Table hover */
+.tbl-row:hover { background: rgba(255,255,255,.025); }
+
+/* Animated skeleton */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--bg-border) 50%, var(--bg-hover) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+/* Chart bar */
+.chart-bar {
+  transition: height .5s cubic-bezier(.16,1,.3,1), opacity .3s;
+}
+.chart-bar:hover { opacity: .8; }
+
+/* ═══════════════════════════════════════════════
+   PRINT ADMISSION FORM STYLES
+   ═══════════════════════════════════════════════ */
+
+/* Print overlay (screen view) */
+.print-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: #f3f4f6;
+  overflow-y: auto;
+}
+
+/* Toolbar at top of print preview */
+.print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 12px 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+
+/* The printable form area (screen view) */
+.print-admission-form {
+  max-width: 800px;
+  margin: 20px auto 60px;
+  background: #fff;
+  padding: 30px 36px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  font-family: 'IBM Plex Sans', 'Segoe UI', Arial, sans-serif;
+  color: #111827;
+}
+
+/* ── PRINT MEDIA QUERY ── */
+@media print {
+  /* Hide EVERYTHING except the print form */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Show only the print form and its children */
+  .print-admission-form,
+  .print-admission-form * {
+    visibility: visible !important;
+  }
+
+  /* Position print form at top-left for clean page output */
+  .print-admission-form {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 16px 20px;
+    box-shadow: none;
+    border-radius: 0;
+    background: #fff;
+  }
+
+  /* Remove overlay background */
+  .print-overlay {
+    position: static;
+    background: #fff;
+    overflow: visible;
+  }
+
+  /* Hide the toolbar */
+  .no-print,
+  .print-toolbar {
+    display: none !important;
+  }
+
+  /* Remove noise overlay */
+  body::before {
+    display: none !important;
+  }
+
+  /* Clean up for print */
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Avoid page breaks inside tables/sections */
+  table {
+    page-break-inside: avoid;
+  }
+  tr {
+    page-break-inside: avoid;
+  }
+}
+
