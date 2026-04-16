@@ -1,4 +1,6 @@
-const API_BASE = 'http://localhost:8000/api'
+const API_BASE = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+  ? '/api'
+  : 'http://localhost:8000/api'
 
 export async function apiFetch<T = any>(endpoint: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}/${endpoint}/`, {
