@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Lock, Mail, Eye, EyeOff, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react'
 import { authApi } from '@/lib/api'
@@ -12,6 +12,17 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+
+  // Check if already logged in
+  useEffect(() => {
+    authApi.me()
+      .then(() => {
+        router.replace('/')
+      })
+      .catch(() => {
+        localStorage.removeItem('ams_user')
+      })
+  }, [router])
 
   // Force password change state
   const [showChangePassword, setShowChangePassword] = useState(false)
@@ -36,7 +47,7 @@ export default function LoginPage() {
         setShowChangePassword(true)
       } else {
         localStorage.setItem('ams_user', JSON.stringify(user))
-        router.push('/')
+        router.replace('/')
       }
     } catch (err: any) {
       setError(err.message || 'Invalid credentials')
@@ -57,7 +68,7 @@ export default function LoginPage() {
       // Password changed — update the user object and proceed to dashboard
       const updatedUser = { ...pendingUser, must_change_password: false }
       localStorage.setItem('ams_user', JSON.stringify(updatedUser))
-      router.push('/')
+      router.replace('/')
     } catch (err: any) {
       setChangeError(err.message || 'Failed to change password')
     }

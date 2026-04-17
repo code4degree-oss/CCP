@@ -138,7 +138,7 @@ export function Sidebar({ active, onChange }: SidebarProps) {
               </div>
             )}
             {!collapsed && (
-              <button onClick={() => { fetch('http://localhost:8000/api/logout/', { method: 'POST', credentials: 'include' }).finally(() => { localStorage.removeItem('ams_user'); window.location.href = '/login' }) }} className="text-txt-muted hover:text-txt-secondary transition-colors" title="Logout">
+              <button onClick={() => { fetch('http://localhost:8000/api/logout/', { method: 'POST', credentials: 'include' }).finally(() => { localStorage.removeItem('ams_user'); window.location.replace('/login') }) }} className="text-txt-muted hover:text-txt-secondary transition-colors" title="Logout">
                 <LogOut size={13} />
               </button>
             )}
