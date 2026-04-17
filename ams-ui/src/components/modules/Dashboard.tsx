@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Users, GraduationCap, Activity, TrendingUp, Clock, Inbox, Loader2 } from 'lucide-react'
-import { StatCard, Card, SectionHeader, Button } from '@/components/ui'
+import { Users, GraduationCap, Activity, TrendingUp, Clock, Inbox, ChevronRight } from 'lucide-react'
+import { StatCard, Card, SectionHeader, Button, AnimatedNumber } from '@/components/ui'
 import { studentsApi, admissionsApi, enquiriesApi, paymentsApi } from '@/lib/api'
 
 export function DashboardModule() {
@@ -43,7 +43,26 @@ export function DashboardModule() {
 
   const rate = stats.admissions > 0 ? Math.round((stats.admitted / stats.admissions) * 100) : 0
 
-  if (loading) return <div className="flex items-center justify-center py-32"><Loader2 size={28} className="animate-spin text-txt-muted" /></div>
+  if (loading) {
+    return (
+      <div className="space-y-4 animate-pulse">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          <div className="lg:col-span-1 space-y-4">
+            <div className="h-[120px] bg-bg-surface border border-bg-border rounded-lg"></div>
+            <div className="h-[120px] bg-bg-surface border border-bg-border rounded-lg"></div>
+          </div>
+          <div className="lg:col-span-3 grid grid-cols-2 gap-4">
+            <div className="h-[120px] bg-bg-surface border border-bg-border rounded-lg"></div>
+            <div className="h-[120px] bg-bg-surface border border-bg-border rounded-lg"></div>
+            <div className="h-[120px] bg-bg-surface border border-bg-border rounded-lg"></div>
+            <div className="h-[120px] bg-bg-surface border border-bg-border rounded-lg"></div>
+          </div>
+        </div>
+        <div className="h-48 bg-bg-surface border border-bg-border rounded-lg"></div>
+        <div className="h-64 bg-bg-surface border border-bg-border rounded-lg"></div>
+      </div>
+    )
+  }
 
   // Display unassigned warning if the user has no role and no branch (and is not superuser)
   if (!userContext.role && !userContext.branch_id && !userContext.is_superuser) {
@@ -57,7 +76,7 @@ export function DashboardModule() {
           You have successfully logged in, but you haven&apos;t been assigned a specific <strong>Role</strong> or <strong>Branch</strong> yet. 
           Please contact your administrator to assign you to a branch so you can access the system.
         </p>
-        <Card className="w-full bg-bg-surface border-bg-border p-4 text-left">
+        <Card className="w-full p-5 text-left">
           <div className="text-[10px] font-semibold text-txt-muted uppercase tracking-wider mb-3">Your Account Status</div>
           <div className="flex justify-between py-1.5 border-b border-bg-border"><span className="text-xs text-txt-muted">Role</span><span className="text-xs text-txt-secondary">— Unassigned</span></div>
           <div className="flex justify-between py-1.5"><span className="text-xs text-txt-muted">Branch</span><span className="text-xs text-txt-secondary">— Unassigned</span></div>
@@ -67,10 +86,10 @@ export function DashboardModule() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       {/* Missing Role/Branch Banner (if partially unassigned) */}
       {(!userContext.role || !userContext.branch_id) && !userContext.is_superuser && (
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex items-start gap-3">
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 flex items-start gap-3">
           <Activity size={16} className="text-amber-500 shrink-0 mt-0.5" />
           <div>
             <h4 className="text-sm font-medium text-amber-500">Incomplete Profile Assignment</h4>
@@ -81,62 +100,80 @@ export function DashboardModule() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-        <StatCard label="Enquiries" value={stats.enquiries.toLocaleString('en-IN')} icon={<Activity size={14} />} delay={0} />
-        <StatCard label="Registered Students" value={stats.students.toLocaleString('en-IN')} icon={<Users size={14} />} delay={60} />
-        <StatCard label="Total Admissions" value={stats.admissions.toLocaleString('en-IN')} icon={<GraduationCap size={14} />} delay={120} />
-        <StatCard label="Admitted" value={stats.admitted.toString()} icon={<GraduationCap size={14} />} delay={180} />
-        <StatCard label="Pending" value={stats.pending.toString()} sub="Need action" icon={<Clock size={14} />} delay={240} />
-        <StatCard label="Success Rate" value={`${rate}%`} icon={<TrendingUp size={14} />} delay={300} />
+      {/* Hierarchical KPI Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+        {/* Primary Metrics (Large) */}
+        <div className="lg:col-span-1 flex flex-col gap-4">
+          <StatCard label="Total Admissions" value={stats.admissions.toString()} icon={<GraduationCap size={16} />} delay={0} />
+          <StatCard label="Registered Students" value={stats.students.toString()} icon={<Users size={16} />} delay={60} />
+        </div>
+        
+        {/* Secondary Metrics (Grid) */}
+        <div className="lg:col-span-3 grid grid-cols-2 gap-4">
+          <StatCard label="Total Enquiries" value={stats.enquiries.toString()} icon={<Activity size={14} />} delay={120} />
+          <StatCard label="Admitted" value={stats.admitted.toString()} icon={<GraduationCap size={14} />} delay={180} />
+          <StatCard label="Pending Docs" value={stats.pending.toString()} sub="Action required" icon={<Clock size={14} />} delay={240} />
+          <StatCard label="Success Rate" value={`${rate}%`} icon={<TrendingUp size={14} />} delay={300} />
+        </div>
       </div>
 
-      {/* Funnel */}
-      <Card className="p-5">
+      {/* Step-based Funnel */}
+      <Card className="p-6">
         <SectionHeader title="Conversion Funnel" />
-        <div className="space-y-3 mt-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
           {[
-            { label: 'Enquiries', value: stats.enquiries, color: 'bg-accent-blue', pct: 100 },
-            { label: 'Registered Students', value: stats.students, color: 'bg-accent-cyan', pct: stats.enquiries > 0 ? Math.round((stats.students / stats.enquiries) * 100) : 0 },
-            { label: 'Admitted', value: stats.admitted, color: 'bg-accent-green', pct: stats.enquiries > 0 ? Math.round((stats.admitted / stats.enquiries) * 100) : 0 },
-          ].map(f => (
-            <div key={f.label}>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-txt-secondary">{f.label}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-medium text-txt-primary">{f.value}</span>
-                  <span className="text-[10px] text-txt-muted">{f.pct}%</span>
+            { label: 'Enquiries', value: stats.enquiries, color: 'text-accent-blue', bg: 'bg-accent-blue/10' },
+            { label: 'Registered', value: stats.students, color: 'text-accent-cyan', bg: 'bg-accent-cyan/10' },
+            { label: 'Admitted', value: stats.admitted, color: 'text-accent-green', bg: 'bg-accent-green/10' },
+          ].map((f, i, arr) => (
+            <div key={f.label} className="flex-1 flex items-center w-full">
+              <div className="flex-1 flex flex-col items-center text-center p-5 rounded-lg bg-bg-surface border border-bg-border hover:border-bg-border/70 transition-colors shadow-sm">
+                <div className={`w-8 h-8 rounded-full ${f.bg} ${f.color} flex items-center justify-center mb-3 text-sm font-bold`}>
+                  {i + 1}
                 </div>
+                <div className="text-3xl font-semibold text-txt-primary font-mono tracking-tight mb-1">
+                  <AnimatedNumber value={f.value} />
+                </div>
+                <div className="text-[11px] font-medium text-txt-muted uppercase tracking-widest">{f.label}</div>
               </div>
-              <div className="h-1.5 rounded-full bg-bg-hover overflow-hidden">
-                <div className={`h-full rounded-full ${f.color} transition-all duration-700`} style={{ width: `${f.pct}%` }} />
-              </div>
+              {i < arr.length - 1 && (
+                <div className="hidden sm:flex items-center justify-center px-3">
+                  <ChevronRight size={24} className="text-txt-muted/30" />
+                </div>
+              )}
             </div>
           ))}
         </div>
       </Card>
 
       {/* Recent Admissions */}
-      <Card>
-        <div className="p-4 border-b border-bg-border flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-txt-primary">Recent Admissions</h3>
-          <Button variant="ghost" size="sm">View all</Button>
-        </div>
+      <Card className="p-6">
+        <SectionHeader title="Recent Admissions" action={<Button variant="ghost" size="sm">View all</Button>} />
         {recentAdmissions.length > 0 ? (
-          <div className="divide-y divide-bg-border/50">
-            {recentAdmissions.map((a: any) => (
-              <div key={a.id} className="px-4 py-3 flex items-center gap-3 hover:bg-bg-hover transition-colors">
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium text-txt-primary">Admission #{a.id}</div>
-                  <div className="text-[10px] text-txt-muted font-mono">{a.admission_status}</div>
+          <div className="mt-2 bg-bg-surface border border-bg-border rounded-lg overflow-hidden">
+            <div className="divide-y divide-bg-border/50">
+              {recentAdmissions.map((a: any) => (
+                <div key={a.id} className="px-5 py-3.5 flex items-center justify-between hover:bg-bg-hover transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-accent-blue/10 flex items-center justify-center text-accent-blue font-semibold text-xs">
+                      {a.student_name ? a.student_name.charAt(0).toUpperCase() : 'A'}
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-txt-primary">{a.student_name || `Admission #${a.id}`}</div>
+                      <div className="text-[11px] text-txt-muted">{a.course_name || 'Entrance Guidance'}</div>
+                    </div>
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded border font-bold uppercase tracking-wider ${a.admission_status === 'Admitted' ? 'text-accent-green bg-accent-green/10 border-accent-green/20' : 'text-accent-blue bg-accent-blue/10 border-accent-blue/20'}`}>
+                    {a.admission_status}
+                  </span>
                 </div>
-                <span className={`text-[11px] px-2 py-0.5 rounded border font-medium ${a.admission_status === 'Admitted' ? 'text-accent-green bg-accent-green/10 border-accent-green/20' : 'text-accent-blue bg-accent-blue/10 border-accent-blue/20'}`}>{a.admission_status}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Inbox size={20} className="text-txt-muted mb-3" />
-            <p className="text-sm text-txt-secondary">No admissions yet</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center bg-bg-surface border border-bg-border rounded-lg mt-2">
+            <Inbox size={24} className="text-txt-muted/50 mb-3" />
+            <p className="text-sm font-medium text-txt-secondary">No admissions yet</p>
             <p className="text-xs text-txt-muted mt-1">Data will appear once admissions are processed.</p>
           </div>
         )}

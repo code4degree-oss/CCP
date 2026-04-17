@@ -1,4 +1,5 @@
 import clsx from 'clsx'
+import { useState, useEffect } from 'react'
 import type { AdmissionStatus, LeadStatus, PaymentStatus, Channel } from '@/types'
 
 // ─── Badge ───────────────────────────────────────────────────────────────────
@@ -84,8 +85,8 @@ export function Card({ children, className, glow, ...rest }: CardProps) {
   return (
     <div
       className={clsx(
-        'bg-bg-card border border-bg-border rounded-lg',
-        glow && 'shadow-glow/10 hover:shadow-glow/20 transition-shadow duration-300',
+        'bg-bg-card border border-bg-border rounded-lg hover:shadow-md transition-shadow duration-200',
+        glow && 'shadow-glow/10 hover:shadow-glow/20',
         className
       )}
       {...rest}
@@ -108,22 +109,58 @@ interface StatCardProps {
 }
 
 export function StatCard({ label, value, sub, trend, icon, delay = 0 }: StatCardProps) {
+  // Extract number from string if needed (e.g. "100%")
+  const numericMatch = String(value).match(/[\d,]+/)
+  const isPercent = String(value).includes('%')
+  const numValue = numericMatch ? parseInt(numericMatch[0].replace(/,/g, ''), 10) : 0
+
   return (
-    <Card className="p-4 animate-slide-in" style={{ animationDelay: `${delay}ms` } as React.CSSProperties}>
+    <Card className="p-4 sm:p-5 flex flex-col justify-between animate-slide-in h-full" style={{ animationDelay: `${delay}ms` } as React.CSSProperties}>
       <div className="flex items-start justify-between mb-3">
         <span className="text-[11px] font-medium text-txt-muted uppercase tracking-widest">{label}</span>
         <span className="w-7 h-7 rounded bg-bg-hover flex items-center justify-center text-txt-secondary">{icon}</span>
       </div>
-      <div className="text-2xl font-semibold text-txt-primary font-mono tracking-tight">{value}</div>
-      {sub && <div className="text-[11px] text-txt-muted mt-0.5">{sub}</div>}
-      {trend && (
-        <div className={clsx('text-[11px] mt-2 font-medium', trend.up ? 'text-accent-green' : 'text-accent-red')}>
-          {trend.up ? '↑' : '↓'} {trend.value}
-          <span className="text-txt-muted font-normal ml-1">vs last month</span>
+      <div>
+        <div className="text-2xl font-semibold text-txt-primary font-mono tracking-tight">
+          {typeof value === 'string' && !numericMatch ? value : <AnimatedNumber value={numValue} suffix={isPercent ? '%' : ''} />}
         </div>
-      )}
+        {sub && <div className="text-[11px] text-txt-muted mt-0.5">{sub}</div>}
+        {trend && (
+          <div className={clsx('text-[11px] mt-2 font-medium', trend.up ? 'text-accent-green' : 'text-accent-red')}>
+            {trend.up ? '↑' : '↓'} {trend.value}
+            <span className="text-txt-muted font-normal ml-1">vs last month</span>
+          </div>
+        )}
+      </div>
     </Card>
   )
+}
+
+// ─── Animated Number ─────────────────────────────────────────────────────────
+
+export function AnimatedNumber({ value, suffix = '' }: { value: number; suffix?: string }) {
+  const [current, setCurrent] = useState(0)
+
+  useEffect(() => {
+    if (value === 0) return setCurrent(0)
+    let start = 0
+    const duration = 800 // ms
+    const increment = value / (duration / 16)
+
+    const timer = setInterval(() => {
+      start += increment
+      if (start >= value) {
+        setCurrent(value)
+        clearInterval(timer)
+      } else {
+        setCurrent(Math.floor(start))
+      }
+    }, 16)
+
+    return () => clearInterval(timer)
+  }, [value])
+
+  return <>{current.toLocaleString('en-IN')}{suffix}</>
 }
 
 // ─── Table ────────────────────────────────────────────────────────────────────
