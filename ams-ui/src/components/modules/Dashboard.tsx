@@ -122,14 +122,13 @@ export function DashboardModule() {
         <SectionHeader title="Conversion Funnel" />
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
           {[
-            { label: 'Enquiries', value: stats.enquiries, color: 'text-accent-blue', bg: 'bg-accent-blue/10' },
-            { label: 'Registered', value: stats.students, color: 'text-accent-cyan', bg: 'bg-accent-cyan/10' },
-            { label: 'Admitted', value: stats.admitted, color: 'text-accent-green', bg: 'bg-accent-green/10' },
+            { label: 'Enquiries', value: stats.enquiries, color: 'text-accent-blue', bg: 'bg-accent-blue/10', icon: <Activity size={16} /> },
+            { label: 'Admitted', value: stats.admitted, color: 'text-accent-green', bg: 'bg-accent-green/10', icon: <GraduationCap size={16} /> },
           ].map((f, i, arr) => (
             <div key={f.label} className="flex-1 flex items-center w-full">
               <div className="flex-1 flex flex-col items-center text-center p-5 rounded-lg bg-bg-surface border border-bg-border hover:border-bg-border/70 transition-colors shadow-sm">
-                <div className={`w-8 h-8 rounded-full ${f.bg} ${f.color} flex items-center justify-center mb-3 text-sm font-bold`}>
-                  {i + 1}
+                <div className={`w-8 h-8 rounded-full ${f.bg} ${f.color} flex items-center justify-center mb-3`}>
+                  {f.icon}
                 </div>
                 <div className="text-3xl font-semibold text-txt-primary font-mono tracking-tight mb-1">
                   <AnimatedNumber value={f.value} />

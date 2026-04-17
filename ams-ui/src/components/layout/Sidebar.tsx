@@ -134,7 +134,7 @@ export function Sidebar({ active, onChange }: SidebarProps) {
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-medium text-txt-primary truncate">{(() => { try { return JSON.parse(localStorage.getItem('ams_user') || '{}').full_name || 'User' } catch { return 'User' } })()}</div>
-                <div className="text-[10px] text-txt-muted truncate">{(() => { try { return JSON.parse(localStorage.getItem('ams_user') || '{}').role || 'Staff' } catch { return 'Staff' } })()}</div>
+                <div className="text-[10px] text-txt-muted truncate">{(() => { try { const u = JSON.parse(localStorage.getItem('ams_user') || '{}'); return u.role || u.role_name || (u.is_superuser ? 'Super Admin' : 'Staff') } catch { return 'Staff' } })()}</div>
               </div>
             )}
             {!collapsed && (
