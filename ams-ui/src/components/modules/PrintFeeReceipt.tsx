@@ -67,7 +67,7 @@ export function PrintFeeReceipt({ data, onPrint, onContinue, onBack }: PrintFeeR
             <img src="/LOGO SVG.svg" alt="CCP" style={{ width: 56, height: 56, objectFit: 'contain' }} />
             <div>
               <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: '#1e3a5f', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>
-                Center for Career Planning | Fees Receipt
+                Chanakya Career Point | Fees Receipt
               </h1>
             </div>
           </div>
@@ -167,16 +167,16 @@ export function PrintFeeReceipt({ data, onPrint, onContinue, onBack }: PrintFeeR
               <br /><span style={{ fontSize: 10, color: '#6b7280' }}>Fees once paid are non-refundable under any circumstances.</span>
             </li>
             <li style={{ marginBottom: 5 }}>
-              <span style={{ fontWeight: 600 }}>विद्यार्थ्याने दिलेली माहिती चुकीची असल्यास, फॉर्म मध्ये चुका झाल्यास त्यासाठी Center for Career Planning जबाबदार नाही.</span>
-              <br /><span style={{ fontSize: 10, color: '#6b7280' }}>Center for Career Planning is not responsible for any errors in the form caused by incorrect information provided by the student.</span>
+              <span style={{ fontWeight: 600 }}>विद्यार्थ्याने दिलेली माहिती चुकीची असल्यास, फॉर्म मध्ये चुका झाल्यास त्यासाठी Chanakya Career Point जबाबदार नाही.</span>
+              <br /><span style={{ fontSize: 10, color: '#6b7280' }}>Chanakya Career Point is not responsible for any errors in the form caused by incorrect information provided by the student.</span>
             </li>
             <li style={{ marginBottom: 5 }}>
               <span style={{ fontWeight: 600 }}>सर्व विद्यार्थ्यांने अचूक माहिती देणे गरजेचे आहे व दिलेल्या माहितीनुसार भरलेला फॉर्म काळजीपूर्वक पाहणे अनिवार्य आहे.</span>
               <br /><span style={{ fontSize: 10, color: '#6b7280' }}>All students must provide accurate information and must carefully review the filled form.</span>
             </li>
             <li style={{ marginBottom: 5 }}>
-              <span style={{ fontWeight: 600 }}>Whatsapp Group मध्ये व SMS द्वारे कळवण्यात आलेली माहिती विद्यार्थ्याने व पालकाने काळजीपूर्वक वाचावी व समजले नसेल तर Center for Career Planning ला संपर्क साधावा.</span>
-              <br /><span style={{ fontSize: 10, color: '#6b7280' }}>Information shared via WhatsApp Group and SMS should be read carefully by the student and parent. Contact Center for Career Planning if unclear.</span>
+              <span style={{ fontWeight: 600 }}>Whatsapp Group मध्ये व SMS द्वारे कळवण्यात आलेली माहिती विद्यार्थ्याने व पालकाने काळजीपूर्वक वाचावी व समजले नसेल तर Chanakya Career Point ला संपर्क साधावा.</span>
+              <br /><span style={{ fontSize: 10, color: '#6b7280' }}>Information shared via WhatsApp Group and SMS should be read carefully by the student and parent. Contact Chanakya Career Point if unclear.</span>
             </li>
           </ul>
         </div>

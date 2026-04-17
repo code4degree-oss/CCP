@@ -89,7 +89,7 @@ export function PrintAdmissionForm({ admission, onClose }: PrintAdmissionFormPro
             ADMISSION APPLICATION FORM
           </h1>
           <p style={{ margin: '4px 0 0', fontSize: 11, color: '#6b7280' }}>
-            Center for Career Planning (CCP)
+            Chanakya Career Point (CCP)
           </p>
         </div>
 
