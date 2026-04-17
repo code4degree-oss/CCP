@@ -140,9 +140,10 @@ interface TableProps<T> {
   columns: Column<T>[]
   data: T[]
   keyField: keyof T
+  onRowClick?: (row: T) => void
 }
 
-export function Table<T>({ columns, data, keyField }: TableProps<T>) {
+export function Table<T>({ columns, data, keyField, onRowClick }: TableProps<T>) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -164,7 +165,11 @@ export function Table<T>({ columns, data, keyField }: TableProps<T>) {
         </thead>
         <tbody>
           {data.map(row => (
-            <tr key={String(row[keyField])} className="tbl-row border-b border-bg-border/50 group cursor-pointer">
+            <tr 
+              key={String(row[keyField])} 
+              className={clsx('tbl-row border-b border-bg-border/50 group', onRowClick && 'cursor-pointer hover:bg-bg-hover')}
+              onClick={() => onRowClick && onRowClick(row)}
+            >
               {columns.map(col => (
                 <td
                   key={col.key}

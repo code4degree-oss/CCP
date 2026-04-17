@@ -6,10 +6,11 @@ import { Card, Button, Table } from '@/components/ui'
 import { admissionsApi, studentsApi, branchesApi, streamsApi } from '@/lib/api'
 import { AdmissionWizard } from './AdmissionWizard'
 import { PrintAdmissionForm } from './PrintAdmissionForm'
+import { PrintFeeReceipt } from './PrintFeeReceipt'
 import clsx from 'clsx'
 
 interface AdmRow {
-  id: number; admission_number?: string; student: number; student_name?: string; branch: number; branch_name?: string; stream: number; stream_name?: string; admission_status: string; manager: number; manager_name?: string; admitted_at: string | null; created_at: string; info_verified?: boolean; consent_given?: boolean; is_finalized?: boolean
+  id: number; admission_number?: string; student: number; student_name?: string; branch: number; branch_name?: string; stream: number; stream_name?: string; course_name?: string; is_entrance_guidance_only?: boolean; admission_status: string; manager: number; manager_name?: string; admitted_at: string | null; created_at: string; info_verified?: boolean; consent_given?: boolean; is_finalized?: boolean
 }
 
 const STATUS_FILTERS = [
@@ -29,10 +30,11 @@ export function AdmissionsModule() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [error, setError] = useState('')
 
-  // View management: 'list' | 'new' | 'edit' | 'print'
-  const [view, setView] = useState<'list' | 'new' | 'edit' | 'print'>('list')
+  // View management: 'list' | 'new' | 'edit' | 'print' | 'receipt'
+  const [view, setView] = useState<'list' | 'new' | 'edit' | 'print' | 'receipt'>('list')
   const [editAdmission, setEditAdmission] = useState<any>(null)
   const [printAdmission, setPrintAdmission] = useState<any>(null)
+  const [receiptData, setReceiptData] = useState<any>(null)
   const [printLoading, setPrintLoading] = useState(false)
 
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('ams_user') : null
@@ -95,10 +97,40 @@ export function AdmissionsModule() {
     setPrintLoading(false)
   }
 
+  const openReceipt = async (a: AdmRow) => {
+    setPrintLoading(true)
+    try {
+      const fullData = await admissionsApi.get(a.id)
+      const isEntrance = fullData.course_name?.toLowerCase().includes('entrance') && fullData.course_name?.toLowerCase().includes('guidance')
+      // Map to receipt format
+      setReceiptData({
+        admission_number: fullData.admission_number,
+        student_name: fullData.student_name || a.student_name,
+        student_mobile: fullData.student_mobile || '',
+        parent_mobile: fullData.student_detail?.alternate_mobile || '',
+        course_name: fullData.course_name || '—',
+        course_fee: Number(fullData.payments?.[0]?.amount || 0), // Just using amount paid for simplicity
+        amount_paid: Number(fullData.payments?.[0]?.amount || 0),
+        payment_mode: fullData.payments?.[0]?.payment_mode || 'Cash',
+        transaction_id: fullData.payments?.[0]?.reference_no || '',
+        branch_name: fullData.branch_name || a.branch_name || 'CCP',
+        branch_address: fullData.branch_address || '',
+        date: new Date(fullData.created_at || a.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        filled_by: fullData.manager_name || a.manager_name || '—',
+        isEntranceOnly: isEntrance
+      })
+      setView('receipt')
+    } catch (e) {
+      setError('Failed to load receipt details')
+    }
+    setPrintLoading(false)
+  }
+
   const handleBack = () => {
     setView('list')
     setEditAdmission(null)
     setPrintAdmission(null)
+    setReceiptData(null)
     load() // reload list
   }
 
@@ -113,7 +145,7 @@ export function AdmissionsModule() {
     { key: 'admission_number', label: 'Admission #', render: (r: AdmRow) => <span className="font-mono text-[11px] font-semibold text-blue-600">{r.admission_number || `#${r.id}`}</span> },
     { key: 'student', label: 'Student', render: (r: AdmRow) => <span className="text-xs font-medium text-txt-primary">{r.student_name || getName(students, r.student, 'full_name')}</span> },
     { key: 'branch', label: 'Branch', render: (r: AdmRow) => <span className="text-xs text-txt-secondary">{getName(branches, r.branch)}</span> },
-    { key: 'stream', label: 'Stream', render: (r: AdmRow) => <span className="text-xs text-txt-secondary">{r.stream ? getName(streams, r.stream) : '—'}</span> },
+    { key: 'course', label: 'Course', render: (r: AdmRow) => <span className="text-[11px] text-txt-secondary">{r.course_name || '—'}</span> },
     { key: 'filled_by', label: 'Filled By', render: (r: AdmRow) => (
       <span className="text-[11px] text-txt-secondary">{r.manager_name || '—'}</span>
     )},
@@ -128,22 +160,30 @@ export function AdmissionsModule() {
         <div className="flex justify-end gap-2">
           {r.is_finalized && (
             <button onClick={(e) => { e.stopPropagation(); openPrint(r) }} className="p-1.5 rounded hover:bg-bg-hover text-accent-blue border border-accent-blue/20 bg-accent-blue/5 transition-colors flex items-center gap-1 text-[10px] font-medium" title="Print Full Form">
-              <Printer size={12} /> Print
+              <Printer size={12} /> Form
             </button>
           )}
+          <button onClick={(e) => { e.stopPropagation(); openReceipt(r) }} className="p-1.5 rounded hover:bg-emerald-50 text-emerald-600 border border-emerald-200 bg-emerald-50/50 transition-colors flex items-center gap-1 text-[10px] font-medium" title="Print Fee Receipt">
+            <FileText size={12} /> Receipt
+          </button>
           {!lockEdit && (
             <button onClick={(e) => { e.stopPropagation(); openEdit(r) }} className="p-1.5 rounded hover:bg-bg-hover text-txt-muted transition-colors flex items-center gap-1 text-[10px]" title="Complete Profile">
-              <FileText size={12} /> {r.is_finalized ? '' : 'Complete'}
+              <Pencil size={12} /> {r.is_finalized ? '' : 'Edit'}
             </button>
           )}
         </div>
       )
-    }},
+    }}
   ]
 
   // ── PRINT VIEW ──
   if (view === 'print' && printAdmission) {
     return <PrintAdmissionForm admission={printAdmission} onClose={handleBack} />
+  }
+
+  // ── RECEIPT VIEW ──
+  if (view === 'receipt' && receiptData) {
+    return <PrintFeeReceipt data={receiptData} onPrint={() => window.print()} onBack={handleBack} onContinue={() => openEdit(editAdmission || printAdmission || {})} />
   }
 
   // ── WIZARD VIEW ──
@@ -185,7 +225,7 @@ export function AdmissionsModule() {
       ) : (
         <Card>
           {admissions.length > 0 ? (
-            <Table columns={columns} data={filtered} keyField="id" />
+            <Table columns={columns} data={filtered} keyField="id" onRowClick={(r) => openEdit(r)} />
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Inbox size={24} className="text-txt-muted mb-3" />
