@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-$*)v64tpqq)p-8uc(m6=1lqu6m^$%qcp*bf6o0=78scb8(en!@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'ccp.dybusinesssolutions.com']
 
 
 # Application definition
@@ -61,6 +61,8 @@ MIDDLEWARE = [
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
+    'http://ccp.dybusinesssolutions.com',
+    'https://ccp.dybusinesssolutions.com',
 ]
 CORS_ALLOW_CREDENTIALS = True
 
