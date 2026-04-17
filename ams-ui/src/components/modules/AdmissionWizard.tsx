@@ -94,6 +94,7 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
   const [showPrintBtn, setShowPrintBtn] = useState(false)
   const [printData, setPrintData] = useState<any>(null)
   const [receiptData, setReceiptData] = useState<any>(null)
+  const [selectedCourseName, setSelectedCourseName] = useState(editAdmission?.course_name || '')
 
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('ams_user') : null
   const user = userStr ? JSON.parse(userStr) : {}
@@ -110,6 +111,8 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
   const [p2, setP2] = useState<Record<string, any>>({
     // NEET-UG
     neet_roll_no: '', neet_application_no: '', dob: '', neet_rank: '', neet_marks: '',
+    // JEE
+    jee_roll_no: '', jee_application_no: '', jee_rank: '', jee_percentile: '',
     // Personal
     full_name: '', name_changed: '', father_name: '', mother_name: '',
     gender: '', mobile: '', email: '', alternate_mobile: '', aadhaar_no: '', religion: '',
@@ -127,9 +130,9 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
     hsc_name: '', hsc_exam: '', hsc_passing_year: '', hsc_roll_no: '',
     hsc_state: '', hsc_district: '', hsc_taluka: '', hsc_exam_session: '',
     // Marks
-    physics_obtained: '', chemistry_obtained: '', biology_obtained: '', english_obtained: '',
-    pcb_obtained: '', pcbe_obtained: '',
-    pcb_percentage_obtained: '', pcbe_percentage_obtained: '',
+    physics_obtained: '', chemistry_obtained: '', maths_obtained: '', biology_obtained: '', english_obtained: '',
+    pcb_obtained: '', pcm_obtained: '', pcbe_obtained: '', pcme_obtained: '',
+    pcb_percentage_obtained: '', pcm_percentage_obtained: '', pcbe_percentage_obtained: '', pcme_percentage_obtained: '',
     // Parallel Reservation
     claim_exception: '', specified_reservation: '',
     // Application
@@ -151,6 +154,12 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
 
   const s1 = (k: string, v: any) => setP1(f => ({ ...f, [k]: v }))
   const s2 = (k: string, v: any) => setP2(f => ({ ...f, [k]: v }))
+
+  // ── Course-type detection ──
+  const cn = selectedCourseName.toLowerCase()
+  const isEntranceOnly = cn.includes('entrance') && cn.includes('guidance')
+  const isEngineering = cn.includes('engineering') && cn.includes('admission')
+  const isMedical = ['medical', 'pharmacy', 'nursing'].some(t => cn.includes(t))
 
   // Dynamic courses from selected branch
   const branchCourses = useMemo(() => {
@@ -183,14 +192,17 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
 
       // Build receipt data
       const selectedCourse = branchCourses.find((c: any) => c.course.toString() === p1.course_id)
+      const courseName = selectedCourse?.course_name || ''
+      setSelectedCourseName(courseName)
       const branchId = p1.branch || user.branch_id?.toString()
       const branchObj = branches.find((b: any) => b.id.toString() === branchId)
+      const isEntrance = courseName.toLowerCase().includes('entrance') && courseName.toLowerCase().includes('guidance')
       setReceiptData({
         admission_number: res.admission_number,
         student_name: p1.student_name,
         student_mobile: p1.student_mobile,
         parent_mobile: p1.parent_mobile,
-        course_name: selectedCourse?.course_name || '—',
+        course_name: courseName || '—',
         course_fee: Number(selectedCourse?.fee_amount || 0),
         amount_paid: Number(p1.amount),
         payment_mode: p1.payment_mode,
@@ -199,6 +211,7 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
         branch_address: branchObj?.address || '',
         date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
         filled_by: user.full_name || '—',
+        isEntranceOnly: isEntrance,
       })
       // Go to receipt view instead of Phase 2
       setPhase('receipt')
@@ -356,23 +369,38 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
         </div>
       )}
 
-      {/* ── NEET-UG Details ── */}
+      {/* ── Exam Details (JEE or NEET) ── */}
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <SectionHeader icon={GraduationCap} title="NEET-UG Details" color="text-blue-700" />
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="NEET Roll No." half><input value={p2.neet_roll_no} onChange={e => s2('neet_roll_no', e.target.value)} className={inputClass} /></Field>
-          <Field label="NEET Application No." half><input value={p2.neet_application_no} onChange={e => s2('neet_application_no', e.target.value)} className={inputClass} /></Field>
-          <Field label="Date of Birth" half><input type="date" value={p2.dob} onChange={e => s2('dob', e.target.value)} className={inputClass} /></Field>
-          <Field label="NEET Rank" half><input type="number" value={p2.neet_rank} onChange={e => s2('neet_rank', e.target.value)} className={inputClass} /></Field>
-          <Field label="NEET Marks" half><input type="number" value={p2.neet_marks} onChange={e => s2('neet_marks', e.target.value)} className={inputClass} /></Field>
-        </div>
+        {isEngineering ? (
+          <>
+            <SectionHeader icon={GraduationCap} title="JEE Details" color="text-blue-700" />
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="JEE Roll No." half><input value={p2.jee_roll_no} onChange={e => s2('jee_roll_no', e.target.value)} className={inputClass} /></Field>
+              <Field label="JEE Application No." half><input value={p2.jee_application_no} onChange={e => s2('jee_application_no', e.target.value)} className={inputClass} /></Field>
+              <Field label="Date of Birth" half><input type="date" value={p2.dob} onChange={e => s2('dob', e.target.value)} className={inputClass} /></Field>
+              <Field label="JEE Rank" half><input type="number" value={p2.jee_rank} onChange={e => s2('jee_rank', e.target.value)} className={inputClass} /></Field>
+              <Field label="JEE Percentile" half><input type="number" step="0.01" value={p2.jee_percentile} onChange={e => s2('jee_percentile', e.target.value)} className={inputClass} /></Field>
+            </div>
+          </>
+        ) : (
+          <>
+            <SectionHeader icon={GraduationCap} title="NEET-UG Details" color="text-blue-700" />
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="NEET Roll No." half><input value={p2.neet_roll_no} onChange={e => s2('neet_roll_no', e.target.value)} className={inputClass} /></Field>
+              <Field label="NEET Application No." half><input value={p2.neet_application_no} onChange={e => s2('neet_application_no', e.target.value)} className={inputClass} /></Field>
+              <Field label="Date of Birth" half><input type="date" value={p2.dob} onChange={e => s2('dob', e.target.value)} className={inputClass} /></Field>
+              <Field label="NEET Rank" half><input type="number" value={p2.neet_rank} onChange={e => s2('neet_rank', e.target.value)} className={inputClass} /></Field>
+              <Field label="NEET Marks" half><input type="number" value={p2.neet_marks} onChange={e => s2('neet_marks', e.target.value)} className={inputClass} /></Field>
+            </div>
+          </>
+        )}
       </div>
 
       {/* ── Personal Information ── */}
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
         <SectionHeader icon={User} title="Personal Information" color="text-purple-700" />
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Full Name (As per NEET Score Card)" required half>
+          <Field label={`Full Name (As per ${isEngineering ? 'JEE' : 'NEET'} Score Card)`} required half>
             <input value={p2.full_name} onChange={e => s2('full_name', e.target.value)} className={inputClass} />
           </Field>
           <Field label="Name changed after 10th?" half>
@@ -572,13 +600,20 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
         <SectionHeader icon={ClipboardList} title="Subject Details (12th Marks)" color="text-blue-700" />
         <div className="space-y-4">
-          {[
-            { label: 'Physics', key: 'physics', outOf: 100 },
-            { label: 'Chemistry', key: 'chemistry', outOf: 100 },
-            { label: 'Mathematics', key: 'maths', outOf: 100 },
-            { label: 'Biology', key: 'biology', outOf: 100 },
-            { label: 'English', key: 'english', outOf: 100 },
-          ].map(sub => (
+          {(() => {
+            // Build subject list based on course type
+            const subjects = [
+              { label: 'Physics', key: 'physics', outOf: 100 },
+              { label: 'Chemistry', key: 'chemistry', outOf: 100 },
+            ]
+            if (isEngineering) {
+              subjects.push({ label: 'Mathematics', key: 'maths', outOf: 100 })
+            } else {
+              subjects.push({ label: 'Biology', key: 'biology', outOf: 100 })
+            }
+            subjects.push({ label: 'English', key: 'english', outOf: 100 })
+            return subjects
+          })().map(sub => (
             <div key={sub.key} className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-end">
               <div>
                 <p className="text-sm font-semibold text-gray-800">{sub.label}</p>
@@ -597,19 +632,19 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
                   const b = parseFloat(n.biology_obtained) || 0
                   const eng = parseFloat(n.english_obtained) || 0
 
+                  // PCB (Medical)
                   n.pcb_obtained = (p + c + b).toString()
-                  n.pcb_percentage_obtained = ((p + c + b) / 3).toFixed(2)
-                  
-                  n.pcm_obtained = (p + c + m).toString()
-                  n.pcm_percentage_obtained = ((p + c + m) / 3).toFixed(2)
-                  
+                  n.pcb_percentage_obtained = b > 0 ? ((p + c + b) / 3).toFixed(2) : '0'
                   n.pcbe_obtained = (p + c + b + eng).toString()
-                  n.pcbe_percentage_obtained = ((p + c + b + eng) / 4).toFixed(2)
+                  n.pcbe_percentage_obtained = b > 0 ? ((p + c + b + eng) / 4).toFixed(2) : '0'
 
+                  // PCM (Engineering)
+                  n.pcm_obtained = (p + c + m).toString()
+                  n.pcm_percentage_obtained = m > 0 ? ((p + c + m) / 3).toFixed(2) : '0'
                   n.pcme_obtained = (p + c + m + eng).toString()
-                  n.pcme_percentage_obtained = ((p + c + m + eng) / 4).toFixed(2)
+                  n.pcme_percentage_obtained = m > 0 ? ((p + c + m + eng) / 4).toFixed(2) : '0'
 
-                  setPhase2Data(n)
+                  setP2(n)
                 }} 
                 placeholder="0" 
                 className={inputClass} 
@@ -623,20 +658,22 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
 
           <hr className="my-4 border-gray-200" />
           
-          {[
-            { label: 'PCB Total', key: 'pcb', outOf: 300 },
-            { label: 'PCB Percentage', key: 'pcb_percentage', outOf: 100 },
+          {/* Show relevant calculated totals based on course type */}
+          {(isEngineering ? [
             { label: 'PCM Total', key: 'pcm', outOf: 300 },
             { label: 'PCM Percentage', key: 'pcm_percentage', outOf: 100 },
-            { label: 'PCBE Total', key: 'pcbe', outOf: 400 },
-            { label: 'PCBE Percentage', key: 'pcbe_percentage', outOf: 100 },
             { label: 'PCME Total', key: 'pcme', outOf: 400 },
             { label: 'PCME Percentage', key: 'pcme_percentage', outOf: 100 },
-          ].map(sub => (
+          ] : [
+            { label: 'PCB Total', key: 'pcb', outOf: 300 },
+            { label: 'PCB Percentage', key: 'pcb_percentage', outOf: 100 },
+            { label: 'PCBE Total', key: 'pcbe', outOf: 400 },
+            { label: 'PCBE Percentage', key: 'pcbe_percentage', outOf: 100 },
+          ]).map(sub => (
             <div key={sub.key} className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-end">
               <div>
                 <p className="text-sm font-semibold text-gray-800">{sub.label}</p>
-                <p className="text-[10px] text-blue-600 font-medium">Calculated</p>
+                <p className="text-[10px] text-emerald-600 font-medium">Auto-calculated</p>
               </div>
               <input type="text" value={p2[`${sub.key}_obtained`] || '0'} readOnly className={readonlyClass} />
               <div className="flex items-center gap-2">

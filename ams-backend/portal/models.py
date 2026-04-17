@@ -159,6 +159,7 @@ class Admission(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
     manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='managed_admissions')
     stream = models.ForeignKey(Stream, on_delete=models.SET_NULL, null=True)
+    course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, blank=True, related_name='admissions')
     admission_status = models.CharField(max_length=30, default="Documents Pending")
     application_scope = models.CharField(max_length=30, null=True, blank=True)
     govt_submission_done = models.BooleanField(default=False)

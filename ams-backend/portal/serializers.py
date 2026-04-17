@@ -206,6 +206,7 @@ class AdmissionSerializer(serializers.ModelSerializer):
     payments = PaymentSerializer(many=True, read_only=True)
     branch_address = serializers.CharField(source='branch.address', read_only=True, default=None)
     branch_name = serializers.CharField(source='branch.name', read_only=True, default=None)
+    course_name = serializers.CharField(source='course.name', read_only=True, default=None)
 
     class Meta:
         model = Admission

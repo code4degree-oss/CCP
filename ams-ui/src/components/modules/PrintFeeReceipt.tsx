@@ -17,6 +17,7 @@ interface PrintFeeReceiptProps {
     branch_address: string
     date: string
     filled_by: string
+    isEntranceOnly?: boolean
   }
   onPrint: () => void
   onContinue: () => void
@@ -43,11 +44,17 @@ export function PrintFeeReceipt({ data, onPrint, onContinue, onBack }: PrintFeeR
           <button onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             <Printer size={14} /> Print Receipt
           </button>
-          <button onClick={onContinue} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 8, border: 'none', background: '#059669', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-            <ArrowRight size={14} /> Continue to Complete Profile
-          </button>
+          {!data.isEntranceOnly && (
+            <button onClick={onContinue} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 8, border: 'none', background: '#059669', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              <ArrowRight size={14} /> Continue to Complete Profile
+            </button>
+          )}
         </div>
-        <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>Print the receipt for the student, then continue to fill the detailed profile.</p>
+        <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
+          {data.isEntranceOnly 
+            ? 'Print the receipt for the student. This entrance guidance admission is now complete.'
+            : 'Print the receipt for the student, then continue to fill the detailed profile.'}
+        </p>
       </div>
 
       {/* ─── PRINTABLE RECEIPT ─── */}

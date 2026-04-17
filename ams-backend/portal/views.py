@@ -362,6 +362,9 @@ class AdmissionViewSet(viewsets.ModelViewSet):
                 next_seq = int(m.group(1)) + 1
         admission_number = f'CCP{next_seq:03d}'
 
+        # Determine if this is entrance-guidance-only
+        is_entrance = 'entrance' in course.name.lower() and 'guidance' in course.name.lower()
+
         # Create Admission
         admission = Admission.objects.create(
             admission_number=admission_number,
@@ -369,7 +372,9 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             branch=branch_obj,
             manager=user if user.is_authenticated else None,
             stream=course.stream,
-            admission_status="Documents Pending",
+            course=course,
+            is_entrance_guidance_only=is_entrance,
+            admission_status="Completed" if is_entrance else "Documents Pending",
             notes=data.get('notes', ''),
         )
 
@@ -405,18 +410,25 @@ class AdmissionViewSet(viewsets.ModelViewSet):
 
         # Pack academic_details JSON
         academic_keys = [
+            # NEET fields
             'neet_roll_no', 'neet_application_no', 'neet_percentile_physics',
             'neet_percentile_chemistry', 'neet_percentile_biology', 'neet_total_percentile',
             'neet_air', 'neet_category_rank',
+            # JEE fields
+            'jee_roll_no', 'jee_application_no', 'jee_rank', 'jee_percentile',
+            # SSC
             'ssc_year', 'ssc_language', 'ssc_state', 'ssc_district', 'ssc_taluka',
             'ssc_school_name', 'ssc_roll_no',
+            # HSC
             'hsc_name', 'hsc_exam', 'hsc_passing_year', 'hsc_roll_no',
             'hsc_state', 'hsc_district', 'hsc_taluka', 'hsc_exam_session',
+            # Subject marks
             'physics_obtained', 'physics_out_of',
             'chemistry_obtained', 'chemistry_out_of',
             'maths_obtained', 'maths_out_of',
             'biology_obtained', 'biology_out_of',
             'english_obtained', 'english_out_of',
+            # Totals
             'pcb_obtained', 'pcb_out_of',
             'pcm_obtained', 'pcm_out_of',
             'pcbe_obtained', 'pcbe_out_of',
