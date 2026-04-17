@@ -397,8 +397,11 @@ class AdmissionViewSet(viewsets.ModelViewSet):
         direct_fields = ['full_name', 'father_name', 'email', 'aadhaar_no', 'dob', 'gender', 'category',
                          'neet_rank', 'neet_marks', 'mobile']
         for f in direct_fields:
-            if f in data and data[f]:
-                setattr(student, f, data[f])
+            if f in data:
+                val = data[f]
+                if val == "":
+                    val = None
+                setattr(student, f, val)
 
         # Pack academic_details JSON
         academic_keys = [
@@ -411,12 +414,17 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             'hsc_state', 'hsc_district', 'hsc_taluka', 'hsc_exam_session',
             'physics_obtained', 'physics_out_of',
             'chemistry_obtained', 'chemistry_out_of',
+            'maths_obtained', 'maths_out_of',
             'biology_obtained', 'biology_out_of',
             'english_obtained', 'english_out_of',
             'pcb_obtained', 'pcb_out_of',
+            'pcm_obtained', 'pcm_out_of',
             'pcbe_obtained', 'pcbe_out_of',
+            'pcme_obtained', 'pcme_out_of',
             'pcb_percentage_obtained', 'pcb_percentage_out_of',
+            'pcm_percentage_obtained', 'pcm_percentage_out_of',
             'pcbe_percentage_obtained', 'pcbe_percentage_out_of',
+            'pcme_percentage_obtained', 'pcme_percentage_out_of',
         ]
         academic = student.academic_details or {}
         for k in academic_keys:

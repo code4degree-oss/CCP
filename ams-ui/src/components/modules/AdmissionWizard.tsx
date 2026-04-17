@@ -575,19 +575,70 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
           {[
             { label: 'Physics', key: 'physics', outOf: 100 },
             { label: 'Chemistry', key: 'chemistry', outOf: 100 },
+            { label: 'Mathematics', key: 'maths', outOf: 100 },
             { label: 'Biology', key: 'biology', outOf: 100 },
             { label: 'English', key: 'english', outOf: 100 },
-            { label: 'PCB Total', key: 'pcb', outOf: 300 },
-            { label: 'PCBE Total', key: 'pcbe', outOf: 400 },
-            { label: 'PCB Percentage', key: 'pcb_percentage', outOf: 100 },
-            { label: 'PCBE Percentage', key: 'pcbe_percentage', outOf: 100 },
           ].map(sub => (
             <div key={sub.key} className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-end">
               <div>
                 <p className="text-sm font-semibold text-gray-800">{sub.label}</p>
                 <p className="text-[10px] text-blue-600 font-medium">Marks obtained</p>
               </div>
-              <input type="number" value={p2[`${sub.key}_obtained`] || ''} onChange={e => s2(`${sub.key}_obtained`, e.target.value)} placeholder="0" className={inputClass} />
+              <input 
+                type="number" 
+                value={p2[`${sub.key}_obtained`] || ''} 
+                onChange={e => {
+                  const val = e.target.value
+                  const n = { ...p2, [`${sub.key}_obtained`]: val }
+                  
+                  const p = parseFloat(n.physics_obtained) || 0
+                  const c = parseFloat(n.chemistry_obtained) || 0
+                  const m = parseFloat(n.maths_obtained) || 0
+                  const b = parseFloat(n.biology_obtained) || 0
+                  const eng = parseFloat(n.english_obtained) || 0
+
+                  n.pcb_obtained = (p + c + b).toString()
+                  n.pcb_percentage_obtained = ((p + c + b) / 3).toFixed(2)
+                  
+                  n.pcm_obtained = (p + c + m).toString()
+                  n.pcm_percentage_obtained = ((p + c + m) / 3).toFixed(2)
+                  
+                  n.pcbe_obtained = (p + c + b + eng).toString()
+                  n.pcbe_percentage_obtained = ((p + c + b + eng) / 4).toFixed(2)
+
+                  n.pcme_obtained = (p + c + m + eng).toString()
+                  n.pcme_percentage_obtained = ((p + c + m + eng) / 4).toFixed(2)
+
+                  setPhase2Data(n)
+                }} 
+                placeholder="0" 
+                className={inputClass} 
+              />
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 whitespace-nowrap">Marks out of</span>
+                <input value={sub.outOf} readOnly className={readonlyClass} />
+              </div>
+            </div>
+          ))}
+
+          <hr className="my-4 border-gray-200" />
+          
+          {[
+            { label: 'PCB Total', key: 'pcb', outOf: 300 },
+            { label: 'PCB Percentage', key: 'pcb_percentage', outOf: 100 },
+            { label: 'PCM Total', key: 'pcm', outOf: 300 },
+            { label: 'PCM Percentage', key: 'pcm_percentage', outOf: 100 },
+            { label: 'PCBE Total', key: 'pcbe', outOf: 400 },
+            { label: 'PCBE Percentage', key: 'pcbe_percentage', outOf: 100 },
+            { label: 'PCME Total', key: 'pcme', outOf: 400 },
+            { label: 'PCME Percentage', key: 'pcme_percentage', outOf: 100 },
+          ].map(sub => (
+            <div key={sub.key} className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-end">
+              <div>
+                <p className="text-sm font-semibold text-gray-800">{sub.label}</p>
+                <p className="text-[10px] text-blue-600 font-medium">Calculated</p>
+              </div>
+              <input type="text" value={p2[`${sub.key}_obtained`] || '0'} readOnly className={readonlyClass} />
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500 whitespace-nowrap">Marks out of</span>
                 <input value={sub.outOf} readOnly className={readonlyClass} />
