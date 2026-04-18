@@ -138,7 +138,7 @@ export function Sidebar({ active, onChange }: SidebarProps) {
               </div>
             )}
             {!collapsed && (
-              <button onClick={() => { const base = typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api' : 'http://localhost:8000/api'; fetch(`${base}/logout/`, { method: 'POST', credentials: 'include' }).finally(() => { localStorage.removeItem('ams_user'); window.location.replace('/login') }) }} className="text-txt-muted hover:text-txt-secondary transition-colors" title="Logout">
+              <button onClick={async () => { try { const base = typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api' : 'http://localhost:8000/api'; await fetch(`${base}/logout/`, { method: 'POST', credentials: 'include' }) } catch {} localStorage.removeItem('ams_user'); document.cookie = 'sessionid=; Max-Age=0; path=/;'; document.cookie = 'csrftoken=; Max-Age=0; path=/;'; window.location.replace('/login') }} className="text-txt-muted hover:text-txt-secondary transition-colors" title="Logout">
                 <LogOut size={13} />
               </button>
             )}
