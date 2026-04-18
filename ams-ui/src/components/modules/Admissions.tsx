@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Download, Inbox, Loader2, Pencil, FileText, Printer } from 'lucide-react'
+import { Plus, Download, Inbox, Loader2, Pencil, FileText, Printer, FolderOpen, X, ExternalLink } from 'lucide-react'
 import { Card, Button, Table } from '@/components/ui'
 import { admissionsApi, studentsApi, branchesApi, streamsApi } from '@/lib/api'
 import { AdmissionWizard } from './AdmissionWizard'
@@ -36,6 +36,8 @@ export function AdmissionsModule() {
   const [printAdmission, setPrintAdmission] = useState<any>(null)
   const [receiptData, setReceiptData] = useState<any>(null)
   const [printLoading, setPrintLoading] = useState(false)
+  const [docModal, setDocModal] = useState<{ admission: any; docs: any[] } | null>(null)
+  const [docsLoading, setDocsLoading] = useState(false)
 
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('ams_user') : null
   const user = userStr ? JSON.parse(userStr) : {}
@@ -134,6 +136,17 @@ export function AdmissionsModule() {
     load() // reload list
   }
 
+  const openDocs = async (a: AdmRow) => {
+    setDocsLoading(true)
+    try {
+      const docs = await admissionsApi.listDocuments(a.id)
+      setDocModal({ admission: a, docs })
+    } catch {
+      setError('Failed to load documents')
+    }
+    setDocsLoading(false)
+  }
+
   const statusColor = (s: string) => {
     if (s === 'Admitted') return 'text-accent-green bg-accent-green/10 border-accent-green/20'
     if (s === 'Rejected') return 'text-red-400 bg-red-400/10 border-red-400/20'
@@ -166,9 +179,12 @@ export function AdmissionsModule() {
           <button onClick={(e) => { e.stopPropagation(); openReceipt(r) }} className="p-1.5 rounded hover:bg-emerald-50 text-emerald-600 border border-emerald-200 bg-emerald-50/50 transition-colors flex items-center gap-1 text-[10px] font-medium" title="Print Fee Receipt">
             <FileText size={12} /> Receipt
           </button>
+          <button onClick={(e) => { e.stopPropagation(); openDocs(r) }} className="p-1.5 rounded hover:bg-violet-50 text-violet-600 border border-violet-200 bg-violet-50/50 transition-colors flex items-center gap-1 text-[10px] font-medium" title="View Documents">
+            <FolderOpen size={12} /> Docs
+          </button>
           {!lockEdit && (
-            <button onClick={(e) => { e.stopPropagation(); openEdit(r) }} className="p-1.5 rounded hover:bg-bg-hover text-txt-muted transition-colors flex items-center gap-1 text-[10px]" title="Complete Profile">
-              <Pencil size={12} /> {r.is_finalized ? '' : 'Edit'}
+            <button onClick={(e) => { e.stopPropagation(); openEdit(r) }} className="p-1.5 rounded hover:bg-bg-hover text-txt-muted transition-colors flex items-center gap-1 text-[10px]" title="Edit / Complete Profile">
+              <Pencil size={12} /> Edit
             </button>
           )}
         </div>
@@ -190,6 +206,58 @@ export function AdmissionsModule() {
   if (view === 'new' || view === 'edit') {
     return <AdmissionWizard onBack={handleBack} editAdmission={editAdmission} />
   }
+
+  // ── DOCUMENTS MODAL ──
+  const docsModal = docModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-gray-900">Documents</h3>
+            <p className="text-[11px] text-gray-500 mt-0.5">{docModal.admission.admission_number || `#${docModal.admission.id}`} — {docModal.admission.student_name}</p>
+          </div>
+          <button onClick={() => setDocModal(null)} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={16} /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          {docModal.docs.length === 0 ? (
+            <div className="text-center py-10">
+              <FolderOpen size={32} className="text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500 font-medium">No documents uploaded yet</p>
+              <p className="text-xs text-gray-400 mt-1">Edit this admission to upload documents in Step 3</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {docModal.docs.map((doc: any) => {
+                const apiBase = typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '' : 'http://localhost:8000'
+                const url = `${apiBase}${doc.file_url}`
+                return (
+                  <div key={doc.id} className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-violet-100 flex items-center justify-center">
+                        <FileText size={16} className="text-violet-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{doc.document_type}</p>
+                        <p className="text-[10px] text-gray-500">Status: {doc.verification_status || 'Uploaded'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors">
+                        <ExternalLink size={11} /> View
+                      </a>
+                      <a href={url} download className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors">
+                        <Download size={11} /> Download
+                      </a>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 
   // ── LIST VIEW ──
   return (
@@ -219,6 +287,9 @@ export function AdmissionsModule() {
           </div>
         </div>
       )}
+
+      {/* Documents modal */}
+      {docsModal}
 
       {loading ? (
         <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin text-txt-muted" /></div>

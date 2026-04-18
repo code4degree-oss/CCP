@@ -62,14 +62,84 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
 
   // Pre-fill from edit data
   useEffect(() => {
-    if (editAdmission) {
-      setP2(prev => ({ ...prev, full_name: editAdmission.student_name || '', mobile: editAdmission.student_mobile || '' }))
-      // Load existing documents
-      if (editAdmission.documents) setDocuments(editAdmission.documents)
-      else if (editAdmission.id) admissionsApi.listDocuments(editAdmission.id).then(setDocuments).catch(() => {})
-      // If finalized, load full data for preview
-      if (editAdmission.is_finalized) admissionsApi.get(editAdmission.id).then(setFullAdmission).catch(() => {})
+    if (!editAdmission) return
+
+    const loadEditData = async () => {
+      try {
+        const full = await admissionsApi.get(editAdmission.id)
+        setAdmissionData(full)
+        setCourseName(full.course_name || editAdmission.course_name || '')
+
+        // Load documents
+        if (full.documents?.length) setDocuments(full.documents)
+        else admissionsApi.listDocuments(editAdmission.id).then(setDocuments).catch(() => {})
+
+        // If finalized, store for preview
+        if (full.is_finalized) setFullAdmission(full)
+
+        // Pre-fill p2 from student_detail
+        const s = full.student_detail || {}
+        const acad = s.academic_details || {}
+        const demo = s.demographic_details || {}
+
+        setP2(prev => ({
+          ...prev,
+          // Personal
+          full_name: s.full_name || full.student_name || '',
+          mobile: s.mobile || full.student_mobile || '',
+          email: s.email || '', gender: s.gender || '',
+          dob: s.dob || '', aadhaar_no: s.aadhaar_no || '',
+          father_name: s.father_name || '',
+          alternate_mobile: s.alternate_mobile || '',
+          // Academic / Exam
+          neet_roll_no: acad.neet_roll_no || s.neet_roll_no || '',
+          neet_application_no: acad.neet_application_no || '',
+          neet_rank: s.neet_rank || acad.neet_rank || '',
+          neet_marks: s.neet_marks || acad.neet_marks || '',
+          jee_roll_no: acad.jee_roll_no || '', jee_application_no: acad.jee_application_no || '',
+          jee_rank: acad.jee_rank || '', jee_percentile: acad.jee_percentile || '',
+          // Demographic
+          name_changed: demo.name_changed || '', mother_name: demo.mother_name || '',
+          religion: demo.religion || '',
+          address_line1: demo.address_line1 || '', address_line2: demo.address_line2 || '',
+          address_line3: demo.address_line3 || '', city: demo.city || '',
+          state: demo.state || '', district: demo.district || '',
+          taluka: demo.taluka || '', pincode: demo.pincode || '',
+          apply_nri: demo.apply_nri || '', oci_pio: demo.oci_pio || '',
+          nationality: demo.nationality || '', domicile_maharashtra: demo.domicile_maharashtra || '',
+          is_orphan: demo.is_orphan || '', annual_income: demo.annual_income || '',
+          region_of_residence: demo.region_of_residence || '', is_pwd: demo.is_pwd || '',
+          category_of_candidate: demo.category_of_candidate || '', sub_category: demo.sub_category || '',
+          claim_minority_quota: demo.claim_minority_quota || '', claim_linguistic_minority: demo.claim_linguistic_minority || '',
+          // SSC
+          ssc_year: acad.ssc_year || '', ssc_language: acad.ssc_language || '',
+          ssc_state: acad.ssc_state || '', ssc_district: acad.ssc_district || '',
+          ssc_taluka: acad.ssc_taluka || '', ssc_school_name: acad.ssc_school_name || '',
+          ssc_roll_no: acad.ssc_roll_no || '',
+          // HSC
+          hsc_name: acad.hsc_name || '', hsc_exam: acad.hsc_exam || '',
+          hsc_passing_year: acad.hsc_passing_year || '', hsc_roll_no: acad.hsc_roll_no || '',
+          hsc_state: acad.hsc_state || '', hsc_district: acad.hsc_district || '',
+          hsc_taluka: acad.hsc_taluka || '', hsc_exam_session: acad.hsc_exam_session || '',
+          // Marks
+          physics_obtained: acad.physics_obtained || '', chemistry_obtained: acad.chemistry_obtained || '',
+          maths_obtained: acad.maths_obtained || '', biology_obtained: acad.biology_obtained || '',
+          english_obtained: acad.english_obtained || '',
+          pcb_obtained: acad.pcb_obtained || '', pcm_obtained: acad.pcm_obtained || '',
+          pcbe_obtained: acad.pcbe_obtained || '', pcme_obtained: acad.pcme_obtained || '',
+          pcb_percentage_obtained: acad.pcb_percentage_obtained || '', pcm_percentage_obtained: acad.pcm_percentage_obtained || '',
+          pcbe_percentage_obtained: acad.pcbe_percentage_obtained || '', pcme_percentage_obtained: acad.pcme_percentage_obtained || '',
+          // Reservation / Application
+          claim_exception: demo.claim_exception || '', specified_reservation: demo.specified_reservation || '',
+          quota_apply_for: demo.quota_apply_for || '', documents_received: demo.documents_received || '',
+        }))
+      } catch {
+        // Fallback: minimal pre-fill
+        setP2(prev => ({ ...prev, full_name: editAdmission.student_name || '', mobile: editAdmission.student_mobile || '' }))
+      }
     }
+
+    loadEditData()
   }, [editAdmission])
 
   /* ── Step 1 Submit ── */
@@ -236,7 +306,7 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
 
   /* ═══ STEP 5: Final Preview ═══ */
   if (step === 5 && fullAdmission) {
-    return <WizardStep5 admission={fullAdmission} onBack={onBack} />
+    return <WizardStep5 admission={fullAdmission} onBack={onBack} onEdit={() => setStep(4)} />
   }
   if (step === 5 && editAdmission?.is_finalized) {
     // Load full admission data

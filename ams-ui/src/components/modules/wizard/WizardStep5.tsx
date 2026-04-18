@@ -17,7 +17,7 @@ function SectionTitle({ title, color = '#1d4ed8' }: { title: string; color?: str
   )
 }
 
-export function WizardStep5({ admission, onBack }: { admission: any; onBack: () => void }) {
+export function WizardStep5({ admission, onBack, onEdit }: { admission: any; onBack: () => void; onEdit?: () => void }) {
   const student = admission?.student_detail || {}
   const academic = student?.academic_details || {}
   const demo = student?.demographic_details || {}
@@ -44,6 +44,12 @@ export function WizardStep5({ admission, onBack }: { admission: any; onBack: () 
           <button onClick={onBack} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
             <ArrowLeft size={14} /> Back to Admissions
           </button>
+          {onEdit && (
+            <button onClick={onEdit} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors">
+              Edit Admission
+            </button>
+          )}
+          <div className="flex-1" />
           <button onClick={handlePrint} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors">
             <Printer size={14} /> Print Form
           </button>
