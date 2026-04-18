@@ -476,6 +476,34 @@ class AdmissionViewSet(viewsets.ModelViewSet):
 
         return Response(AdmissionSerializer(admission).data)
 
+    @action(detail=True, methods=['post'], url_path='upload-document')
+    def upload_document(self, request, pk=None):
+        admission = self.get_object()
+        file_obj = request.FILES.get('file')
+        doc_type = request.data.get('document_type')
+        if not file_obj or not doc_type:
+            return Response({'detail': 'File and document_type are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        from django.core.files.storage import default_storage
+        import os
+        
+        # Save file to media directory
+        path = default_storage.save(f"admissions/{admission.id}/{file_obj.name}", file_obj)
+        file_url = default_storage.url(path)
+        
+        doc = AdmissionDocument.objects.create(
+            admission=admission,
+            document_type=doc_type,
+            file_url=file_url
+        )
+        return Response(AdmissionDocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'])
+    def documents(self, request, pk=None):
+        admission = self.get_object()
+        docs = AdmissionDocument.objects.filter(admission=admission)
+        return Response(AdmissionDocumentSerializer(docs, many=True).data)
+
 class AdmissionPreferenceViewSet(viewsets.ModelViewSet):
     queryset = AdmissionPreference.objects.all()
     serializer_class = AdmissionPreferenceSerializer
