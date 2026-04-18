@@ -25,5 +25,10 @@ jobs:
             # Navigate to the project directory on the server
             cd /var/www/ams
             
+            # Force pull from main to ensure the server has the latest deploy.sh
+            git fetch origin
+            git checkout main
+            git pull origin main
+            
             # Execute the deployment script
             bash deploy.sh
