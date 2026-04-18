@@ -79,6 +79,23 @@ export const admissionsApi = {
   update: (id: number, data: any) => apiFetch(`admissions/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   initiate: (data: any) => apiFetch('admissions/initiate', { method: 'POST', body: JSON.stringify(data) }),
   completeProfile: (id: number, data: any) => apiFetch(`admissions/${id}/complete-profile`, { method: 'PATCH', body: JSON.stringify(data) }),
+  uploadDocument: (id: number, file: File, documentType: string) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('document_type', documentType)
+    return fetch(`${API_BASE}/admissions/${id}/upload-document/`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    }).then(async res => {
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }))
+        throw new Error(err.detail || JSON.stringify(err))
+      }
+      return res.json()
+    })
+  },
+  listDocuments: (id: number) => apiFetch(`admissions/${id}/documents`),
 }
 
 // ---------- STREAMS / COURSES / COLLEGES ----------
