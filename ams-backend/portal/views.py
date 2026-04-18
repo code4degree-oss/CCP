@@ -624,6 +624,12 @@ def change_password_view(request):
     user.must_change_password = False
     user.save(update_fields=['password', 'must_change_password'])
 
+    # Important: Changing the password invalidates the current session.
+    # We must update the session hash so the user remains logged in.
+    from django.contrib.auth import update_session_auth_hash
+    if request.user.is_authenticated and request.user.id == user.id:
+        update_session_auth_hash(request, user)
+
     return Response({'detail': 'Password changed successfully.'})
 
 
