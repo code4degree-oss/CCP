@@ -45,8 +45,8 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Student Details</h4>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Student Name" required half><input value={p1.student_name} onChange={e => s('student_name', e.target.value)} placeholder="Full name" className={inputClass} /></Field>
-              <Field label="Student Mobile No." required half><input value={p1.student_mobile} onChange={e => s('student_mobile', e.target.value)} placeholder="10-digit number" className={inputClass} /></Field>
-              <Field label="Parent's Mobile No." half><input value={p1.parent_mobile} onChange={e => s('parent_mobile', e.target.value)} placeholder="Parent / Guardian mobile" className={inputClass} /></Field>
+              <Field label="Student Mobile No." required half><input value={p1.student_mobile} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) s('student_mobile', v); }} placeholder="10-digit number" className={inputClass} /></Field>
+              <Field label="Parent's Mobile No." half><input value={p1.parent_mobile} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) s('parent_mobile', v); }} placeholder="Parent / Guardian mobile" className={inputClass} /></Field>
             </div>
           </div>
           {isSuper && (

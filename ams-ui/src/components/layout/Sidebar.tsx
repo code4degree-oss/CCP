@@ -4,7 +4,7 @@ import { useState } from 'react'
 import {
   LayoutDashboard, Users, UserCheck, GraduationCap, CreditCard,
   Building2, BookOpen, Settings, ChevronRight,
-  LogOut, Menu, X
+  LogOut, Menu, X, FileSpreadsheet
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -26,6 +26,7 @@ const BASE_NAV: NavItem[] = [
 const ADMIN_NAV: NavItem[] = [
   ...BASE_NAV,
   { label: 'Payments',    icon: CreditCard,       id: 'payments' },
+  { label: 'Reports',     icon: FileSpreadsheet,  id: 'reports' },
   { label: 'Branches',    icon: Building2,        id: 'branches' },
   { label: 'Users / Employees', icon: UserCheck, id: 'users' },
   { label: 'Settings',    icon: Settings,         id: 'settings' },
