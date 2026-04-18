@@ -16,7 +16,7 @@ interface AdmRow {
 const STATUS_FILTERS = [
   { label: 'All', value: 'all' },
   { label: 'Documents Pending', value: 'Documents Pending' },
-  { label: 'Under Review', value: 'Under Review' },
+  { label: 'Form Completed', value: 'Under Review' },
   { label: 'Admitted', value: 'Admitted' },
   { label: 'Rejected', value: 'Rejected' },
 ]
@@ -162,11 +162,10 @@ export function AdmissionsModule() {
     { key: 'filled_by', label: 'Filled By', render: (r: AdmRow) => (
       <span className="text-[11px] text-txt-secondary">{r.manager_name || '—'}</span>
     )},
-    { key: 'status', label: 'Status', render: (r: AdmRow) => <span className={clsx('text-[11px] px-2 py-0.5 rounded border font-medium', statusColor(r.admission_status))}>{r.admission_status}</span> },
-    { key: 'finalized', label: '', render: (r: AdmRow) => r.is_finalized 
-      ? <span className="text-[10px] bg-accent-green/10 text-accent-green border border-accent-green/20 px-1.5 py-0.5 rounded font-medium">Final</span>
-      : <span className="text-[10px] bg-accent-amber/10 text-accent-amber border border-accent-amber/20 px-1.5 py-0.5 rounded font-medium">Draft</span>
-    },
+    { key: 'status', label: 'Status', render: (r: AdmRow) => {
+      const displayStatus = r.admission_status === 'Under Review' ? 'Form Completed' : r.admission_status;
+      return <span className={clsx('text-[11px] px-2 py-0.5 rounded border font-medium', statusColor(r.admission_status))}>{displayStatus}</span>
+    }},
     { key: 'actions', label: '', render: (r: AdmRow) => {
       const lockEdit = r.is_finalized && isEmployee;
       return (
