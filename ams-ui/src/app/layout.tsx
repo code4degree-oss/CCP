@@ -5,7 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { ThemeToggle } from '@/components/theme-toggle'
 
 export const metadata: Metadata = {
-  title: 'AMS — Admission Management System',
+  title: 'CCP — Admission Management System',
   description: 'Industry-grade admission management platform',
 }
 
