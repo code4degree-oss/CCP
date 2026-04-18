@@ -51,6 +51,11 @@ export function ReportsModule() {
       // Flatten data for Excel
       const excelData = fullData.map((a: any) => {
         const details = a.student_detail || {}
+        const acad = details.academic_details || {}
+        const demo = details.demographic_details || {}
+        
+        const displayStatus = a.admission_status === 'Under Review' ? 'Form Completed' : (a.admission_status || '-')
+
         return {
           'Admission Number': a.admission_number || '-',
           'Student Name': a.student_name || details.full_name || '-',
@@ -60,36 +65,82 @@ export function ReportsModule() {
           'DOB': details.dob || '-',
           'Branch': a.branch_name || '-',
           'Course': a.course_name || '-',
-          'Admission Status': a.admission_status || '-',
+          'Admission Status': displayStatus,
           'Admitted At': a.admitted_at ? new Date(a.admitted_at).toLocaleDateString() : '-',
           
-          // Address
-          'City': details.city || '-',
-          'Taluka': details.taluka || '-',
-          'District': details.district || '-',
-          'State': details.state || '-',
-          'Pincode': details.pincode || '-',
+          // Address & Demographic
+          'City': demo.city || '-',
+          'Taluka': demo.taluka || '-',
+          'District': demo.district || '-',
+          'State': demo.state || '-',
+          'Pincode': demo.pincode || '-',
+          'Father Name': details.father_name || '-',
+          'Mother Name': demo.mother_name || '-',
+          'Name Changed': demo.name_changed || '-',
 
-          // Academic
-          'SSC Year': details.ssc_year || '-',
-          'SSC %': details.ssc_percentage || '-',
-          'HSC Year': details.hsc_passing_year || '-',
-          'Physics Marks': details.physics_obtained || '-',
-          'Chemistry Marks': details.chemistry_obtained || '-',
-          'Maths Marks': details.maths_obtained || '-',
-          'Biology Marks': details.biology_obtained || '-',
-          'English Marks': details.english_obtained || '-',
-          'PCB Total': details.pcb_obtained || '-',
-          'PCM Total': details.pcm_obtained || '-',
-          'NEET Marks': details.neet_marks || '-',
-          'JEE Percentile': details.jee_percentile || '-',
+          // Academic SSC
+          'SSC Year': acad.ssc_year || '-',
+          'SSC %': acad.ssc_percentage || '-',
+          'SSC Language': acad.ssc_language || '-',
+          'SSC State': acad.ssc_state || '-',
+          'SSC District': acad.ssc_district || '-',
+          'SSC Taluka': acad.ssc_taluka || '-',
+          'SSC School Name': acad.ssc_school_name || '-',
+          'SSC Roll No': acad.ssc_roll_no || '-',
+
+          // Academic HSC
+          'HSC Year': acad.hsc_passing_year || '-',
+          'HSC Name': acad.hsc_name || '-',
+          'HSC Exam': acad.hsc_exam || '-',
+          'HSC Roll No': acad.hsc_roll_no || '-',
+          'HSC State': acad.hsc_state || '-',
+          'HSC District': acad.hsc_district || '-',
+          'HSC Taluka': acad.hsc_taluka || '-',
+          'HSC Exam Session': acad.hsc_exam_session || '-',
+
+          // Marks & Competitive Exams
+          'Physics Marks': acad.physics_obtained || '-',
+          'Chemistry Marks': acad.chemistry_obtained || '-',
+          'Maths Marks': acad.maths_obtained || '-',
+          'Biology Marks': acad.biology_obtained || '-',
+          'English Marks': acad.english_obtained || '-',
+          'PCB Total': acad.pcb_obtained || '-',
+          'PCM Total': acad.pcm_obtained || '-',
+          'PCBE Total': acad.pcbe_obtained || '-',
+          'PCME Total': acad.pcme_obtained || '-',
+          'PCB %': acad.pcb_percentage_obtained || '-',
+          'PCM %': acad.pcm_percentage_obtained || '-',
+          'PCBE %': acad.pcbe_percentage_obtained || '-',
+          'PCME %': acad.pcme_percentage_obtained || '-',
+          'NEET Marks': acad.neet_marks || details.neet_marks || '-',
+          'NEET Roll No': acad.neet_roll_no || details.neet_roll_no || '-',
+          'NEET Application No': acad.neet_application_no || '-',
+          'NEET Rank': acad.neet_rank || details.neet_rank || '-',
+          'JEE Percentile': acad.jee_percentile || '-',
+          'JEE Roll No': acad.jee_roll_no || '-',
+          'JEE Application No': acad.jee_application_no || '-',
+          'JEE Rank': acad.jee_rank || '-',
           
-          // Reservation
-          'Category': details.category_of_candidate || '-',
-          'Sub Category': details.sub_category || '-',
-          'Religion': details.religion || '-',
+          // Reservation & Status
+          'Category': demo.category_of_candidate || '-',
+          'Sub Category': demo.sub_category || '-',
+          'Religion': demo.religion || '-',
           'Aadhaar': details.aadhaar_no || '-',
           'Parent Mobile': details.alternate_mobile || '-',
+          'Apply NRI': demo.apply_nri || '-',
+          'OCI/PIO': demo.oci_pio || '-',
+          'Nationality': demo.nationality || '-',
+          'Domicile Maharashtra': demo.domicile_maharashtra || '-',
+          'Is Orphan': demo.is_orphan || '-',
+          'Annual Income': demo.annual_income || '-',
+          'Region of Residence': demo.region_of_residence || '-',
+          'Is PWD': demo.is_pwd || '-',
+          'Claim Minority Quota': demo.claim_minority_quota || '-',
+          'Claim Linguistic Minority': demo.claim_linguistic_minority || '-',
+          'Claim Exception': demo.claim_exception || '-',
+          'Specified Reservation': demo.specified_reservation || '-',
+          'Quota Apply For': demo.quota_apply_for || '-',
+          'Documents Received': demo.documents_received || '-',
         }
       })
 
