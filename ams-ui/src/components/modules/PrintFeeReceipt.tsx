@@ -64,7 +64,7 @@ export function PrintFeeReceipt({ data, onPrint, onContinue, onBack }: PrintFeeR
           {/* Logo + Title Row */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 6 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/LOGO SVG.svg" alt="CCP" style={{ width: 56, height: 56, objectFit: 'contain' }} />
+            <img src="/LOGO CCP.png" alt="CCP" style={{ width: 56, height: 56, objectFit: 'contain' }} />
             <div>
               <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: '#1e3a5f', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>
                 Chanakya Career Point | Fees Receipt
