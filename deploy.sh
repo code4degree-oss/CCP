@@ -10,7 +10,7 @@ PROJECT_DIR="/var/www/ams"
 cd $PROJECT_DIR
 
 echo "Pulling latest changes from Git..."
-git pull origin master
+git pull origin main
 
 # 1. Update Backend
 echo "Updating Backend..."
