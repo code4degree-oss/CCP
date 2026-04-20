@@ -149,7 +149,7 @@ export function AdmissionsModule() {
           receipt_label: fullData.admission_number,
           student_name: fullData.student_name || a.student_name,
           student_mobile: fullData.student_mobile || '',
-          parent_mobile: '',
+          parent_mobile: fullData.student_detail?.demographic_details?.alternate_mobile || fullData.student_detail?.alternate_mobile || '',
           course_name: fullData.course_name || '—',
           course_fee: courseFee,
           amount_paid: 0,

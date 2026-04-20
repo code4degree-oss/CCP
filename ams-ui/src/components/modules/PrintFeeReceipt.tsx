@@ -214,27 +214,39 @@ export function PrintFeeReceipt({ receipts, onPrint, onBack }: PrintFeeReceiptPr
               </div>
             )}
 
-            {/* ══════ DECLARATION (Marathi + English) ══════ */}
+            {/* ══════ DECLARATION (English then Marathi) ══════ */}
             <div style={{ marginBottom: 20 }}>
               <h3 style={{ fontSize: 13, fontWeight: 800, color: '#dc2626', textAlign: 'center', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                 Declaration by the Student / विद्यार्थ्यांची घोषणा
               </h3>
-              <ul style={{ paddingLeft: 20, margin: 0, fontSize: 11, lineHeight: 1.8, color: '#374151' }}>
-                <li style={{ marginBottom: 5 }}>
+              {/* English Points */}
+              <ul style={{ paddingLeft: 20, margin: 0, fontSize: 10, lineHeight: 1.6, color: '#374151', listStyleType: 'decimal' }}>
+                <li style={{ marginBottom: 4 }}>
+                  <span style={{ fontWeight: 600 }}>Fees once paid are non-refundable under any circumstances.</span>
+                </li>
+                <li style={{ marginBottom: 4 }}>
+                  <span style={{ fontWeight: 600 }}>Chanakya Career Point is not responsible for any errors in the form caused by incorrect information provided by the student.</span>
+                </li>
+                <li style={{ marginBottom: 4 }}>
+                  <span style={{ fontWeight: 600 }}>All students must provide accurate information and must carefully review the filled form.</span>
+                </li>
+                <li style={{ marginBottom: 12 }}>
+                  <span style={{ fontWeight: 600 }}>Information shared via WhatsApp Group and SMS should be read carefully by the student and parent. Contact Chanakya Career Point if unclear.</span>
+                </li>
+              </ul>
+              {/* Marathi Points */}
+              <ul style={{ paddingLeft: 20, margin: 0, fontSize: 11, lineHeight: 1.6, color: '#374151', listStyleType: 'decimal' }}>
+                <li style={{ marginBottom: 4 }}>
                   <span style={{ fontWeight: 600 }}>एकदा भरलेली फी कोणत्याही कारणास्तव वापस भेटली जाणार नाही.</span>
-                  <br /><span style={{ fontSize: 10, color: '#6b7280' }}>Fees once paid are non-refundable under any circumstances.</span>
                 </li>
-                <li style={{ marginBottom: 5 }}>
+                <li style={{ marginBottom: 4 }}>
                   <span style={{ fontWeight: 600 }}>विद्यार्थ्याने दिलेली माहिती चुकीची असल्यास, फॉर्म मध्ये चुका झाल्यास त्यासाठी Chanakya Career Point जबाबदार नाही.</span>
-                  <br /><span style={{ fontSize: 10, color: '#6b7280' }}>Chanakya Career Point is not responsible for any errors in the form caused by incorrect information provided by the student.</span>
                 </li>
-                <li style={{ marginBottom: 5 }}>
+                <li style={{ marginBottom: 4 }}>
                   <span style={{ fontWeight: 600 }}>सर्व विद्यार्थ्यांने अचूक माहिती देणे गरजेचे आहे व दिलेल्या माहितीनुसार भरलेला फॉर्म काळजीपूर्वक पाहणे अनिवार्य आहे.</span>
-                  <br /><span style={{ fontSize: 10, color: '#6b7280' }}>All students must provide accurate information and must carefully review the filled form.</span>
                 </li>
                 <li style={{ marginBottom: 5 }}>
                   <span style={{ fontWeight: 600 }}>WhatsApp Group मध्ये व SMS द्वारे कळवण्यात आलेली माहिती विद्यार्थ्याने व पालकाने काळजीपूर्वक वाचावी व समजले नसेल तर Chanakya Career Point ला संपर्क साधावा.</span>
-                  <br /><span style={{ fontSize: 10, color: '#6b7280' }}>Information shared via WhatsApp Group and SMS should be read carefully by the student and parent. Contact Chanakya Career Point if unclear.</span>
                 </li>
               </ul>
             </div>

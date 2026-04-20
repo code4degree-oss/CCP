@@ -84,13 +84,17 @@ export function PrintAdmissionForm({ admission, onClose }: PrintAdmissionFormPro
       {/* ─── PRINTABLE CONTENT ─── */}
       <div ref={printRef} className="print-admission-form" id="print-admission-form">
         {/* ══════ HEADER ══════ */}
-        <div style={{ textAlign: 'center', borderBottom: '3px double #1e40af', paddingBottom: 12, marginBottom: 14 }}>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1e3a5f', letterSpacing: '0.02em' }}>
-            ADMISSION APPLICATION FORM
-          </h1>
-          <p style={{ margin: '4px 0 0', fontSize: 11, color: '#6b7280' }}>
-            Chanakya Career Point (CCP)
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, borderBottom: '3px double #1e40af', paddingBottom: 12, marginBottom: 14 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/LOGO CCP.png" alt="CCP Logo" style={{ width: 64, height: 64, objectFit: 'contain' }} />
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1e3a5f', letterSpacing: '0.02em' }}>
+              ADMISSION APPLICATION FORM
+            </h1>
+            <p style={{ margin: '4px 0 0', fontSize: 11, color: '#6b7280' }}>
+              Chanakya Career Point (CCP)
+            </p>
+          </div>
         </div>
 
         {/* Admission number badge */}
