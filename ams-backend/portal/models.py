@@ -216,6 +216,7 @@ class Payment(models.Model):
     payment_mode = models.CharField(max_length=20)
     status = models.CharField(max_length=20)
     reference_no = models.CharField(max_length=80, blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
     collected_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     paid_at = models.DateTimeField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)

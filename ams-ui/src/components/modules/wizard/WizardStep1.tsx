@@ -63,6 +63,17 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
               {branchCourses.map((c: any) => <option key={c.course} value={c.course}>{c.course_name} (₹{Number(c.fee_amount).toLocaleString()})</option>)}
             </select>
           </Field>
+          {/* Total Fee indicator */}
+          {p1.course_id && (() => {
+            const sel = branchCourses.find((c: any) => c.course.toString() === p1.course_id)
+            const totalFee = sel ? Number(sel.fee_amount) : 0
+            return totalFee > 0 ? (
+              <div className="flex items-center gap-2 -mt-2 ml-1">
+                <span className="text-xs font-semibold text-gray-600">Total Course Fee:</span>
+                <span className="text-sm font-bold text-blue-700">₹{totalFee.toLocaleString('en-IN')}</span>
+              </div>
+            ) : null
+          })()}
           <div className="border border-amber-200 bg-amber-50/50 rounded-xl p-4">
             <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-3 flex items-center gap-2"><CreditCard size={13} />Application Fee Payment</h4>
             <div className="grid grid-cols-2 gap-4">
@@ -75,6 +86,35 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
               <Field label="Reference / TXN ID" half><input value={p1.transaction_id} onChange={e => s('transaction_id', e.target.value)} placeholder="Optional" className={inputClass} /></Field>
               <Field label="Remarks" half><input value={p1.notes} onChange={e => s('notes', e.target.value)} placeholder="Optional notes" className={inputClass} /></Field>
             </div>
+            {/* Balance indicator */}
+            {p1.course_id && p1.amount && (() => {
+              const sel = branchCourses.find((c: any) => c.course.toString() === p1.course_id)
+              const totalFee = sel ? Number(sel.fee_amount) : 0
+              const paid = Number(p1.amount) || 0
+              const balance = Math.max(0, totalFee - paid)
+              if (totalFee <= 0) return null
+              return (
+                <div className={`flex items-center justify-between mt-3 px-3 py-2 rounded-lg border ${balance > 0 ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <span className="text-[10px] font-semibold text-gray-500 uppercase">Total Fee</span>
+                      <p className="text-sm font-bold text-gray-800">₹{totalFee.toLocaleString('en-IN')}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-gray-500 uppercase">Paying Now</span>
+                      <p className="text-sm font-bold text-emerald-700">₹{paid.toLocaleString('en-IN')}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-semibold text-gray-500 uppercase">Balance</span>
+                    <p className={`text-sm font-bold ${balance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                      ₹{balance.toLocaleString('en-IN')}
+                      {balance === 0 && <span className="ml-1 text-[10px]">✓ Fully Paid</span>}
+                    </p>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
           {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 p-3 rounded-lg">{error}</p>}
           <button onClick={handle} disabled={saving || !p1.student_name || !p1.student_mobile || !p1.course_id || !p1.amount}

@@ -43,8 +43,8 @@ export function WizardStep3({ admissionId, existingDocs, onNext, onBack }: {
       return
     }
     // Validate size
-    if (file.size > 1 * 1024 * 1024) {
-      setSlots(prev => prev.map((s, i) => i === index ? { ...s, error: 'File must be under 1 MB' } : s))
+    if (file.size > 5 * 1024 * 1024) {
+      setSlots(prev => prev.map((s, i) => i === index ? { ...s, error: 'File must be under 5 MB' } : s))
       return
     }
 
@@ -75,7 +75,7 @@ export function WizardStep3({ admissionId, existingDocs, onNext, onBack }: {
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Document Upload</h2>
-              <p className="text-violet-100 text-xs mt-0.5">Step 3 · Upload required documents (PDF/JPG/PNG, max 1MB each)</p>
+              <p className="text-violet-100 text-xs mt-0.5">Step 3 · Upload required documents (PDF/JPG/PNG, max 5MB each)</p>
             </div>
           </div>
         </div>
@@ -140,7 +140,7 @@ export function WizardStep3({ admissionId, existingDocs, onNext, onBack }: {
           ))}
 
           <p className="text-[11px] text-gray-400 text-center pt-2">
-            Accepted: PDF, JPG, PNG · Max size: 1 MB per file
+            Accepted: PDF, JPG, PNG · Max size: 5 MB per file
           </p>
         </div>
       </div>

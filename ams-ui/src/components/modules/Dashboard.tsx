@@ -163,7 +163,7 @@ export function DashboardModule() {
                     </div>
                   </div>
                   <span className={`text-[10px] px-2 py-0.5 rounded border font-bold uppercase tracking-wider ${a.admission_status === 'Admitted' ? 'text-accent-green bg-accent-green/10 border-accent-green/20' : 'text-accent-blue bg-accent-blue/10 border-accent-blue/20'}`}>
-                    {a.admission_status}
+                    {a.admission_status === 'Under Review' ? 'Form Completed' : a.admission_status}
                   </span>
                 </div>
               ))}

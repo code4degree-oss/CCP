@@ -222,15 +222,25 @@ export function ReportsModule() {
 
         {error && <div className="mb-6 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
 
-        <Button 
-          variant="primary" 
-          className="w-full md:w-auto px-8 py-2.5 flex items-center justify-center gap-2"
-          onClick={handleExport}
-          disabled={loading}
-        >
-          {loading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-          {loading ? 'Generating Excel File...' : 'Download Excel Report'}
-        </Button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button 
+            variant="primary" 
+            className="px-8 py-2.5 flex items-center justify-center gap-2"
+            onClick={handleExport}
+            disabled={loading}
+          >
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {loading ? 'Generating Excel File...' : 'Download Excel Report'}
+          </Button>
+          {(filterCourse || filterDateFrom || filterDateTo) && (
+            <button
+              onClick={() => { setFilterCourse(''); setFilterDateFrom(''); setFilterDateTo('') }}
+              className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
       </Card>
     </div>
   )

@@ -46,7 +46,7 @@ export function EnquiriesModule() {
         neet_expected_marks: form.neet_expected_marks ? Number(form.neet_expected_marks) : null,
       })
       setShowForm(false)
-      setForm({ full_name: '', mobile: '', parent_mobile: '', mother_name: '', gender: '', dob: '', branch: '', category: '', candidate_type: '', hsc_percentage: '', neet_application_no: '', neet_roll_no: '', neet_expected_marks: '', course_interest: '', tuition_name: '', reference_name: '', source: '' })
+      setForm({ full_name: '', mobile: '', parent_mobile: '', mother_name: '', gender: '', dob: '', branch: !isSuper && currentUser.branch_id ? currentUser.branch_id.toString() : '', category: '', candidate_type: '', hsc_percentage: '', neet_application_no: '', neet_roll_no: '', neet_expected_marks: '', course_interest: '', tuition_name: '', reference_name: '', source: '' })
       await load()
     } catch (e: any) { setError(e.message || 'Save failed') }
     setSaving(false)
@@ -77,7 +77,7 @@ export function EnquiriesModule() {
           <h2 className="text-sm font-semibold text-txt-primary">Enquiries</h2>
           <p className="text-[11px] text-txt-muted mt-0.5">{enquiries.length} total enquiries</p>
         </div>
-        {!isSuper && <Button variant="primary" size="sm" onClick={() => { setShowForm(true); setError('') }}><Plus size={12} />New Enquiry</Button>}
+        {!isSuper && <Button variant="primary" size="sm" onClick={() => { setShowForm(true); setError(''); setForm(f => ({ ...f, branch: currentUser.branch_id ? currentUser.branch_id.toString() : '' })) }}><Plus size={12} />New Enquiry</Button>}
       </div>
 
       <div className="relative w-72">
@@ -113,8 +113,8 @@ export function EnquiriesModule() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2"><label className="text-[11px] text-txt-muted block mb-1">Full Name *</label><input value={form.full_name} onChange={e => set('full_name', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
-              <div><label className="text-[11px] text-txt-muted block mb-1">Mobile *</label><input value={form.mobile} onChange={e => set('mobile', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
-              <div><label className="text-[11px] text-txt-muted block mb-1">Parent Mobile</label><input value={form.parent_mobile} onChange={e => set('parent_mobile', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
+              <div><label className="text-[11px] text-txt-muted block mb-1">Mobile *</label><input value={form.mobile} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); set('mobile', v) }} inputMode="numeric" maxLength={10} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
+              <div><label className="text-[11px] text-txt-muted block mb-1">Parent Mobile</label><input value={form.parent_mobile} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); set('parent_mobile', v) }} inputMode="numeric" maxLength={10} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
               <div><label className="text-[11px] text-txt-muted block mb-1">Mother Name</label><input value={form.mother_name} onChange={e => set('mother_name', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
               <div>
                 <label className="text-[11px] text-txt-muted block mb-1">Branch *</label>

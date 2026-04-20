@@ -12,6 +12,7 @@ import { EnquiriesModule } from '@/components/modules/Enquiries'
 import { BranchesModule } from '@/components/modules/Branches'
 import { UsersModule } from '@/components/modules/Users'
 import { ReportsModule } from '@/components/modules/Reports'
+import { PaymentsModule } from '@/components/modules/Payments'
 import { PlaceholderModule } from '@/components/modules/Placeholder'
 
 const PAGE_META: Record<string, { title: string; subtitle?: string }> = {
@@ -29,7 +30,6 @@ const PAGE_META: Record<string, { title: string; subtitle?: string }> = {
 const VALID_PAGES = Object.keys(PAGE_META)
 
 const PLACEHOLDER_META: Record<string, { title: string; description: string }> = {
-  payments:   { title: 'Payments', description: 'View fee collection, payment history, and pending dues.' },
   settings:   { title: 'Settings', description: 'Configure organization, notification templates, and integrations.' },
 }
 
@@ -89,6 +89,7 @@ export default function Home() {
       case 'branches':      return <BranchesModule />
       case 'users':         return <UsersModule />
       case 'reports':       return <ReportsModule />
+      case 'payments':      return <PaymentsModule />
       default: {
         const p = PLACEHOLDER_META[active]
         return p ? <PlaceholderModule title={p.title} description={p.description} /> : null
