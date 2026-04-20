@@ -1,12 +1,12 @@
 #!/bin/bash
 # Deploy Script for AMS Application
-# This script is located at /var/www/ams/ and triggered by CI/CD
+# This script is located at /home/ccp/CCP/ and triggered by CI/CD
 
 set -e
 
 echo "Starting Deployment process..."
 
-PROJECT_DIR="/var/www/ams"
+PROJECT_DIR="/home/ccp/CCP"
 cd $PROJECT_DIR
 
 echo "Pulling latest changes from Git..."
