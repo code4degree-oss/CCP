@@ -54,7 +54,7 @@ export function ReportsModule() {
         const acad = details.academic_details || {}
         const demo = details.demographic_details || {}
         
-        const displayStatus = a.admission_status === 'Under Review' ? 'Form Completed' : (a.admission_status || '-')
+        const displayStatus = a.admission_status || '-'
 
         return {
           'Admission Number': a.admission_number || '-',

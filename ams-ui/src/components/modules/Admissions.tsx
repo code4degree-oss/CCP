@@ -16,7 +16,7 @@ interface AdmRow {
 const STATUS_FILTERS = [
   { label: 'All', value: 'all' },
   { label: 'Documents Pending', value: 'Documents Pending' },
-  { label: 'Form Completed', value: 'Under Review' },
+  { label: 'Form Completed', value: 'Form Completed' },
   { label: 'Admitted', value: 'Admitted' },
   { label: 'Rejected', value: 'Rejected' },
 ]
@@ -197,7 +197,7 @@ export function AdmissionsModule() {
   const statusColor = (s: string) => {
     if (s === 'Admitted') return 'text-accent-green bg-accent-green/10 border-accent-green/20'
     if (s === 'Rejected') return 'text-red-400 bg-red-400/10 border-red-400/20'
-    if (s === 'Under Review') return 'text-accent-amber bg-accent-amber/10 border-accent-amber/20'
+    if (s === 'Form Completed') return 'text-accent-amber bg-accent-amber/10 border-accent-amber/20'
     return 'text-accent-blue bg-accent-blue/10 border-accent-blue/20'
   }
 
@@ -210,8 +210,7 @@ export function AdmissionsModule() {
       <span className="text-[11px] text-txt-secondary">{r.manager_name || '—'}</span>
     )},
     { key: 'status', label: 'Status', render: (r: AdmRow) => {
-      const displayStatus = r.admission_status === 'Under Review' ? 'Form Completed' : r.admission_status;
-      return <span className={clsx('text-[11px] px-2 py-0.5 rounded border font-medium', statusColor(r.admission_status))}>{displayStatus}</span>
+      return <span className={clsx('text-[11px] px-2 py-0.5 rounded border font-medium', statusColor(r.admission_status))}>{r.admission_status}</span>
     }},
     { key: 'actions', label: '', render: (r: AdmRow) => {
       const lockEdit = r.is_finalized && isEmployee;

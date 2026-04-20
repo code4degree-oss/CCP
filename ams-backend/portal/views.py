@@ -478,7 +478,13 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             admission.is_finalized = True
             admission.info_verified = True
             admission.consent_given = True
-            admission.admission_status = 'Under Review'
+            
+            # Status depends on whether documents are uploaded
+            has_docs = admission.admissiondocument_set.exists()
+            if has_docs:
+                admission.admission_status = 'Form Completed'
+            else:
+                admission.admission_status = 'Documents Pending'
         admission.save()
 
         return Response(AdmissionSerializer(admission).data)
@@ -513,6 +519,11 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             document_type=doc_type,
             file_url=file_url
         )
+        
+        # If the admission was finalized but stuck in 'Documents Pending', move it forward
+        if admission.is_finalized and admission.admission_status == 'Documents Pending':
+            admission.admission_status = 'Form Completed'
+            admission.save(update_fields=['admission_status', 'updated_at'])
         return Response(AdmissionDocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['get'])

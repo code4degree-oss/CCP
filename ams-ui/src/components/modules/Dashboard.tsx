@@ -31,7 +31,7 @@ export function DashboardModule() {
         }
 
         const admitted = admissions.filter((a: any) => a.admission_status === 'Admitted').length
-        const pending = admissions.filter((a: any) => a.admission_status === 'Documents Pending' || a.admission_status === 'Under Review').length
+        const pending = admissions.filter((a: any) => a.admission_status === 'Documents Pending' || a.admission_status === 'Form Completed').length
         const revenue = payments.filter((p: any) => p.status === 'Paid').reduce((s: number, p: any) => s + Number(p.amount), 0)
         setStats({ students: students.length, admissions: admissions.length, enquiries: enquiries.length, admitted, pending, revenue })
         setRecentAdmissions(admissions.slice(0, 5))
@@ -163,7 +163,7 @@ export function DashboardModule() {
                     </div>
                   </div>
                   <span className={`text-[10px] px-2 py-0.5 rounded border font-bold uppercase tracking-wider ${a.admission_status === 'Admitted' ? 'text-accent-green bg-accent-green/10 border-accent-green/20' : 'text-accent-blue bg-accent-blue/10 border-accent-blue/20'}`}>
-                    {a.admission_status === 'Under Review' ? 'Form Completed' : a.admission_status}
+                    {a.admission_status}
                   </span>
                 </div>
               ))}
