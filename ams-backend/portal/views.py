@@ -70,6 +70,17 @@ class BranchViewSet(viewsets.ModelViewSet):
     queryset = Branch.objects.prefetch_related('branch_courses__course__stream').all()
     serializer_class = BranchSerializer
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(id=branch.branch_id)
+        return qs.order_by('-created_at')
+
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             # Only super users can modify branches
@@ -168,6 +179,14 @@ class BranchCourseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(branch_id=branch.branch_id)
+                    
         branch_id = self.request.query_params.get('branch')
         if branch_id:
             qs = qs.filter(branch_id=branch_id)
@@ -614,19 +633,63 @@ class AdmissionPreferenceViewSet(viewsets.ModelViewSet):
     serializer_class = AdmissionPreferenceSerializer
     permission_classes = [IsBranchAdminOrSuperAdmin]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(admission__branch_id=branch.branch_id)
+        return qs
+
 class AdmissionDocumentViewSet(viewsets.ModelViewSet):
     queryset = AdmissionDocument.objects.all()
     serializer_class = AdmissionDocumentSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(admission__branch_id=branch.branch_id)
+        return qs
 
 class StatusHistoryViewSet(viewsets.ModelViewSet):
     queryset = StatusHistory.objects.all()
     serializer_class = StatusHistorySerializer
     permission_classes = [IsBranchAdminOrSuperAdmin]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(admission__branch_id=branch.branch_id)
+        return qs
+
 class BranchFeeConfigViewSet(viewsets.ModelViewSet):
     queryset = BranchFeeConfig.objects.all()
     serializer_class = BranchFeeConfigSerializer
     permission_classes = [IsBranchAdminOrSuperAdmin]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(branch_id=branch.branch_id)
+        return qs
 
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.select_related(
@@ -650,6 +713,17 @@ class ReceiptViewSet(viewsets.ModelViewSet):
     queryset = Receipt.objects.all()
     serializer_class = ReceiptSerializer
     permission_classes = [IsBranchAdminOrSuperAdmin]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(payment__admission__branch_id=branch.branch_id)
+        return qs
 
 class WhatsappConfigViewSet(viewsets.ModelViewSet):
     queryset = WhatsappConfig.objects.all()
