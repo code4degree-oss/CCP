@@ -55,7 +55,7 @@ export function BranchesModule() {
     load()
     try {
       const u = JSON.parse(localStorage.getItem('ams_user') || '{}')
-      setUserRole(u.role || '')
+      setUserRole(u.role_name || (u.is_superuser ? 'Super Admin' : ''))
     } catch {}
   }, [])
 
