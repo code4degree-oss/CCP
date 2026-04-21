@@ -1,75 +1,110 @@
 'use client'
 
-import { useRef } from 'react'
 import { Printer, X } from 'lucide-react'
+import { printHTML } from '@/lib/printUtils'
 
-/* ─── Types ─── */
 interface PrintAdmissionFormProps {
   admission: any
   onClose: () => void
 }
 
-/* ─── Helper: render a value or dash ─── */
 const v = (val: any) => (val && val !== '' ? String(val) : '—')
 
-/* ─── Print Row ─── */
-function PrintRow({ label, value }: { label: string; value: any }) {
-  return (
-    <tr>
-      <td style={{ padding: '6px 10px', fontWeight: 600, fontSize: 11, color: '#374151', whiteSpace: 'nowrap', borderBottom: '1px solid #e5e7eb', background: '#f9fafb', width: '40%' }}>
-        {label}
-      </td>
-      <td style={{ padding: '6px 10px', fontSize: 11, color: '#111827', borderBottom: '1px solid #e5e7eb', width: '60%' }}>
-        {v(value)}
-      </td>
-    </tr>
-  )
+function row(label: string, value: any) {
+  return `<tr><td style="padding:6px 10px;font-weight:600;font-size:11px;color:#374151;white-space:nowrap;border-bottom:1px solid #e5e7eb;background:#f9fafb;width:40%">${label}</td><td style="padding:6px 10px;font-size:11px;color:#111827;border-bottom:1px solid #e5e7eb;width:60%">${v(value)}</td></tr>`
 }
 
-/* ─── Section Title ─── */
-function SectionTitle({ title, color = '#1d4ed8' }: { title: string; color?: string }) {
-  return (
-    <tr>
-      <td colSpan={2} style={{ padding: '10px 10px 6px', fontWeight: 800, fontSize: 12, color, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid ' + color, background: '#fff' }}>
-        {title}
-      </td>
-    </tr>
-  )
+function section(title: string, color: string) {
+  return `<tr><td colspan="2" style="padding:10px 10px 6px;font-weight:800;font-size:12px;color:${color};text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid ${color};background:#fff">${title}</td></tr>`
 }
 
-/* ─── Two-Column Row (for marks table) ─── */
-function MarksRow({ subject, obtained, outOf }: { subject: string; obtained: any; outOf: number }) {
-  return (
-    <tr>
-      <td style={{ padding: '5px 10px', fontSize: 11, color: '#374151', borderBottom: '1px solid #e5e7eb', fontWeight: 600 }}>
-        {subject}
-      </td>
-      <td style={{ padding: '5px 10px', fontSize: 11, color: '#111827', borderBottom: '1px solid #e5e7eb', textAlign: 'center' }}>
-        {v(obtained)}
-      </td>
-      <td style={{ padding: '5px 10px', fontSize: 11, color: '#6b7280', borderBottom: '1px solid #e5e7eb', textAlign: 'center' }}>
-        {outOf}
-      </td>
-    </tr>
-  )
+function marksRow(subject: string, obtained: any, outOf: number) {
+  return `<tr><td style="padding:5px 10px;font-size:11px;color:#374151;border-bottom:1px solid #e5e7eb;font-weight:600">${subject}</td><td style="padding:5px 10px;font-size:11px;color:#111827;border-bottom:1px solid #e5e7eb;text-align:center">${v(obtained)}</td><td style="padding:5px 10px;font-size:11px;color:#6b7280;border-bottom:1px solid #e5e7eb;text-align:center">${outOf}</td></tr>`
 }
 
-export function PrintAdmissionForm({ admission, onClose }: PrintAdmissionFormProps) {
-  const printRef = useRef<HTMLDivElement>(null)
-
+function buildHTML(admission: any): string {
   const student = admission?.student_detail || {}
   const academic = student?.academic_details || {}
   const demo = student?.demographic_details || {}
   const payments = admission?.payments || []
+  const date = admission?.created_at ? new Date(admission.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+  const tbl = (content: string) => `<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px" class="avoid-break"><tbody>${content}</tbody></table>`
 
-  const handlePrint = () => {
-    window.print()
+  let html = ''
+
+  // Header
+  html += `<div style="display:flex;align-items:center;justify-content:center;gap:16px;border-bottom:3px double #1e40af;padding-bottom:12px;margin-bottom:14px">
+    <img src="/LOGO CCP.png" alt="CCP Logo" style="width:64px;height:64px;object-fit:contain" />
+    <div style="text-align:center">
+      <h1 style="margin:0;font-size:18px;font-weight:800;color:#1e3a5f;letter-spacing:0.02em">ADMISSION APPLICATION FORM</h1>
+      <p style="margin:4px 0 0;font-size:11px;color:#6b7280">Chanakya Career Point (CCP)</p>
+    </div>
+  </div>`
+
+  // Badge
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:8px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px">
+    <div><span style="font-size:10px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:0.08em">Admission Number</span><p style="margin:2px 0 0;font-size:16px;font-weight:800;font-family:monospace;color:#1e40af">${admission?.admission_number || '—'}</p></div>
+    <div style="text-align:right"><span style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em">Status</span><p style="margin:2px 0 0;font-size:12px;font-weight:700;color:${admission?.is_finalized ? '#059669' : '#d97706'}">${admission?.is_finalized ? '✓ Finalized' : '⏳ Draft'}</p></div>
+    <div style="text-align:right"><span style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em">Date</span><p style="margin:2px 0 0;font-size:11px;font-weight:600;color:#374151">${date}</p></div>
+  </div>`
+
+  // Sections
+  html += tbl(section('NEET-UG Details', '#1d4ed8') + row('NEET Roll No.', academic.neet_roll_no) + row('NEET Application No.', academic.neet_application_no) + row('Date of Birth', student.dob) + row('NEET Rank', student.neet_rank) + row('NEET Marks', student.neet_marks))
+
+  html += tbl(section('Personal Information', '#7c3aed') + row('Full Name (as per NEET Score Card)', student.full_name) + row('Name Changed after 10th?', demo.name_changed) + row("Father's Name", student.father_name) + row("Mother's Name", demo.mother_name) + row('Gender', student.gender) + row('Date of Birth', student.dob) + row('Mobile', student.mobile) + row('Email ID', student.email) + row('Alternate Contact No.', demo.alternate_mobile) + row('Aadhaar Card No.', student.aadhaar_no) + row('Religion', demo.religion))
+
+  html += tbl(section('Permanent Address', '#059669') + row('Address Line 1', demo.address_line1) + row('Address Line 2', demo.address_line2) + row('Address Line 3', demo.address_line3) + row('City', demo.city) + row('State', demo.state) + row('District', demo.district) + row('Taluka', demo.taluka) + row('Pin Code', demo.pincode))
+
+  html += tbl(section('Reservation Details', '#e11d48') + row('Apply for NRI?', demo.apply_nri) + row('OCI/PIO Card Holder?', demo.oci_pio) + row('Nationality', demo.nationality) + row('Domicile of Maharashtra?', demo.domicile_maharashtra) + row('Is the Candidate an Orphan?', demo.is_orphan) + row('Annual Family Income', demo.annual_income) + row('Region of Residence', demo.region_of_residence) + row('Person With Disability (PWD)?', demo.is_pwd) + row('Category of Candidate', demo.category_of_candidate) + row('Sub Category', demo.sub_category) + row('Claim Minority Quota?', demo.claim_minority_quota) + row('Claim Linguistic Minority?', demo.claim_linguistic_minority))
+
+  html += tbl(section('SSC / 10th Qualification', '#d97706') + row('Year of Passing', academic.ssc_year) + row('Language / Medium', academic.ssc_language) + row('State of SSC Passing', academic.ssc_state) + row('District of SSC Passing', academic.ssc_district) + row('Taluka of SSC Passing', academic.ssc_taluka) + row('School Name', academic.ssc_school_name) + row('SSC Roll / Seat No.', academic.ssc_roll_no))
+
+  html += tbl(section('HSC / 12th Qualification', '#d97706') + row('Name as per HSC Marksheet', academic.hsc_name) + row('HSC Equivalent Examination', academic.hsc_exam) + row('Passing Year', academic.hsc_passing_year) + row('Roll No. / Seat No.', academic.hsc_roll_no) + row('State of HSC Passing', academic.hsc_state) + row('District of HSC Passing', academic.hsc_district) + row('Taluka of HSC Passing', academic.hsc_taluka) + row('Exam Session', academic.hsc_exam_session))
+
+  // Marks table
+  const marksHeader = `<tr><td colspan="3" style="padding:10px 10px 6px;font-weight:800;font-size:12px;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #1d4ed8;background:#fff">Subject Details (12th Marks)</td></tr><tr style="background:#f3f4f6"><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db">Subject</td><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db;text-align:center">Marks Obtained</td><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db;text-align:center">Out of</td></tr>`
+  html += `<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px" class="avoid-break"><tbody>${marksHeader}${marksRow('Physics', academic.physics_obtained, 100)}${marksRow('Chemistry', academic.chemistry_obtained, 100)}${marksRow('Biology', academic.biology_obtained, 100)}${marksRow('English', academic.english_obtained, 100)}${marksRow('PCB Total', academic.pcb_obtained, 300)}${marksRow('PCBE Total', academic.pcbe_obtained, 400)}${marksRow('PCB Percentage', academic.pcb_percentage_obtained, 100)}${marksRow('PCBE Percentage', academic.pcbe_percentage_obtained, 100)}</tbody></table>`
+
+  html += tbl(section('Parallel Reservation & Application', '#e11d48') + row('Claim Exception?', demo.claim_exception) + row('Specified Reservation', demo.specified_reservation) + row('Apply For (Quota)', demo.quota_apply_for) + row('All Documents Received?', demo.documents_received))
+
+  // Payments
+  if (payments.length > 0) {
+    let payRows = ''
+    for (const p of payments) {
+      payRows += `<tr><td style="padding:5px 10px;font-size:11px;color:#111827;border-bottom:1px solid #e5e7eb;font-weight:700">₹${Number(p.amount).toLocaleString('en-IN')}</td><td style="padding:5px 10px;font-size:11px;color:#374151;border-bottom:1px solid #e5e7eb">${p.payment_mode}</td><td style="padding:5px 10px;font-size:11px;color:#374151;border-bottom:1px solid #e5e7eb;font-family:monospace">${p.reference_no || '—'}</td><td style="padding:5px 10px;font-size:11px;color:${p.status === 'Paid' ? '#059669' : '#d97706'};border-bottom:1px solid #e5e7eb;font-weight:600">${p.status}</td><td style="padding:5px 10px;font-size:11px;color:#374151;border-bottom:1px solid #e5e7eb">${p.paid_at ? new Date(p.paid_at).toLocaleDateString('en-IN') : '—'}</td></tr>`
+    }
+    const payHeader = `<tr style="background:#f3f4f6"><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db">Amount (₹)</td><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db">Mode</td><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db">Reference</td><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db">Status</td><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db">Date</td></tr>`
+    html += `<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px" class="avoid-break"><tbody>${section('Payment Information', '#059669')}${payHeader}${payRows}</tbody></table>`
   }
 
+  // Notes
+  if (admission?.notes) {
+    html += tbl(section('Remarks / Notes', '#6b7280') + `<tr><td colspan="2" style="padding:8px 10px;font-size:11px;color:#374151;white-space:pre-wrap">${admission.notes}</td></tr>`)
+  }
+
+  // Footer signatures
+  html += `<div style="margin-top:30px;display:flex;justify-content:space-between;padding-top:16px">
+    <div style="text-align:center;width:45%"><div style="border-top:1px solid #374151;padding-top:6px;font-size:10px;font-weight:600;color:#374151">Student's Signature</div></div>
+    <div style="text-align:center;width:45%"><div style="border-top:1px solid #374151;padding-top:6px;font-size:10px;font-weight:600;color:#374151">Authorized Signature &amp; Stamp</div></div>
+  </div>`
+
+  html += `<div style="text-align:center;margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:9px;color:#9ca3af">Filled by: ${admission?.manager_name || '—'} &nbsp;|&nbsp; Printed on: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>`
+
+  return html
+}
+
+export function PrintAdmissionForm({ admission, onClose }: PrintAdmissionFormProps) {
+  const handlePrint = () => {
+    printHTML(buildHTML(admission))
+  }
+
+  const student = admission?.student_detail || {}
+  const date = admission?.created_at ? new Date(admission.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+
   return (
-    <div className="print-overlay">
-      {/* Screen-only toolbar */}
-      <div className="print-toolbar no-print">
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9998, background: '#f3f4f6', overflowY: 'auto' }}>
+      {/* Toolbar */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '12px 24px', boxShadow: '0 1px 4px rgba(0,0,0,.06)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             <X size={14} /> Close
@@ -78,229 +113,32 @@ export function PrintAdmissionForm({ admission, onClose }: PrintAdmissionFormPro
             <Printer size={14} /> Print Form
           </button>
         </div>
-        <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>Preview below · Click "Print Form" to print or save as PDF</p>
+        <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>Preview below · Click &quot;Print Form&quot; to print or save as PDF</p>
       </div>
 
-      {/* ─── PRINTABLE CONTENT ─── */}
-      <div ref={printRef} className="print-admission-form" id="print-admission-form">
-        {/* ══════ HEADER ══════ */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, borderBottom: '3px double #1e40af', paddingBottom: 12, marginBottom: 14 }}>
+      {/* Preview */}
+      <div style={{ maxWidth: 800, margin: '20px auto 60px', background: '#fff', padding: '30px 36px', borderRadius: 8, boxShadow: '0 2px 12px rgba(0,0,0,.08)', fontFamily: "'Segoe UI', Arial, sans-serif", color: '#111827' }}>
+        <div style={{ textAlign: 'center', borderBottom: '3px double #1e40af', paddingBottom: 12, marginBottom: 14 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/LOGO CCP.png" alt="CCP Logo" style={{ width: 64, height: 64, objectFit: 'contain' }} />
-          <div style={{ textAlign: 'center' }}>
-            <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1e3a5f', letterSpacing: '0.02em' }}>
-              ADMISSION APPLICATION FORM
-            </h1>
-            <p style={{ margin: '4px 0 0', fontSize: 11, color: '#6b7280' }}>
-              Chanakya Career Point (CCP)
-            </p>
-          </div>
+          <img src="/LOGO CCP.png" alt="CCP Logo" style={{ width: 64, height: 64, objectFit: 'contain', display: 'inline-block' }} />
+          <h1 style={{ margin: '8px 0 0', fontSize: 18, fontWeight: 800, color: '#1e3a5f' }}>ADMISSION APPLICATION FORM</h1>
+          <p style={{ margin: '4px 0 0', fontSize: 11, color: '#6b7280' }}>Chanakya Career Point (CCP)</p>
         </div>
-
-        {/* Admission number badge */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, padding: '8px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, marginBottom: 14 }}>
           <div>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Admission Number</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase' }}>Admission #</span>
             <p style={{ margin: '2px 0 0', fontSize: 16, fontWeight: 800, fontFamily: 'monospace', color: '#1e40af' }}>{admission?.admission_number || '—'}</p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Status</span>
-            <p style={{ margin: '2px 0 0', fontSize: 12, fontWeight: 700, color: admission?.is_finalized ? '#059669' : '#d97706' }}>
-              {admission?.is_finalized ? '✓ Finalized' : '⏳ Draft'}
-            </p>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Student</span>
+            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 700, color: '#111827' }}>{student.full_name || '—'}</p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Date</span>
-            <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 600, color: '#374151' }}>
-              {admission?.created_at ? new Date(admission.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-            </p>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase' }}>Date</span>
+            <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 600, color: '#374151' }}>{date}</p>
           </div>
         </div>
-
-        {/* ══════ NEET-UG DETAILS ══════ */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', borderRadius: 6, marginBottom: 12 }}>
-          <tbody>
-            <SectionTitle title="NEET-UG Details" color="#1d4ed8" />
-            <PrintRow label="NEET Roll No." value={academic.neet_roll_no} />
-            <PrintRow label="NEET Application No." value={academic.neet_application_no} />
-            <PrintRow label="Date of Birth" value={student.dob} />
-            <PrintRow label="NEET Rank" value={student.neet_rank} />
-            <PrintRow label="NEET Marks" value={student.neet_marks} />
-          </tbody>
-        </table>
-
-        {/* ══════ PERSONAL INFORMATION ══════ */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12 }}>
-          <tbody>
-            <SectionTitle title="Personal Information" color="#7c3aed" />
-            <PrintRow label="Full Name (as per NEET Score Card)" value={student.full_name} />
-            <PrintRow label="Name Changed after 10th?" value={demo.name_changed} />
-            <PrintRow label="Father's Name" value={student.father_name} />
-            <PrintRow label="Mother's Name" value={demo.mother_name} />
-            <PrintRow label="Gender" value={student.gender} />
-            <PrintRow label="Date of Birth" value={student.dob} />
-            <PrintRow label="Mobile" value={student.mobile} />
-            <PrintRow label="Email ID" value={student.email} />
-            <PrintRow label="Alternate Contact No." value={demo.alternate_mobile} />
-            <PrintRow label="Aadhaar Card No." value={student.aadhaar_no} />
-            <PrintRow label="Religion" value={demo.religion} />
-          </tbody>
-        </table>
-
-        {/* ══════ PERMANENT ADDRESS ══════ */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12 }}>
-          <tbody>
-            <SectionTitle title="Permanent Address" color="#059669" />
-            <PrintRow label="Address Line 1" value={demo.address_line1} />
-            <PrintRow label="Address Line 2" value={demo.address_line2} />
-            <PrintRow label="Address Line 3" value={demo.address_line3} />
-            <PrintRow label="City" value={demo.city} />
-            <PrintRow label="State" value={demo.state} />
-            <PrintRow label="District" value={demo.district} />
-            <PrintRow label="Taluka" value={demo.taluka} />
-            <PrintRow label="Pin Code" value={demo.pincode} />
-          </tbody>
-        </table>
-
-        {/* ══════ RESERVATION ══════ */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12 }}>
-          <tbody>
-            <SectionTitle title="Reservation Details" color="#e11d48" />
-            <PrintRow label="Apply for NRI?" value={demo.apply_nri} />
-            <PrintRow label="OCI/PIO Card Holder?" value={demo.oci_pio} />
-            <PrintRow label="Nationality" value={demo.nationality} />
-            <PrintRow label="Domicile of Maharashtra?" value={demo.domicile_maharashtra} />
-            <PrintRow label="Is the Candidate an Orphan?" value={demo.is_orphan} />
-            <PrintRow label="Annual Family Income" value={demo.annual_income} />
-            <PrintRow label="Region of Residence" value={demo.region_of_residence} />
-            <PrintRow label="Person With Disability (PWD)?" value={demo.is_pwd} />
-            <PrintRow label="Category of Candidate" value={demo.category_of_candidate} />
-            <PrintRow label="Sub Category" value={demo.sub_category} />
-            <PrintRow label="Claim Minority Quota?" value={demo.claim_minority_quota} />
-            <PrintRow label="Claim Linguistic Minority?" value={demo.claim_linguistic_minority} />
-          </tbody>
-        </table>
-
-        {/* ══════ SSC / 10TH QUALIFICATION ══════ */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12 }}>
-          <tbody>
-            <SectionTitle title="SSC / 10th Qualification" color="#d97706" />
-            <PrintRow label="Year of Passing" value={academic.ssc_year} />
-            <PrintRow label="Language / Medium" value={academic.ssc_language} />
-            <PrintRow label="State of SSC Passing" value={academic.ssc_state} />
-            <PrintRow label="District of SSC Passing" value={academic.ssc_district} />
-            <PrintRow label="Taluka of SSC Passing" value={academic.ssc_taluka} />
-            <PrintRow label="School Name" value={academic.ssc_school_name} />
-            <PrintRow label="SSC Roll / Seat No." value={academic.ssc_roll_no} />
-          </tbody>
-        </table>
-
-        {/* ══════ HSC / 12TH QUALIFICATION ══════ */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12 }}>
-          <tbody>
-            <SectionTitle title="HSC / 12th Qualification" color="#d97706" />
-            <PrintRow label="Name as per HSC Marksheet" value={academic.hsc_name} />
-            <PrintRow label="HSC Equivalent Examination" value={academic.hsc_exam} />
-            <PrintRow label="Passing Year" value={academic.hsc_passing_year} />
-            <PrintRow label="Roll No. / Seat No." value={academic.hsc_roll_no} />
-            <PrintRow label="State of HSC Passing" value={academic.hsc_state} />
-            <PrintRow label="District of HSC Passing" value={academic.hsc_district} />
-            <PrintRow label="Taluka of HSC Passing" value={academic.hsc_taluka} />
-            <PrintRow label="Exam Session" value={academic.hsc_exam_session} />
-          </tbody>
-        </table>
-
-        {/* ══════ SUBJECT MARKS (12TH) ══════ */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12 }}>
-          <tbody>
-            <tr>
-              <td colSpan={3} style={{ padding: '10px 10px 6px', fontWeight: 800, fontSize: 12, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid #1d4ed8', background: '#fff' }}>
-                Subject Details (12th Marks)
-              </td>
-            </tr>
-            <tr style={{ background: '#f3f4f6' }}>
-              <td style={{ padding: '6px 10px', fontWeight: 700, fontSize: 10, color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #d1d5db' }}>Subject</td>
-              <td style={{ padding: '6px 10px', fontWeight: 700, fontSize: 10, color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #d1d5db', textAlign: 'center' }}>Marks Obtained</td>
-              <td style={{ padding: '6px 10px', fontWeight: 700, fontSize: 10, color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #d1d5db', textAlign: 'center' }}>Out of</td>
-            </tr>
-            <MarksRow subject="Physics" obtained={academic.physics_obtained} outOf={100} />
-            <MarksRow subject="Chemistry" obtained={academic.chemistry_obtained} outOf={100} />
-            <MarksRow subject="Biology" obtained={academic.biology_obtained} outOf={100} />
-            <MarksRow subject="English" obtained={academic.english_obtained} outOf={100} />
-            <MarksRow subject="PCB Total" obtained={academic.pcb_obtained} outOf={300} />
-            <MarksRow subject="PCBE Total" obtained={academic.pcbe_obtained} outOf={400} />
-            <MarksRow subject="PCB Percentage" obtained={academic.pcb_percentage_obtained} outOf={100} />
-            <MarksRow subject="PCBE Percentage" obtained={academic.pcbe_percentage_obtained} outOf={100} />
-          </tbody>
-        </table>
-
-        {/* ══════ PARALLEL RESERVATION & APPLICATION ══════ */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12 }}>
-          <tbody>
-            <SectionTitle title="Parallel Reservation & Application" color="#e11d48" />
-            <PrintRow label="Claim Exception?" value={demo.claim_exception} />
-            <PrintRow label="Specified Reservation" value={demo.specified_reservation} />
-            <PrintRow label="Apply For (Quota)" value={demo.quota_apply_for} />
-            <PrintRow label="All Documents Received?" value={demo.documents_received} />
-          </tbody>
-        </table>
-
-        {/* ══════ PAYMENT INFORMATION ══════ */}
-        {payments.length > 0 && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12 }}>
-            <tbody>
-              <SectionTitle title="Payment Information" color="#059669" />
-              <tr style={{ background: '#f3f4f6' }}>
-                <td style={{ padding: '6px 10px', fontWeight: 700, fontSize: 10, color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #d1d5db' }}>Amount (₹)</td>
-                <td style={{ padding: '6px 10px', fontWeight: 700, fontSize: 10, color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #d1d5db' }}>Mode</td>
-                <td style={{ padding: '6px 10px', fontWeight: 700, fontSize: 10, color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #d1d5db' }}>Reference</td>
-                <td style={{ padding: '6px 10px', fontWeight: 700, fontSize: 10, color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #d1d5db' }}>Status</td>
-                <td style={{ padding: '6px 10px', fontWeight: 700, fontSize: 10, color: '#6b7280', textTransform: 'uppercase', borderBottom: '1px solid #d1d5db' }}>Date</td>
-              </tr>
-              {payments.map((p: any, i: number) => (
-                <tr key={i}>
-                  <td style={{ padding: '5px 10px', fontSize: 11, color: '#111827', borderBottom: '1px solid #e5e7eb', fontWeight: 700 }}>₹{Number(p.amount).toLocaleString('en-IN')}</td>
-                  <td style={{ padding: '5px 10px', fontSize: 11, color: '#374151', borderBottom: '1px solid #e5e7eb' }}>{p.payment_mode}</td>
-                  <td style={{ padding: '5px 10px', fontSize: 11, color: '#374151', borderBottom: '1px solid #e5e7eb', fontFamily: 'monospace' }}>{p.reference_no || '—'}</td>
-                  <td style={{ padding: '5px 10px', fontSize: 11, color: p.status === 'Paid' ? '#059669' : '#d97706', borderBottom: '1px solid #e5e7eb', fontWeight: 600 }}>{p.status}</td>
-                  <td style={{ padding: '5px 10px', fontSize: 11, color: '#374151', borderBottom: '1px solid #e5e7eb' }}>{p.paid_at ? new Date(p.paid_at).toLocaleDateString('en-IN') : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        {/* ══════ ADMISSION NOTES ══════ */}
-        {admission?.notes && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12 }}>
-            <tbody>
-              <SectionTitle title="Remarks / Notes" color="#6b7280" />
-              <tr>
-                <td colSpan={2} style={{ padding: '8px 10px', fontSize: 11, color: '#374151', whiteSpace: 'pre-wrap' }}>
-                  {admission.notes}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        )}
-
-        {/* ══════ FOOTER ══════ */}
-        <div style={{ marginTop: 30, display: 'flex', justifyContent: 'space-between', paddingTop: 16 }}>
-          <div style={{ textAlign: 'center', width: '45%' }}>
-            <div style={{ borderTop: '1px solid #374151', paddingTop: 6, fontSize: 10, fontWeight: 600, color: '#374151' }}>
-              Student&apos;s Signature
-            </div>
-          </div>
-          <div style={{ textAlign: 'center', width: '45%' }}>
-            <div style={{ borderTop: '1px solid #374151', paddingTop: 6, fontSize: 10, fontWeight: 600, color: '#374151' }}>
-              Authorized Signature &amp; Stamp
-            </div>
-          </div>
-        </div>
-
-        <div style={{ textAlign: 'center', marginTop: 20, paddingTop: 10, borderTop: '1px solid #e5e7eb', fontSize: 9, color: '#9ca3af' }}>
-          Filled by: {admission?.manager_name || '—'} &nbsp;|&nbsp; Printed on: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-        </div>
+        <p style={{ textAlign: 'center', fontSize: 12, color: '#6b7280' }}>Full form will appear in the print output. Click &quot;Print Form&quot; above.</p>
       </div>
     </div>
   )
