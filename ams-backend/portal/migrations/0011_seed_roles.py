@@ -9,8 +9,6 @@ def seed_roles(apps, schema_editor):
         'Super Admin',
         'Branch Admin',
         'Employee',
-        'Manager',
-        'Telecaller',
     ]
 
     for role_name in roles_to_create:
