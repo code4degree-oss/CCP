@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Building2, X, Loader2, Trash2, Pencil, GraduationCap, IndianRupee, ChevronDown, ChevronUp } from 'lucide-react'
 import { Card, Button } from '@/components/ui'
-import { branchesApi, orgsApi, coursesApi, usersApi } from '@/lib/api'
+import { branchesApi, orgsApi, coursesApi } from '@/lib/api'
 
 /* ── types ───────────────────────────────────────────── */
 
@@ -28,12 +28,11 @@ export function BranchesModule() {
   const [branches, setBranches] = useState<Branch[]>([])
   const [orgs, setOrgs] = useState<Org[]>([])
   const [courses, setCourses] = useState<Course[]>([])
-  const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
-  const [form, setForm] = useState({ organization: '', name: '', email: '', manager: '', address: '' })
+  const [form, setForm] = useState({ organization: '', name: '', email: '', address: '' })
   const [courseRows, setCourseRows] = useState<CourseRow[]>([])
   const [error, setError] = useState('')
   const [expandedBranch, setExpandedBranch] = useState<number | null>(null)
@@ -42,11 +41,10 @@ export function BranchesModule() {
   const load = async () => {
     setLoading(true)
     try {
-      const [b, o, c, u] = await Promise.all([branchesApi.list(), orgsApi.list(), coursesApi.list(), usersApi.list()])
+      const [b, o, c] = await Promise.all([branchesApi.list(), orgsApi.list(), coursesApi.list()])
       setBranches(b)
       setOrgs(o)
       setCourses(c)
-      setUsers(u)
     } catch { setError('Failed to load data') }
     setLoading(false)
   }
@@ -55,7 +53,7 @@ export function BranchesModule() {
     load()
     try {
       const u = JSON.parse(localStorage.getItem('ams_user') || '{}')
-      setUserRole(u.role || '')
+      setUserRole(u.role_name || (u.is_superuser ? 'Super Admin' : ''))
     } catch {}
   }, [])
 
@@ -63,7 +61,7 @@ export function BranchesModule() {
 
   const openNew = () => {
     setEditId(null)
-    setForm({ organization: orgs[0]?.id?.toString() || '', name: '', email: '', manager: '', address: '' })
+    setForm({ organization: orgs[0]?.id?.toString() || '', name: '', email: '', address: '' })
     setCourseRows([{ course_id: '', fee_amount: '' }])
     setShowForm(true)
     setError('')
@@ -71,7 +69,7 @@ export function BranchesModule() {
 
   const openEdit = (b: Branch) => {
     setEditId(b.id)
-    setForm({ organization: b.organization.toString(), name: b.name, email: b.email || '', manager: b.manager?.toString() || '', address: b.address || '' })
+    setForm({ organization: b.organization.toString(), name: b.name, email: b.email || '', address: b.address || '' })
     setCourseRows(
       b.branch_courses?.length
         ? b.branch_courses.map(bc => ({ course_id: bc.course.toString(), fee_amount: bc.fee_amount }))
@@ -98,7 +96,7 @@ export function BranchesModule() {
 
     setSaving(true); setError('')
     try {
-      const payload: any = { ...form, organization: Number(form.organization), email: form.email || null, manager: form.manager ? Number(form.manager) : null }
+      const payload: any = { ...form, organization: Number(form.organization), email: form.email || null }
       if (!editId) {
         payload.courses = validCourses.map(r => ({
           course_id: Number(r.course_id),
@@ -255,14 +253,6 @@ export function BranchesModule() {
               <div className="col-span-2"><label className={labelCls}>Branch Name *</label><input value={form.name} onChange={e => set('name', e.target.value)} className={inputCls} placeholder="e.g. Latur Branch" /></div>
               <div className="col-span-2"><label className={labelCls}>Branch Address (for receipts)</label><textarea value={form.address} onChange={e => set('address', e.target.value)} className={inputCls + ' min-h-[60px]'} placeholder="Full address that will appear on fee receipts" rows={2} /></div>
               {editId && <div><label className={labelCls}>Email</label><input value={form.email} onChange={e => set('email', e.target.value)} className={inputCls} placeholder="branch@CCP.com" /></div>}
-              <div className="col-span-2">
-                <label className={labelCls}>Branch Admin</label>
-                <select value={form.manager} onChange={e => set('manager', e.target.value)} className={inputCls}>
-                  <option value="">— Not assigned —</option>
-                  {users.map((u: any) => <option key={u.id} value={u.id}>{u.full_name} ({u.role_name || u.email})</option>)}
-                </select>
-                <p className="text-[10px] text-txt-muted mt-1">Select the Branch Admin who will manage this branch.</p>
-              </div>
             </div>
 
             {/* Courses & Fees Section */}

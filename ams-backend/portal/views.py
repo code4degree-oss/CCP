@@ -3,7 +3,7 @@ import string
 import secrets
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import api_view, permission_classes, action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from django.db import transaction
@@ -22,7 +22,7 @@ from .serializers import (
     UserSerializer, UserBranchSerializer,
     EnquirySerializer, ChangePasswordSerializer,
     StudentSerializer, StreamSerializer, CourseSerializer, CollegeSerializer, AdmissionSerializer, AdmissionPreferenceSerializer, AdmissionDocumentSerializer, StatusHistorySerializer,
-    AdmissionInitiateSerializer,
+    AdmissionInitiateSerializer, RecordPaymentSerializer,
     BranchFeeConfigSerializer, PaymentSerializer, ReceiptSerializer,
     WhatsappConfigSerializer, NotificationTemplateSerializer, NotificationLogSerializer
 )
@@ -48,23 +48,38 @@ def _generate_password(length: int = 10) -> str:
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
+    permission_classes = [IsBranchAdminOrSuperAdmin]
 
 class PermissionViewSet(viewsets.ModelViewSet):
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
+    permission_classes = [IsBranchAdminOrSuperAdmin]
 
 class RolePermissionViewSet(viewsets.ModelViewSet):
     queryset = RolePermission.objects.all()
     serializer_class = RolePermissionSerializer
+    permission_classes = [IsBranchAdminOrSuperAdmin]
 
 class OrganizationViewSet(viewsets.ModelViewSet):
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
+    permission_classes = [IsBranchAdminOrSuperAdmin]
 
 
 class BranchViewSet(viewsets.ModelViewSet):
     queryset = Branch.objects.prefetch_related('branch_courses__course__stream').all()
     serializer_class = BranchSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(id=branch.branch_id)
+        return qs.order_by('-created_at')
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -164,6 +179,14 @@ class BranchCourseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(branch_id=branch.branch_id)
+                    
         branch_id = self.request.query_params.get('branch')
         if branch_id:
             qs = qs.filter(branch_id=branch_id)
@@ -353,7 +376,10 @@ class AdmissionViewSet(viewsets.ModelViewSet):
         )
 
         # Generate admission number (CCP001, CCP002, ...)
-        last = Admission.objects.filter(admission_number__isnull=False).order_by('-id').first()
+        # Use select_for_update to prevent race conditions under concurrent requests
+        last = Admission.objects.select_for_update().filter(
+            admission_number__isnull=False
+        ).order_by('-id').first()
         next_seq = 1
         if last and last.admission_number:
             import re as _re
@@ -471,46 +497,248 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             admission.is_finalized = True
             admission.info_verified = True
             admission.consent_given = True
-            admission.admission_status = 'Under Review'
+            
+            # Status depends on whether documents are uploaded
+            has_docs = admission.admissiondocument_set.exists()
+            if has_docs:
+                admission.admission_status = 'Form Completed'
+            else:
+                admission.admission_status = 'Documents Pending'
         admission.save()
 
         return Response(AdmissionSerializer(admission).data)
 
+    @action(detail=True, methods=['post'], url_path='upload-document')
+    def upload_document(self, request, pk=None):
+        admission = self.get_object()
+        file_obj = request.FILES.get('file')
+        doc_type = request.data.get('document_type')
+        if not file_obj or not doc_type:
+            return Response({'detail': 'File and document_type are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        from django.core.files.storage import default_storage
+        from django.utils.text import get_valid_filename
+        import os
+        
+        # Security: Validate file extension
+        ext = os.path.splitext(file_obj.name)[1].lower()
+        allowed_extensions = ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx']
+        if ext not in allowed_extensions:
+            return Response({'detail': 'Unsupported file type.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Security: Sanitize filename to prevent path traversal
+        safe_filename = get_valid_filename(file_obj.name)
+        
+        # Save file to media directory
+        path = default_storage.save(f"admissions/{admission.id}/{safe_filename}", file_obj)
+        file_url = default_storage.url(path)
+        
+        doc = AdmissionDocument.objects.create(
+            admission=admission,
+            document_type=doc_type,
+            file_url=file_url
+        )
+        
+        # If the admission was finalized but stuck in 'Documents Pending', move it forward
+        if admission.is_finalized and admission.admission_status == 'Documents Pending':
+            admission.admission_status = 'Form Completed'
+            admission.save(update_fields=['admission_status', 'updated_at'])
+        return Response(AdmissionDocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'])
+    def documents(self, request, pk=None):
+        admission = self.get_object()
+        docs = AdmissionDocument.objects.filter(admission=admission)
+        return Response(AdmissionDocumentSerializer(docs, many=True).data)
+
+    @transaction.atomic
+    @action(detail=True, methods=['post'], url_path='record-payment')
+    def record_payment(self, request, pk=None):
+        """Record a follow-up payment for an existing admission."""
+        admission = self.get_object()
+        serializer = RecordPaymentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        payment = Payment.objects.create(
+            admission=admission,
+            amount=data['amount'],
+            payment_mode=data['payment_mode'],
+            status='Paid',
+            reference_no=data.get('reference_no', ''),
+            notes=data.get('notes', ''),
+            collected_by=request.user if request.user.is_authenticated else None,
+        )
+        return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get'], url_path='payment-summary')
+    def payment_summary(self, request):
+        """Return per-admission payment summary with total_fee, total_paid, balance."""
+        from django.db.models import Sum, F, Value, DecimalField, Q
+        from django.db.models.functions import Coalesce
+
+        qs = Admission.objects.select_related('student', 'course', 'branch', 'manager').all()
+
+        # Branch filtering for non-superusers
+        user = request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(branch_id=branch.branch_id)
+
+        # Annotate with total paid
+        qs = qs.annotate(
+            total_paid=Coalesce(
+                Sum('payments__amount', filter=Q(payments__status='Paid')),
+                Value(0), output_field=DecimalField()
+            )
+        )
+
+        # Build response
+        results = []
+        for adm in qs.order_by('-created_at'):
+            # Get course fee from BranchCourse
+            course_fee = 0
+            if adm.course_id and adm.branch_id:
+                bc = BranchCourse.objects.filter(branch_id=adm.branch_id, course_id=adm.course_id).first()
+                if bc:
+                    course_fee = float(bc.fee_amount)
+
+            total_paid = float(adm.total_paid or 0)
+            balance = max(0, course_fee - total_paid)
+
+            results.append({
+                'admission_id': adm.id,
+                'admission_number': adm.admission_number,
+                'student_name': adm.student.full_name if adm.student else None,
+                'student_mobile': adm.student.mobile if adm.student else None,
+                'course_name': adm.course.name if adm.course else None,
+                'branch_name': adm.branch.name if adm.branch else None,
+                'branch_id': adm.branch_id,
+                'manager_name': adm.manager.full_name if adm.manager else None,
+                'course_fee': course_fee,
+                'total_paid': total_paid,
+                'balance': balance,
+                'payment_status': 'Fully Paid' if balance == 0 and total_paid > 0 else 'Pending',
+                'created_at': adm.created_at.isoformat(),
+                'admission_status': adm.admission_status,
+            })
+
+        return Response(results)
+
 class AdmissionPreferenceViewSet(viewsets.ModelViewSet):
     queryset = AdmissionPreference.objects.all()
     serializer_class = AdmissionPreferenceSerializer
+    permission_classes = [IsBranchAdminOrSuperAdmin]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(admission__branch_id=branch.branch_id)
+        return qs
 
 class AdmissionDocumentViewSet(viewsets.ModelViewSet):
     queryset = AdmissionDocument.objects.all()
     serializer_class = AdmissionDocumentSerializer
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(admission__branch_id=branch.branch_id)
+        return qs
+
 class StatusHistoryViewSet(viewsets.ModelViewSet):
     queryset = StatusHistory.objects.all()
     serializer_class = StatusHistorySerializer
+    permission_classes = [IsBranchAdminOrSuperAdmin]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(admission__branch_id=branch.branch_id)
+        return qs
 
 class BranchFeeConfigViewSet(viewsets.ModelViewSet):
     queryset = BranchFeeConfig.objects.all()
     serializer_class = BranchFeeConfigSerializer
+    permission_classes = [IsBranchAdminOrSuperAdmin]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(branch_id=branch.branch_id)
+        return qs
 
 class PaymentViewSet(viewsets.ModelViewSet):
-    queryset = Payment.objects.all()
+    queryset = Payment.objects.select_related(
+        'admission__student', 'admission__course', 'admission__branch', 'collected_by'
+    ).all()
     serializer_class = PaymentSerializer
+    permission_classes = [IsBranchAdminOrSuperAdmin]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(admission__branch_id=branch.branch_id)
+        return qs.order_by('-created_at')
 
 class ReceiptViewSet(viewsets.ModelViewSet):
     queryset = Receipt.objects.all()
     serializer_class = ReceiptSerializer
+    permission_classes = [IsBranchAdminOrSuperAdmin]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if hasattr(user, 'is_superuser') and not user.is_superuser:
+            branch_mapping = getattr(user, 'branch_mappings', None)
+            if branch_mapping:
+                branch = branch_mapping.first()
+                if branch:
+                    qs = qs.filter(payment__admission__branch_id=branch.branch_id)
+        return qs
 
 class WhatsappConfigViewSet(viewsets.ModelViewSet):
     queryset = WhatsappConfig.objects.all()
     serializer_class = WhatsappConfigSerializer
+    permission_classes = [IsBranchAdminOrSuperAdmin]
 
 class NotificationTemplateViewSet(viewsets.ModelViewSet):
     queryset = NotificationTemplate.objects.all()
     serializer_class = NotificationTemplateSerializer
+    permission_classes = [IsBranchAdminOrSuperAdmin]
 
 class NotificationLogViewSet(viewsets.ModelViewSet):
     queryset = NotificationLog.objects.all()
     serializer_class = NotificationLogSerializer
+    permission_classes = [IsBranchAdminOrSuperAdmin]
 
 
 # ── AUTH ENDPOINTS ───────────────────────────────────────
@@ -581,7 +809,7 @@ def logout_view(request):
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def change_password_view(request):
     """Force-change password for users with must_change_password flag."""
     serializer = ChangePasswordSerializer(data=request.data)
@@ -591,16 +819,26 @@ def change_password_view(request):
         user = User.objects.get(pk=serializer.validated_data['user_id'])
     except User.DoesNotExist:
         return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+    # Authorization check
+    if request.user.id != user.id and not request.user.is_superuser:
+        return Response({'detail': 'Not authorized to change this user\'s password.'}, status=status.HTTP_403_FORBIDDEN)
 
     user.set_password(serializer.validated_data['new_password'])
     user.must_change_password = False
     user.save(update_fields=['password', 'must_change_password'])
 
+    # Important: Changing the password invalidates the current session.
+    # We must update the session hash so the user remains logged in.
+    from django.contrib.auth import update_session_auth_hash
+    if request.user.is_authenticated and request.user.id == user.id:
+        update_session_auth_hash(request, user)
+
     return Response({'detail': 'Password changed successfully.'})
 
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAdminUser])
 def seed_courses_view(request):
     """One-time seeder: creates the PCM/PCB streams and their courses."""
     data = {

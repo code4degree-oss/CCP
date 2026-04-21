@@ -64,7 +64,7 @@ export function WizardStep5({ admission, onBack, onEdit }: { admission: any; onB
         <div style={{ textAlign: 'center', borderBottom: '3px double #1e40af', paddingBottom: 12, marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginBottom: 6 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/LOGO SVG.svg" alt="CCP" style={{ width: 56, height: 56, objectFit: 'contain' }} />
+            <img src="/LOGO CCP.png" alt="CCP" style={{ width: 56, height: 56, objectFit: 'contain' }} />
             <div>
               <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1e3a5f', letterSpacing: '0.02em' }}>ADMISSION APPLICATION FORM</h1>
               <p style={{ margin: '4px 0 0', fontSize: 11, color: '#6b7280' }}>Chanakya Career Point (CCP)</p>

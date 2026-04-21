@@ -52,10 +52,10 @@ export function WizardStep2({ p2, setP2, courseName, admissionNumber, saving, er
           <Field label="Mother's Name" half><input value={p2.mother_name} onChange={e => s('mother_name', e.target.value)} className={inputClass} /></Field>
           <Field label="Gender" half><select value={p2.gender} onChange={e => s('gender', e.target.value)} className={selectClass}><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></Field>
           <Field label="Date of Birth" half><input type="date" value={p2.dob} onChange={e => s('dob', e.target.value)} className={inputClass} /></Field>
-          <Field label="Mobile" half><input value={p2.mobile} onChange={e => s('mobile', e.target.value)} className={inputClass} /></Field>
+          <Field label="Mobile" half><input value={p2.mobile} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) s('mobile', v); }} className={inputClass} /></Field>
           <Field label="Email ID" half><input type="email" value={p2.email} onChange={e => s('email', e.target.value)} className={inputClass} /></Field>
-          <Field label="Alternate Contact No." half><input value={p2.alternate_mobile} onChange={e => s('alternate_mobile', e.target.value)} className={inputClass} /></Field>
-          <Field label="Aadhaar Card No." half><input value={p2.aadhaar_no} onChange={e => s('aadhaar_no', e.target.value)} className={inputClass} /></Field>
+          <Field label="Alternate Contact No." half><input value={p2.alternate_mobile} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) s('alternate_mobile', v); }} className={inputClass} /></Field>
+          <Field label="Aadhaar Card No." half><input value={p2.aadhaar_no} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 12) s('aadhaar_no', v); }} className={inputClass} /></Field>
           <Field label="Religion" half><select value={p2.religion} onChange={e => s('religion', e.target.value)} className={selectClass}><option value="">Select</option><option>Hindu</option><option>Muslim</option><option>Christian</option><option>Buddhist</option><option>Sikh</option><option>Jain</option><option>Other</option></select></Field>
         </div>
       </div>
@@ -71,7 +71,7 @@ export function WizardStep2({ p2, setP2, courseName, admissionNumber, saving, er
           <Field label="State" half><SearchSelect value={p2.state} onChange={v => { s('state', v); s('district', ''); s('taluka', '') }} options={[...STATES]} placeholder="Select State" /></Field>
           <Field label="District" half>{p2.state === 'Other' ? <input value={p2.district} onChange={e => { s('district', e.target.value); s('taluka', '') }} placeholder="Enter District" className={inputClass} /> : <SearchSelect value={p2.district} onChange={v => { s('district', v); s('taluka', '') }} options={getDistricts(p2.state)} placeholder="Select District" disabled={!p2.state} />}</Field>
           <Field label="Taluka" half>{p2.state === 'Other' ? <input value={p2.taluka} onChange={e => s('taluka', e.target.value)} placeholder="Enter Taluka" className={inputClass} /> : <SearchSelect value={p2.taluka} onChange={v => s('taluka', v)} options={getTalukas(p2.state, p2.district)} placeholder="Select Taluka" disabled={!p2.district} />}</Field>
-          <Field label="Pin Code" half><input value={p2.pincode} onChange={e => s('pincode', e.target.value)} className={inputClass} /></Field>
+          <Field label="Pin Code" half><input value={p2.pincode} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 6) s('pincode', v); }} className={inputClass} /></Field>
         </div>
       </div>
 
@@ -98,7 +98,7 @@ export function WizardStep2({ p2, setP2, courseName, admissionNumber, saving, er
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
         <WizSectionHeader icon={BookOpen} title="SSC / 10th Qualification" color="text-amber-700" />
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Year of Passing" half><input value={p2.ssc_year} onChange={e => s('ssc_year', e.target.value)} placeholder="e.g. 2022" className={inputClass} /></Field>
+          <Field label="Year of Passing" half><input value={p2.ssc_year} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 4) s('ssc_year', v); }} placeholder="e.g. 2022" className={inputClass} /></Field>
           <Field label="Language / Medium" half><select value={p2.ssc_language} onChange={e => s('ssc_language', e.target.value)} className={selectClass}><option value="">Select</option><option>Marathi</option><option>English</option><option>Hindi</option><option>Urdu</option><option>Other</option></select></Field>
           <Field label="State" half><SearchSelect value={p2.ssc_state} onChange={v => { s('ssc_state', v); s('ssc_district', ''); s('ssc_taluka', '') }} options={[...STATES]} placeholder="Select State" /></Field>
           <Field label="District" half>{p2.ssc_state === 'Other' ? <input value={p2.ssc_district} onChange={e => { s('ssc_district', e.target.value); s('ssc_taluka', '') }} className={inputClass} /> : <SearchSelect value={p2.ssc_district} onChange={v => { s('ssc_district', v); s('ssc_taluka', '') }} options={getDistricts(p2.ssc_state)} placeholder="Select District" disabled={!p2.ssc_state} />}</Field>

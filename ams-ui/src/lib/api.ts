@@ -2,11 +2,39 @@ const API_BASE = typeof window !== 'undefined' && window.location.hostname !== '
   ? '/api'
   : 'http://localhost:8000/api'
 
+function getCookie(name: string) {
+  let cookieValue = null;
+  if (typeof document !== 'undefined' && document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
 export async function apiFetch<T = any>(endpoint: string, options?: RequestInit): Promise<T> {
+  const isUnsafe = options?.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method.toUpperCase());
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options?.headers as Record<string, string> || {}),
+  };
+  
+  if (isUnsafe) {
+    const csrfToken = getCookie('csrftoken');
+    if (csrfToken) {
+      headers['X-CSRFToken'] = csrfToken;
+    }
+  }
+
   const res = await fetch(`${API_BASE}/${endpoint}/`, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
     ...options,
+    headers,
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }))
@@ -83,9 +111,13 @@ export const admissionsApi = {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('document_type', documentType)
+    const csrfToken = getCookie('csrftoken')
+    const headers: Record<string, string> = {}
+    if (csrfToken) headers['X-CSRFToken'] = csrfToken
     return fetch(`${API_BASE}/admissions/${id}/upload-document/`, {
       method: 'POST',
       credentials: 'include',
+      headers,
       body: formData,
     }).then(async res => {
       if (!res.ok) {
@@ -96,6 +128,8 @@ export const admissionsApi = {
     })
   },
   listDocuments: (id: number) => apiFetch(`admissions/${id}/documents`),
+  recordPayment: (id: number, data: any) => apiFetch(`admissions/${id}/record-payment`, { method: 'POST', body: JSON.stringify(data) }),
+  paymentSummary: () => apiFetch('admissions/payment-summary'),
 }
 
 // ---------- STREAMS / COURSES / COLLEGES ----------
@@ -135,7 +169,7 @@ export const feesApi = {
 
 // ---------- PAYMENTS ----------
 export const paymentsApi = {
-  list: () => apiFetch('payments'),
+  list: (qs?: string) => apiFetch(`payments${qs || ''}`),
   create: (data: any) => apiFetch('payments', { method: 'POST', body: JSON.stringify(data) }),
 }
 

@@ -165,11 +165,12 @@ body::before {
   .print-admission-form,
   .print-admission-form * {
     visibility: visible !important;
+    display: revert !important;
   }
 
-  /* Position print form at top-left for clean page output */
+  /* Position first print form at top-left; subsequent forms flow naturally */
   .print-admission-form {
-    position: absolute;
+    position: relative;
     left: 0;
     top: 0;
     width: 100%;
@@ -179,6 +180,12 @@ body::before {
     box-shadow: none;
     border-radius: 0;
     background: #fff;
+    page-break-after: always;
+  }
+
+  /* Don't add a page break after the last form */
+  .print-admission-form:last-of-type {
+    page-break-after: auto;
   }
 
   /* Remove overlay background */

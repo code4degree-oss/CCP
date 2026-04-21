@@ -4,9 +4,10 @@ import { useState } from 'react'
 import {
   LayoutDashboard, Users, UserCheck, GraduationCap, CreditCard,
   Building2, BookOpen, Settings, ChevronRight,
-  LogOut, Menu, X
+  LogOut, Menu, X, FileSpreadsheet
 } from 'lucide-react'
 import clsx from 'clsx'
+import { authApi } from '@/lib/api'
 
 interface NavItem {
   label: string
@@ -26,6 +27,7 @@ const BASE_NAV: NavItem[] = [
 const ADMIN_NAV: NavItem[] = [
   ...BASE_NAV,
   { label: 'Payments',    icon: CreditCard,       id: 'payments' },
+  { label: 'Reports',     icon: FileSpreadsheet,  id: 'reports' },
   { label: 'Branches',    icon: Building2,        id: 'branches' },
   { label: 'Users / Employees', icon: UserCheck, id: 'users' },
   { label: 'Settings',    icon: Settings,         id: 'settings' },
@@ -138,7 +140,17 @@ export function Sidebar({ active, onChange }: SidebarProps) {
               </div>
             )}
             {!collapsed && (
-              <button onClick={async () => { try { const base = typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api' : 'http://localhost:8000/api'; await fetch(`${base}/logout/`, { method: 'POST', credentials: 'include' }) } catch {} localStorage.removeItem('ams_user'); document.cookie = 'sessionid=; Max-Age=0; path=/;'; document.cookie = 'csrftoken=; Max-Age=0; path=/;'; window.location.replace('/login') }} className="text-txt-muted hover:text-txt-secondary transition-colors" title="Logout">
+              <button onClick={async () => {
+                try {
+                  await authApi.logout()
+                } catch (err) {
+                  console.error('Logout failed', err)
+                }
+                localStorage.removeItem('ams_user')
+                document.cookie = 'sessionid=; Max-Age=0; path=/;'
+                document.cookie = 'csrftoken=; Max-Age=0; path=/;'
+                window.location.replace('/login')
+              }} className="text-txt-muted hover:text-txt-secondary transition-colors" title="Logout">
                 <LogOut size={13} />
               </button>
             )}

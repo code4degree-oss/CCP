@@ -31,7 +31,7 @@ export function DashboardModule() {
         }
 
         const admitted = admissions.filter((a: any) => a.admission_status === 'Admitted').length
-        const pending = admissions.filter((a: any) => a.admission_status === 'Documents Pending' || a.admission_status === 'Under Review').length
+        const pending = admissions.filter((a: any) => a.admission_status === 'Documents Pending' || a.admission_status === 'Form Completed').length
         const revenue = payments.filter((p: any) => p.status === 'Paid').reduce((s: number, p: any) => s + Number(p.amount), 0)
         setStats({ students: students.length, admissions: admissions.length, enquiries: enquiries.length, admitted, pending, revenue })
         setRecentAdmissions(admissions.slice(0, 5))

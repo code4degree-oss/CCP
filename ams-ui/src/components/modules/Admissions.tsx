@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Download, Inbox, Loader2, Pencil, FileText, Printer, FolderOpen, X, ExternalLink } from 'lucide-react'
 import { Card, Button, Table } from '@/components/ui'
-import { admissionsApi, studentsApi, branchesApi, streamsApi } from '@/lib/api'
+import { admissionsApi, studentsApi, branchesApi, streamsApi, branchCoursesApi } from '@/lib/api'
 import { AdmissionWizard } from './AdmissionWizard'
 import { PrintAdmissionForm } from './PrintAdmissionForm'
 import { PrintFeeReceipt } from './PrintFeeReceipt'
@@ -16,7 +16,7 @@ interface AdmRow {
 const STATUS_FILTERS = [
   { label: 'All', value: 'all' },
   { label: 'Documents Pending', value: 'Documents Pending' },
-  { label: 'Under Review', value: 'Under Review' },
+  { label: 'Form Completed', value: 'Form Completed' },
   { label: 'Admitted', value: 'Admitted' },
   { label: 'Rejected', value: 'Rejected' },
 ]
@@ -104,23 +104,70 @@ export function AdmissionsModule() {
     try {
       const fullData = await admissionsApi.get(a.id)
       const isEntrance = fullData.course_name?.toLowerCase().includes('entrance') && fullData.course_name?.toLowerCase().includes('guidance')
-      // Map to receipt format
-      setReceiptData({
-        admission_number: fullData.admission_number,
-        student_name: fullData.student_name || a.student_name,
-        student_mobile: fullData.student_mobile || '',
-        parent_mobile: fullData.student_detail?.alternate_mobile || '',
-        course_name: fullData.course_name || '—',
-        course_fee: Number(fullData.payments?.[0]?.amount || 0), // Just using amount paid for simplicity
-        amount_paid: Number(fullData.payments?.[0]?.amount || 0),
-        payment_mode: fullData.payments?.[0]?.payment_mode || 'Cash',
-        transaction_id: fullData.payments?.[0]?.reference_no || '',
-        branch_name: fullData.branch_name || a.branch_name || 'CCP',
-        branch_address: fullData.branch_address || '',
-        date: new Date(fullData.created_at || a.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-        filled_by: fullData.manager_name || a.manager_name || '—',
-        isEntranceOnly: isEntrance
+      const payments = fullData.payments || []
+
+      // Get course fee from branch courses
+      let courseFee = 0
+      try {
+        const bcs = await branchCoursesApi.list(fullData.branch)
+        const matchedCourse = bcs.find((bc: any) => bc.course === fullData.course)
+        if (matchedCourse) courseFee = Number(matchedCourse.fee_amount)
+      } catch { /* fallback to 0 */ }
+
+      const totalPaid = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0)
+
+      // Build one receipt per payment
+      const receipts = payments.map((p: any, idx: number) => {
+        const cumulativePaid = payments.slice(0, idx + 1).reduce((s: number, pp: any) => s + Number(pp.amount || 0), 0)
+        return {
+          admission_number: fullData.admission_number,
+          receipt_label: payments.length > 1 ? `${fullData.admission_number}-${idx + 1}` : fullData.admission_number,
+          student_name: fullData.student_name || a.student_name,
+          student_mobile: fullData.student_mobile || '',
+          parent_mobile: fullData.student_detail?.demographic_details?.alternate_mobile || fullData.student_detail?.alternate_mobile || '',
+          course_name: fullData.course_name || '—',
+          course_fee: courseFee,
+          amount_paid: Number(p.amount || 0),
+          cumulative_paid: cumulativePaid,
+          balance: Math.max(0, courseFee - cumulativePaid),
+          payment_mode: p.payment_mode || 'Cash',
+          transaction_id: p.reference_no || '',
+          branch_name: fullData.branch_name || a.branch_name || 'CCP',
+          branch_address: fullData.branch_address || '',
+          date: new Date(p.paid_at || p.created_at || fullData.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+          filled_by: p.collected_by_name || fullData.manager_name || a.manager_name || '—',
+          isEntranceOnly: isEntrance,
+          payment_index: idx + 1,
+          total_payments: payments.length,
+        }
       })
+
+      if (receipts.length === 0) {
+        // No payments — still show a stub
+        receipts.push({
+          admission_number: fullData.admission_number,
+          receipt_label: fullData.admission_number,
+          student_name: fullData.student_name || a.student_name,
+          student_mobile: fullData.student_mobile || '',
+          parent_mobile: fullData.student_detail?.demographic_details?.alternate_mobile || fullData.student_detail?.alternate_mobile || '',
+          course_name: fullData.course_name || '—',
+          course_fee: courseFee,
+          amount_paid: 0,
+          cumulative_paid: 0,
+          balance: courseFee,
+          payment_mode: '—',
+          transaction_id: '',
+          branch_name: fullData.branch_name || a.branch_name || 'CCP',
+          branch_address: fullData.branch_address || '',
+          date: new Date(fullData.created_at || a.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+          filled_by: fullData.manager_name || a.manager_name || '—',
+          isEntranceOnly: isEntrance,
+          payment_index: 1,
+          total_payments: 1,
+        })
+      }
+
+      setReceiptData(receipts)
       setView('receipt')
     } catch (e) {
       setError('Failed to load receipt details')
@@ -150,7 +197,7 @@ export function AdmissionsModule() {
   const statusColor = (s: string) => {
     if (s === 'Admitted') return 'text-accent-green bg-accent-green/10 border-accent-green/20'
     if (s === 'Rejected') return 'text-red-400 bg-red-400/10 border-red-400/20'
-    if (s === 'Under Review') return 'text-accent-amber bg-accent-amber/10 border-accent-amber/20'
+    if (s === 'Form Completed') return 'text-accent-amber bg-accent-amber/10 border-accent-amber/20'
     return 'text-accent-blue bg-accent-blue/10 border-accent-blue/20'
   }
 
@@ -162,11 +209,9 @@ export function AdmissionsModule() {
     { key: 'filled_by', label: 'Filled By', render: (r: AdmRow) => (
       <span className="text-[11px] text-txt-secondary">{r.manager_name || '—'}</span>
     )},
-    { key: 'status', label: 'Status', render: (r: AdmRow) => <span className={clsx('text-[11px] px-2 py-0.5 rounded border font-medium', statusColor(r.admission_status))}>{r.admission_status}</span> },
-    { key: 'finalized', label: '', render: (r: AdmRow) => r.is_finalized 
-      ? <span className="text-[10px] bg-accent-green/10 text-accent-green border border-accent-green/20 px-1.5 py-0.5 rounded font-medium">Final</span>
-      : <span className="text-[10px] bg-accent-amber/10 text-accent-amber border border-accent-amber/20 px-1.5 py-0.5 rounded font-medium">Draft</span>
-    },
+    { key: 'status', label: 'Status', render: (r: AdmRow) => {
+      return <span className={clsx('text-[11px] px-2 py-0.5 rounded border font-medium', statusColor(r.admission_status))}>{r.admission_status}</span>
+    }},
     { key: 'actions', label: '', render: (r: AdmRow) => {
       const lockEdit = r.is_finalized && isEmployee;
       return (
@@ -199,7 +244,7 @@ export function AdmissionsModule() {
 
   // ── RECEIPT VIEW ──
   if (view === 'receipt' && receiptData) {
-    return <PrintFeeReceipt data={receiptData} onPrint={() => window.print()} onBack={handleBack} onContinue={() => openEdit(editAdmission || printAdmission || {})} />
+    return <PrintFeeReceipt receipts={Array.isArray(receiptData) ? receiptData : [receiptData]} onPrint={() => window.print()} onBack={handleBack} />
   }
 
   // ── WIZARD VIEW ──

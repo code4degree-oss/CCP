@@ -1,5 +1,5 @@
 from rest_framework.authentication import SessionAuthentication
 
-class CsrfExemptSessionAuthentication(SessionAuthentication):
-    def enforce_csrf(self, request):
-        return  # To not perform the csrf check previously happening
+
+# Use standard SessionAuthentication — CSRF is now properly enforced.
+# The frontend sends X-CSRFToken header on all unsafe requests.

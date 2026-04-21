@@ -176,9 +176,23 @@ class BranchFeeConfigSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class PaymentSerializer(serializers.ModelSerializer):
+    admission_number = serializers.CharField(source='admission.admission_number', read_only=True, default=None)
+    student_name = serializers.CharField(source='admission.student.full_name', read_only=True, default=None)
+    student_mobile = serializers.CharField(source='admission.student.mobile', read_only=True, default=None)
+    course_name = serializers.CharField(source='admission.course.name', read_only=True, default=None)
+    branch_name = serializers.CharField(source='admission.branch.name', read_only=True, default=None)
+    branch_id = serializers.IntegerField(source='admission.branch.id', read_only=True, default=None)
+    collected_by_name = serializers.CharField(source='collected_by.full_name', read_only=True, default=None)
+
     class Meta:
         model = Payment
         fields = '__all__'
+
+class RecordPaymentSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    payment_mode = serializers.CharField(max_length=20)
+    reference_no = serializers.CharField(max_length=80, required=False, allow_blank=True)
+    notes = serializers.CharField(required=False, allow_blank=True)
 
 class ReceiptSerializer(serializers.ModelSerializer):
     class Meta:
