@@ -63,7 +63,25 @@ function buildHTML(admission: any): string {
 
   // Marks table
   const marksHeader = `<tr><td colspan="3" style="padding:10px 10px 6px;font-weight:800;font-size:12px;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #1d4ed8;background:#fff">Subject Details (12th Marks)</td></tr><tr style="background:#f3f4f6"><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db">Subject</td><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db;text-align:center">Marks Obtained</td><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db;text-align:center">Out of</td></tr>`
-  html += `<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px" class="avoid-break"><tbody>${marksHeader}${marksRow('Physics', academic.physics_obtained, 100)}${marksRow('Chemistry', academic.chemistry_obtained, 100)}${marksRow('Biology', academic.biology_obtained, 100)}${marksRow('English', academic.english_obtained, 100)}${marksRow('PCB Total', academic.pcb_obtained, 300)}${marksRow('PCBE Total', academic.pcbe_obtained, 400)}${marksRow('PCB Percentage', academic.pcb_percentage_obtained, 100)}${marksRow('PCBE Percentage', academic.pcbe_percentage_obtained, 100)}</tbody></table>`
+  let marksHtml = marksHeader
+  marksHtml += marksRow('Physics', academic.physics_obtained, 100)
+  marksHtml += marksRow('Chemistry', academic.chemistry_obtained, 100)
+  if (academic.biology_obtained || academic.pcb_obtained) marksHtml += marksRow('Biology', academic.biology_obtained, 100)
+  if (academic.maths_obtained || academic.pcm_obtained) marksHtml += marksRow('Mathematics', academic.maths_obtained, 100)
+  marksHtml += marksRow('English', academic.english_obtained, 100)
+  if (academic.pcm_obtained) {
+    marksHtml += marksRow('PCM Total', academic.pcm_obtained, 300)
+    marksHtml += marksRow('PCME Total', academic.pcme_obtained, 400)
+    marksHtml += marksRow('PCM Percentage', academic.pcm_percentage_obtained, 100)
+    marksHtml += marksRow('PCME Percentage', academic.pcme_percentage_obtained, 100)
+  }
+  if (academic.pcb_obtained) {
+    marksHtml += marksRow('PCB Total', academic.pcb_obtained, 300)
+    marksHtml += marksRow('PCBE Total', academic.pcbe_obtained, 400)
+    marksHtml += marksRow('PCB Percentage', academic.pcb_percentage_obtained, 100)
+    marksHtml += marksRow('PCBE Percentage', academic.pcbe_percentage_obtained, 100)
+  }
+  html += `<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px" class="avoid-break"><tbody>${marksHtml}</tbody></table>`
 
   html += tbl(section('Parallel Reservation & Application', '#e11d48') + row('Claim Exception?', demo.claim_exception) + row('Specified Reservation', demo.specified_reservation) + row('Apply For (Quota)', demo.quota_apply_for) + row('All Documents Received?', demo.documents_received))
 

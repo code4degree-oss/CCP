@@ -301,10 +301,24 @@ export function StudentDetailsSidepanel({ student, onClose }: Props) {
                   <Field label="English" value={acad?.englishMarks} mono accent="text-accent-amber" />
                 </div>
                 <div className="border-t border-bg-border mt-4 pt-4 grid grid-cols-2 gap-4">
-                  <Field label="PCB Total" value={acad?.pcbTotal} mono accent="text-accent-purple" />
-                  <Field label="PCBE Total" value={acad?.pcbeTotal} mono accent="text-accent-purple" />
-                  <Field label="PCB %" value={acad?.pcbPercentage ? `${acad.pcbPercentage}%` : undefined} mono accent="text-accent-green" />
-                  <Field label="PCBE %" value={acad?.pcbePercentage ? `${acad.pcbePercentage}%` : undefined} mono accent="text-accent-green" />
+                  {acad?.pcmTotal && <Field label="PCM Total" value={acad?.pcmTotal} mono accent="text-accent-purple" />}
+                  {acad?.pcmeTotal && <Field label="PCME Total" value={acad?.pcmeTotal} mono accent="text-accent-purple" />}
+                  {acad?.pcmPercentage && <Field label="PCM %" value={`${acad.pcmPercentage}%`} mono accent="text-accent-green" />}
+                  {acad?.pcmePercentage && <Field label="PCME %" value={`${acad.pcmePercentage}%`} mono accent="text-accent-green" />}
+                  
+                  {acad?.pcbTotal && <Field label="PCB Total" value={acad?.pcbTotal} mono accent="text-accent-purple" />}
+                  {acad?.pcbeTotal && <Field label="PCBE Total" value={acad?.pcbeTotal} mono accent="text-accent-purple" />}
+                  {acad?.pcbPercentage && <Field label="PCB %" value={`${acad.pcbPercentage}%`} mono accent="text-accent-green" />}
+                  {acad?.pcbePercentage && <Field label="PCBE %" value={`${acad.pcbePercentage}%`} mono accent="text-accent-green" />}
+                  
+                  {!acad?.pcmTotal && !acad?.pcbTotal && (
+                    <>
+                      <Field label="PCB Total" value={acad?.pcbTotal} mono accent="text-accent-purple" />
+                      <Field label="PCBE Total" value={acad?.pcbeTotal} mono accent="text-accent-purple" />
+                      <Field label="PCB %" value={acad?.pcbPercentage ? `${acad.pcbPercentage}%` : undefined} mono accent="text-accent-green" />
+                      <Field label="PCBE %" value={acad?.pcbePercentage ? `${acad.pcbePercentage}%` : undefined} mono accent="text-accent-green" />
+                    </>
+                  )}
                 </div>
               </div>
               {(acad?.parallelReservation || acad?.reservationException || acad?.specifiedReservation || acad?.defenceQuota) && (

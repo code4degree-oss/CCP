@@ -30,11 +30,12 @@ interface PrintFeeReceiptProps {
   receipts: ReceiptItem[]
   onPrint: () => void
   onBack: () => void
+  wizardActions?: React.ReactNode
 }
 
 const v = (val: any) => (val && val !== '' ? String(val) : '—')
 
-function buildReceiptHTML(r: ReceiptItem): string {
+export function buildSingleReceiptHTML(r: ReceiptItem): string {
   const balance = r.balance != null ? r.balance : Math.max(0, (r.course_fee || 0) - (r.cumulative_paid || r.amount_paid || 0))
   const receiptNo = r.receipt_label || r.admission_number
   const hasMultiple = (r.total_payments || 0) > 1
@@ -127,7 +128,7 @@ function buildReceiptHTML(r: ReceiptItem): string {
   return html
 }
 
-export function PrintFeeReceipt({ receipts, onPrint, onBack }: PrintFeeReceiptProps) {
+export function PrintFeeReceipt({ receipts, onPrint, onBack, wizardActions }: PrintFeeReceiptProps) {
   const [currentPage, setCurrentPage] = useState(0)
   const total = receipts.length
   const data = receipts[currentPage]
@@ -138,7 +139,7 @@ export function PrintFeeReceipt({ receipts, onPrint, onBack }: PrintFeeReceiptPr
     // Build all receipts with page breaks between them
     const allHTML = receipts.map((r, i) => {
       const pageClass = i < receipts.length - 1 ? 'page-break' : ''
-      return `<div class="${pageClass}">${buildReceiptHTML(r)}</div>`
+      return `<div class="${pageClass}">${buildSingleReceiptHTML(r)}</div>`
     }).join('')
     printHTML(allHTML)
   }
@@ -169,6 +170,7 @@ export function PrintFeeReceipt({ receipts, onPrint, onBack }: PrintFeeReceiptPr
               </button>
             </div>
           )}
+          {wizardActions}
         </div>
         <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
           {total > 1 ? `This admission has ${total} payment receipts. Use arrows to preview. Print will output all receipts on separate pages.` : 'Print the receipt for the student.'}
