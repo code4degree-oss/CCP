@@ -151,8 +151,10 @@ export function WizardStep2({ p2, setP2, courseName, admissionNumber, saving, er
           <hr className="my-4 border-gray-200" />
           {(isEng ? [
             { label: 'PCM Total', key: 'pcm', out: 300 }, { label: 'PCM %', key: 'pcm_percentage', out: 100 },
+            { label: 'PCME Total', key: 'pcme', out: 400 }, { label: 'PCME %', key: 'pcme_percentage', out: 100 },
           ] : [
             { label: 'PCB Total', key: 'pcb', out: 300 }, { label: 'PCB %', key: 'pcb_percentage', out: 100 },
+            { label: 'PCBE Total', key: 'pcbe', out: 400 }, { label: 'PCBE %', key: 'pcbe_percentage', out: 100 },
           ]).map(sub => (
             <div key={sub.key} className="grid grid-cols-[1fr_1fr_1fr] gap-4 items-end">
               <div><p className="text-sm font-semibold text-gray-800">{sub.label}</p><p className="text-[10px] text-emerald-600 font-medium">Auto-calculated</p></div>

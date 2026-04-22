@@ -221,6 +221,10 @@ export interface StudentAcademic {
   pcbeTotal?: number
   pcbPercentage?: number
   pcbePercentage?: number
+  pcmTotal?: number
+  pcmeTotal?: number
+  pcmPercentage?: number
+  pcmePercentage?: number
   parallelReservation?: string
   reservationException?: string
   specifiedReservation?: string

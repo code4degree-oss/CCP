@@ -1,7 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { ArrowLeft, X, Printer, ArrowRight } from 'lucide-react'
+import { ArrowLeft, Printer, ArrowRight } from 'lucide-react'
 import { admissionsApi, branchesApi } from '@/lib/api'
+import { printHTML } from '@/lib/printUtils'
+import { buildSingleReceiptHTML, PrintFeeReceipt } from './PrintFeeReceipt'
 import { StepProgress } from './wizard/StepProgress'
 import { WizardStep1 } from './wizard/WizardStep1'
 import { WizardStep2 } from './wizard/WizardStep2'
@@ -220,87 +222,35 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
 
   /* ═══ RECEIPT MODAL ═══ */
   if (showReceipt && receiptData) {
-    const balance = Math.max(0, (receiptData.course_fee || 0) - (receiptData.amount_paid || 0))
+    const receiptItem = {
+      ...receiptData,
+      cumulative_paid: receiptData.amount_paid,
+      balance: Math.max(0, (receiptData.course_fee || 0) - (receiptData.amount_paid || 0)),
+      receipt_label: receiptData.admission_number,
+      payment_index: 1,
+      total_payments: 1,
+    }
+
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-          {/* Modal Header */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
-            <h3 className="text-base font-bold text-gray-900">Fee Receipt Generated ✓</h3>
-            <button onClick={() => setShowReceipt(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={16} /></button>
-          </div>
-
-          {/* Receipt Content */}
-          <div className="p-6" id="print-fee-receipt">
-            <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 8 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/LOGO SVG.svg" alt="CCP" style={{ width: 48, height: 48, objectFit: 'contain' }} />
-                <div>
-                  <h1 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#1e3a5f', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>Chanakya Career Point</h1>
-                  <p style={{ margin: 0, fontSize: 11, color: '#6b7280', fontWeight: 600 }}>FEE RECEIPT</p>
-                </div>
-              </div>
-              {receiptData.branch_address && (
-                <p style={{ fontSize: 10, color: '#4b5563', margin: '4px 0' }}><b>{receiptData.branch_name}:</b> {receiptData.branch_address}</p>
-              )}
-            </div>
-
-            <div style={{ borderTop: '2px solid #1e3a5f', paddingTop: 10, fontSize: 12, color: '#111827' }}>
-              <p style={{ margin: '0 0 6px' }}><b>Receipt No:</b> <span style={{ fontFamily: 'monospace', color: '#1e40af', fontWeight: 700 }}>{receiptData.admission_number}</span></p>
-              <p style={{ margin: '0 0 6px' }}><b>Name:</b> <span style={{ textTransform: 'uppercase', fontWeight: 600 }}>{receiptData.student_name}</span></p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0 0 6px' }}>
-                <p style={{ margin: 0 }}><b>Course:</b> {receiptData.course_name}</p>
-                <p style={{ margin: 0 }}><b>Mobile:</b> {receiptData.student_mobile}</p>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', margin: '0 0 6px' }}>
-                <p style={{ margin: 0 }}><b>Payment:</b> {receiptData.payment_mode}</p>
-                <p style={{ margin: 0 }}><b>Date:</b> {receiptData.date}</p>
-              </div>
-            </div>
-
-            <table style={{ width: '100%', borderCollapse: 'collapse', border: '1.5px solid #374151', margin: '12px 0 16px' }}>
-              <thead><tr style={{ background: '#f3f4f6' }}>
-                <th style={{ padding: '6px 10px', fontSize: 11, fontWeight: 800, border: '1px solid #374151', textAlign: 'center' }}>Sr</th>
-                <th style={{ padding: '6px 10px', fontSize: 11, fontWeight: 800, border: '1px solid #374151', textAlign: 'center' }}>Particulars</th>
-                <th style={{ padding: '6px 10px', fontSize: 11, fontWeight: 800, border: '1px solid #374151', textAlign: 'center' }}>Amount</th>
-              </tr></thead>
-              <tbody>
-                <tr><td style={{ padding: '6px 10px', fontSize: 11, border: '1px solid #374151', textAlign: 'center' }}>1</td><td style={{ padding: '6px 10px', fontSize: 11, border: '1px solid #374151', textAlign: 'center' }}>Admission Fees</td><td style={{ padding: '6px 10px', fontSize: 11, border: '1px solid #374151', textAlign: 'center', fontWeight: 600 }}>₹{Number(receiptData.course_fee || 0).toLocaleString()}</td></tr>
-                <tr><td style={{ padding: '6px 10px', fontSize: 11, border: '1px solid #374151', textAlign: 'center' }}>2</td><td style={{ padding: '6px 10px', fontSize: 11, border: '1px solid #374151', textAlign: 'center' }}>Received</td><td style={{ padding: '6px 10px', fontSize: 11, border: '1px solid #374151', textAlign: 'center', fontWeight: 700, color: '#059669' }}>₹{Number(receiptData.amount_paid).toLocaleString()}</td></tr>
-                <tr><td style={{ padding: '6px 10px', fontSize: 11, border: '1px solid #374151', textAlign: 'center' }}>3</td><td style={{ padding: '6px 10px', fontSize: 11, border: '1px solid #374151', textAlign: 'center' }}>Balance</td><td style={{ padding: '6px 10px', fontSize: 11, border: '1px solid #374151', textAlign: 'center', fontWeight: 700, color: balance > 0 ? '#dc2626' : '#059669' }}>₹{balance.toLocaleString()}</td></tr>
-              </tbody>
-            </table>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 30 }}>
-              <div style={{ textAlign: 'center', width: '40%', borderTop: '1px solid #374151', paddingTop: 6 }}>
-                <p style={{ margin: 0, fontSize: 11, fontWeight: 700 }}>Student Sign</p>
-              </div>
-              <div style={{ textAlign: 'center', width: '40%', borderTop: '1px solid #374151', paddingTop: 6 }}>
-                <p style={{ margin: 0, fontSize: 11, fontWeight: 700 }}>{receiptData.filled_by}</p>
-                <p style={{ margin: 0, fontSize: 9, color: '#6b7280' }}>Coordinator</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Modal Footer */}
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex items-center gap-3 rounded-b-2xl">
-            <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors">
-              <Printer size={14} /> Print Receipt
-            </button>
+      <PrintFeeReceipt
+        receipts={[receiptItem]}
+        onPrint={() => printHTML(buildSingleReceiptHTML(receiptItem))}
+        onBack={() => setShowReceipt(false)}
+        wizardActions={
+          <div className="flex items-center gap-3">
             {!receiptData.isEntranceOnly && (
-              <button onClick={() => { setShowReceipt(false); setStep(2) }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors ml-auto">
+              <button onClick={() => { setShowReceipt(false); setStep(2) }} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors">
                 Continue to Step 2 <ArrowRight size={14} />
               </button>
             )}
             {receiptData.isEntranceOnly && (
-              <button onClick={onBack} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-colors ml-auto">
+              <button onClick={onBack} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-colors">
                 Done — Back to Admissions
               </button>
             )}
           </div>
-        </div>
-      </div>
+        }
+      />
     )
   }
 
