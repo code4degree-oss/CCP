@@ -196,9 +196,8 @@ export function BranchesModule() {
                 </div>
 
                 {/* Info row */}
-                <div className="px-4 pb-3 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1.5 text-[11px]">
-                  <div className="flex justify-between sm:flex-col"><span className="text-txt-muted">Login ID</span><span className="text-txt-secondary">{b.email || '—'}</span></div>
-                  <div className="flex justify-between sm:flex-col"><span className="text-txt-muted">Branch Admin</span><span className="text-txt-secondary">{b.manager_name || 'Not assigned'}</span></div>
+                <div className="px-4 pb-3 grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1.5 text-[11px]">
+                  <div className="flex justify-between sm:flex-col"><span className="text-txt-muted">Branch Admin</span><span className="text-txt-secondary font-medium">{b.manager_name || 'Not assigned'}</span></div>
                   {b.address && <div className="flex justify-between sm:flex-col col-span-2"><span className="text-txt-muted">Address</span><span className="text-txt-secondary">{b.address}</span></div>}
                 </div>
 

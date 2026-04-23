@@ -64,7 +64,13 @@ class BranchCourseSerializer(serializers.ModelSerializer):
 class BranchSerializer(serializers.ModelSerializer):
     branch_courses = BranchCourseSerializer(many=True, read_only=True)
     course_count = serializers.SerializerMethodField()
-    manager_name = serializers.CharField(source='manager.full_name', read_only=True, default=None)
+    manager_name = serializers.SerializerMethodField()
+
+    def get_manager_name(self, obj):
+        admin_mapping = obj.userbranch_set.filter(user__role__name__iexact='Branch Admin').first()
+        if admin_mapping:
+            return admin_mapping.user.full_name
+        return getattr(obj.manager, 'full_name', None)
 
     class Meta:
         model = Branch
