@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Search, UserCheck, Loader2, X, Trash2, Pencil, Shield, Copy } from 'lucide-react'
+import { Plus, Search, UserCheck, Loader2, X, Trash2, Pencil, Shield, Copy, KeyRound } from 'lucide-react'
 import { Card, Button, Table } from '@/components/ui'
 import { usersApi, rolesApi, branchesApi } from '@/lib/api'
 
@@ -105,6 +105,16 @@ export function UsersModule() {
     }
   }
 
+  const handleResetPassword = async (u: UserRow) => {
+    if (!confirm(`Reset password for ${u.full_name}? This will generate a new temporary password and they will be forced to change it on next login.`)) return
+    setLoading(true)
+    try {
+      const res = await usersApi.resetPassword(u.id)
+      setCreatedCredentials({ email: u.email, password: res.temporary_password })
+    } catch (e: any) { setError(e.message || 'Failed to reset password') }
+    setLoading(false)
+  }
+
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }))
 
   const filtered = users.filter(u =>
@@ -153,6 +163,9 @@ export function UsersModule() {
     },
     { key: 'actions', label: '', render: (r: UserRow) => (
       <div className="flex bg-transparent items-center gap-1 justify-end">
+        <button onClick={(e) => { e.stopPropagation(); handleResetPassword(r) }} className="p-1.5 rounded hover:bg-bg-hover text-accent-blue transition-colors" title="Reset Password">
+          <KeyRound size={12} />
+        </button>
         {r.is_active && !isSuper && (
            <button onClick={(e) => { e.stopPropagation(); handleSuspend(r.id) }} className="p-1.5 rounded hover:bg-bg-hover text-amber-500 transition-colors" title="Suspend"><Shield size={12} /></button>
         )}

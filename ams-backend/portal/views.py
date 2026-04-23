@@ -254,6 +254,38 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save()
         return Response({"status": "suspended", "detail": f"{user.email} has been suspended."})
 
+    @action(detail=True, methods=['post'], url_path='reset-password', permission_classes=[IsBranchAdminOrSuperAdmin])
+    def reset_password(self, request, pk=None):
+        """Admin-initiated password reset. Generates a temp password and flags must_change_password."""
+        target_user = self.get_object()
+        actor = request.user
+        is_super = actor.is_superuser
+        is_branch_admin = not is_super and actor.role and actor.role.name.lower() == 'branch admin'
+
+        # Super Admin can reset anyone (except other super admins handled by queryset)
+        # Branch Admin can only reset users in their branch
+        if is_branch_admin:
+            actor_branch = actor.branch_mappings.first()
+            target_branch = target_user.branch_mappings.first()
+            if not actor_branch or not target_branch or actor_branch.branch_id != target_branch.branch_id:
+                return Response({'detail': 'You can only reset passwords for users in your branch.'}, status=status.HTTP_403_FORBIDDEN)
+            # Branch admin cannot reset another branch admin
+            if target_user.role and target_user.role.name.lower() == 'branch admin':
+                return Response({'detail': 'Branch Admins cannot reset another Branch Admin password.'}, status=status.HTTP_403_FORBIDDEN)
+        elif not is_super:
+            return Response({'detail': 'Not authorized.'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Generate temp password
+        temp_password = _generate_password(10)
+        target_user.set_password(temp_password)
+        target_user.must_change_password = True
+        target_user.save(update_fields=['password', 'must_change_password'])
+
+        return Response({
+            'detail': f'Password reset for {target_user.email}.',
+            'temporary_password': temp_password,
+        })
+
 class UserBranchViewSet(viewsets.ModelViewSet):
     queryset = UserBranch.objects.all()
     serializer_class = UserBranchSerializer
@@ -821,8 +853,18 @@ def change_password_view(request):
     except User.DoesNotExist:
         return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
         
-    # Authorization check
-    if request.user.id != user.id and not request.user.is_superuser:
+    # Authorization check: self, superuser, or branch admin for same-branch users
+    actor = request.user
+    is_self = actor.id == user.id
+    is_super = actor.is_superuser
+    is_branch_admin = not is_super and actor.role and actor.role.name.lower() == 'branch admin'
+    authorized = is_self or is_super
+    if is_branch_admin and not is_self:
+        actor_branch = actor.branch_mappings.first()
+        target_branch = user.branch_mappings.first()
+        if actor_branch and target_branch and actor_branch.branch_id == target_branch.branch_id:
+            authorized = True
+    if not authorized:
         return Response({'detail': 'Not authorized to change this user\'s password.'}, status=status.HTTP_403_FORBIDDEN)
 
     user.set_password(serializer.validated_data['new_password'])

@@ -99,30 +99,46 @@ export function buildSingleReceiptHTML(r: ReceiptItem): string {
     html += `</div>`
   }
 
-  // Declaration
-  html += `<div style="margin-bottom:20px">
-    <h3 style="font-size:13px;font-weight:800;color:#dc2626;text-align:center;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.03em">Declaration by the Student / विद्यार्थ्यांची घोषणा</h3>
-    <ol style="padding-left:20px;margin:0;font-size:10px;line-height:1.6;color:#374151">
-      <li style="margin-bottom:4px"><strong>Fees once paid are non-refundable under any circumstances.</strong></li>
-      <li style="margin-bottom:4px"><strong>Chanakya Career Point is not responsible for any errors in the form caused by incorrect information provided by the student.</strong></li>
-      <li style="margin-bottom:4px"><strong>All students must provide accurate information and must carefully review the filled form.</strong></li>
-      <li style="margin-bottom:12px"><strong>Information shared via WhatsApp Group and SMS should be read carefully by the student and parent. Contact Chanakya Career Point if unclear.</strong></li>
-    </ol>
-    <ol style="padding-left:20px;margin:0;font-size:11px;line-height:1.6;color:#374151">
-      <li style="margin-bottom:4px"><strong>एकदा भरलेली फी कोणत्याही कारणास्तव वापस भेटली जाणार नाही.</strong></li>
-      <li style="margin-bottom:4px"><strong>विद्यार्थ्याने दिलेली माहिती चुकीची असल्यास, फॉर्म मध्ये चुका झाल्यास त्यासाठी Chanakya Career Point जबाबदार नाही.</strong></li>
-      <li style="margin-bottom:4px"><strong>सर्व विद्यार्थ्यांने अचूक माहिती देणे गरजेचे आहे व दिलेल्या माहितीनुसार भरलेला फॉर्म काळजीपूर्वक पाहणे अनिवार्य आहे.</strong></li>
-      <li style="margin-bottom:5px"><strong>WhatsApp Group मध्ये व SMS द्वारे कळवण्यात आलेली माहिती विद्यार्थ्याने व पालकाने काळजीपूर्वक वाचावी व समजले नसेल तर Chanakya Career Point ला संपर्क साधावा.</strong></li>
-    </ol>
+  // Terms & Conditions
+  html += `<div style="margin-top:10px;border-top:1.5px solid #1e3a5f;padding-top:6px">
+    <h3 style="font-size:9px;font-weight:900;color:#dc2626;text-align:center;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.04em">Terms &amp; Conditions: Chanakya Career Point Counselling Program</h3>
+    <p style="font-size:7px;color:#6b7280;text-align:center;margin:0 0 5px">Before participating in the counselling services, it is mandatory to carefully read and fully accept the following terms and conditions.</p>
+    <div style="columns:2;column-gap:14px;font-size:7.5px;line-height:1.35;color:#374151">
+      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">1. Counselling Fee Policy</p>
+      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">The counselling fee must be paid in a single installment and will remain valid for the entire duration of the program.</li><li style="margin:0 0 1px">The counselling process will only commence after the fee has been paid.</li><li style="margin:0 0 1px">The fee covers guidance services only; admission is not guaranteed.</li></ul>
+      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">2. Strict No-Refund Policy</p>
+      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">Counselling fees paid will not be refunded under any circumstances or for any reason.</li><li style="margin:0 0 1px">No refunds if the student/parent leaves midway, remains absent, expresses dissatisfaction, or discontinues for personal reasons.</li><li style="margin:0 0 1px">Fees will not be refunded if the student fails to secure admission, changes college/course, or due to government policy changes.</li><li style="margin:0 0 1px">Fee transfers, credits, or adjustments for future sessions are not permitted.</li></ul>
+      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">3. Schedule and Attendance</p>
+      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">All counselling sessions will be organized according to a fixed schedule.</li><li style="margin:0 0 1px">Students and parents must strictly adhere to the scheduled timings.</li><li style="margin:0 0 1px">The institution assumes no responsibility if a participant arrives late, is absent, or violates the schedule.</li></ul>
+      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">4. Official Communication</p>
+      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">It is mandatory to follow official instructions via WhatsApp groups, email, or official calling channels.</li><li style="margin:0 0 1px">Information from unofficial sources should not be relied upon. The institution&#39;s official directives are final and legally binding.</li></ul>
+      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">5. Office Visit Policy</p>
+      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">Office visits are permitted by prior appointment only. Unnecessary, frequent, or unscheduled visits should be avoided.</li><li style="margin:0 0 1px">Unauthorized interference in the counselling process will not be tolerated.</li></ul>
+      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">6. Discipline and Cooperation</p>
+      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">Students and parents must comply with all institutional rules.</li><li style="margin:0 0 1px">The institution reserves the right to immediately cancel services in cases of misconduct, disputes, or breach of discipline.</li></ul>
+      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">7. Limitation of Liability</p>
+      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">Chanakya Career Point provides guidance services only; it does not provide a legal guarantee of admission.</li><li style="margin:0 0 1px">The institution is not responsible if a student does not secure admission or achieve expected results.</li></ul>
+      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">8. Right to Final Decision</p>
+      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">The decision of Chanakya Career Point regarding the counselling process, policies, and related matters shall be final and binding.</li></ul>
+    </div>
   </div>`
 
-  // Signatures
-  html += `<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:40px;padding-top:10px">
-    <div style="text-align:center;width:40%"><div style="border-top:1px solid #374151;padding-top:6px"><p style="margin:0;font-size:12px;font-weight:800;color:#111827">Student Sign</p></div></div>
-    <div style="text-align:center;width:40%"><div style="border-top:1px solid #374151;padding-top:6px"><p style="margin:0 0 1px;font-size:12px;font-weight:800;color:#111827">${r.filled_by || 'Coordinator'}</p><p style="margin:0;font-size:10px;font-weight:600;color:#6b7280">Coordinator</p></div></div>
+  // Declaration acceptance + Signature fields
+  html += `<div style="margin-top:6px;border-top:1px solid #374151;padding-top:5px">
+    <p style="font-size:8px;font-weight:700;color:#111827;margin:0 0 5px;text-align:center">I have carefully read the above terms and conditions, understood them fully, and accept them without any objection.</p>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px">
+      <div style="width:30%"><p style="margin:0;font-size:7.5px;color:#374151"><strong>Parent&#39;s Name:</strong></p><div style="border-bottom:1px solid #374151;height:16px;margin-top:2px"></div></div>
+      <div style="width:30%"><p style="margin:0;font-size:7.5px;color:#374151"><strong>Student&#39;s Name:</strong></p><div style="border-bottom:1px solid #374151;height:16px;margin-top:2px"></div></div>
+      <div style="width:18%"><p style="margin:0;font-size:7.5px;color:#374151"><strong>Signature:</strong></p><div style="border-bottom:1px solid #374151;height:16px;margin-top:2px"></div></div>
+      <div style="width:14%"><p style="margin:0;font-size:7.5px;color:#374151"><strong>Date:</strong></p><div style="border-bottom:1px solid #374151;height:16px;margin-top:2px"></div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px">
+      <div style="text-align:center;width:35%"><div style="border-top:1px solid #374151;padding-top:4px"><p style="margin:0;font-size:9px;font-weight:800;color:#111827">Student Sign</p></div></div>
+      <div style="text-align:center;width:35%"><div style="border-top:1px solid #374151;padding-top:4px"><p style="margin:0 0 1px;font-size:9px;font-weight:800;color:#111827">${r.filled_by || 'Coordinator'}</p><p style="margin:0;font-size:7px;font-weight:600;color:#6b7280">Coordinator</p></div></div>
+    </div>
   </div>`
 
-  html += `<div style="text-align:center;margin-top:24px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:8px;color:#9ca3af">Generated on: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} &nbsp;|&nbsp; This is a computer-generated receipt.</div>`
+  html += `<div style="text-align:center;margin-top:5px;padding-top:3px;border-top:1px solid #e5e7eb;font-size:7px;color:#9ca3af">Generated on: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} &nbsp;|&nbsp; This is a computer-generated receipt.</div>`
 
   html += `</div>`
   return html

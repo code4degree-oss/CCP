@@ -48,6 +48,12 @@ export default function Home() {
   useEffect(() => {
     authApi.me()
       .then((user) => {
+        // If the user must change their password, redirect to login for force-change
+        if (user.must_change_password) {
+          localStorage.setItem('ams_user', JSON.stringify(user))
+          router.replace('/login')
+          return
+        }
         localStorage.setItem('ams_user', JSON.stringify(user))
         setAuthChecked(true)
       })
