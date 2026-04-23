@@ -479,6 +479,7 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             'is_orphan', 'annual_income', 'region_of_residence', 'is_pwd',
             'category_of_candidate', 'sub_category',
             'claim_minority_quota', 'claim_linguistic_minority',
+            'selected_minority', 'selected_linguistic_minority',
             'claim_exception', 'specified_reservation',
             'quota_apply_for', 'documents_received',
         ]

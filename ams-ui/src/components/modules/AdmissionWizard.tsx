@@ -50,6 +50,7 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
     is_orphan: '', annual_income: '', region_of_residence: '', is_pwd: '',
     category_of_candidate: '', sub_category: '',
     claim_minority_quota: '', claim_linguistic_minority: '',
+    selected_minority: '', selected_linguistic_minority: '',
     ssc_year: '', ssc_language: '', ssc_state: '', ssc_district: '', ssc_taluka: '', ssc_school_name: '', ssc_roll_no: '',
     hsc_name: '', hsc_exam: '', hsc_passing_year: '', hsc_roll_no: '',
     hsc_state: '', hsc_district: '', hsc_taluka: '', hsc_exam_session: '',
@@ -113,6 +114,7 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
           region_of_residence: demo.region_of_residence || '', is_pwd: demo.is_pwd || '',
           category_of_candidate: demo.category_of_candidate || '', sub_category: demo.sub_category || '',
           claim_minority_quota: demo.claim_minority_quota || '', claim_linguistic_minority: demo.claim_linguistic_minority || '',
+          selected_minority: demo.selected_minority || '', selected_linguistic_minority: demo.selected_linguistic_minority || '',
           // SSC
           ssc_year: acad.ssc_year || '', ssc_language: acad.ssc_language || '',
           ssc_state: acad.ssc_state || '', ssc_district: acad.ssc_district || '',
@@ -300,6 +302,8 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
         <WizardStep3
           admissionId={admissionData.id}
           existingDocs={documents}
+          courseName={courseName}
+          formData={p2}
           onNext={() => {
             setCompleted(prev => prev.includes(3) ? prev : [...prev, 3])
             // Refresh documents list

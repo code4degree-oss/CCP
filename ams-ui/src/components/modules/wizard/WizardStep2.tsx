@@ -89,8 +89,14 @@ export function WizardStep2({ p2, setP2, courseName, admissionNumber, saving, er
           <Field label="PWD?" half><select value={p2.is_pwd} onChange={e => s('is_pwd', e.target.value)} className={selectClass}><option value="">Select</option><option>YES</option><option>NO</option></select></Field>
           <Field label="Category of Candidate" half><select value={p2.category_of_candidate} onChange={e => s('category_of_candidate', e.target.value)} className={selectClass}><option value="">Select</option><option>General / Open</option><option>OBC</option><option>SC</option><option>ST</option><option>VJ-A</option><option>NT-B</option><option>NT-C</option><option>NT-D</option><option>SBC</option><option>EWS</option></select></Field>
           <Field label="Sub Category" half><input value={p2.sub_category} onChange={e => s('sub_category', e.target.value)} className={inputClass} /></Field>
-          <Field label="Claim Minority Quota?" half><select value={p2.claim_minority_quota} onChange={e => s('claim_minority_quota', e.target.value)} className={selectClass}><option value="">Select</option><option>YES</option><option>NO</option></select></Field>
-          <Field label="Claim Linguistic Minority?" half><select value={p2.claim_linguistic_minority} onChange={e => s('claim_linguistic_minority', e.target.value)} className={selectClass}><option value="">Select</option><option>YES</option><option>NO</option></select></Field>
+          <Field label="Claim Minority Quota?" half><select value={p2.claim_minority_quota} onChange={e => { s('claim_minority_quota', e.target.value); if (e.target.value !== 'YES') s('selected_minority', '') }} className={selectClass}><option value="">Select</option><option>YES</option><option>NO</option></select></Field>
+          {p2.claim_minority_quota === 'YES' && (
+            <Field label="Select Minority" half><select value={p2.selected_minority} onChange={e => s('selected_minority', e.target.value)} className={selectClass}><option value="">Select Minority</option><option>Muslim</option><option>Christian</option><option>Buddhist</option><option>Sikh</option><option>Jain</option><option>Parsi / Zoroastrian</option><option>Other</option></select></Field>
+          )}
+          <Field label="Claim Linguistic Minority?" half><select value={p2.claim_linguistic_minority} onChange={e => { s('claim_linguistic_minority', e.target.value); if (e.target.value !== 'YES') s('selected_linguistic_minority', '') }} className={selectClass}><option value="">Select</option><option>YES</option><option>NO</option></select></Field>
+          {p2.claim_linguistic_minority === 'YES' && (
+            <Field label="Select Linguistic Minority" half><select value={p2.selected_linguistic_minority} onChange={e => s('selected_linguistic_minority', e.target.value)} className={selectClass}><option value="">Select Language</option><option>Urdu</option><option>Sindhi</option><option>Gujarati</option><option>Kannada</option><option>Telugu</option><option>Tamil</option><option>Malayalam</option><option>Other</option></select></Field>
+          )}
         </div>
       </div>
 

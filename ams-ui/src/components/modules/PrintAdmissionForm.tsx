@@ -2,6 +2,7 @@
 
 import { Printer, X } from 'lucide-react'
 import { printHTML } from '@/lib/printUtils'
+import { getApplicableDocuments, groupByTier } from '@/lib/documentConfig'
 
 interface PrintAdmissionFormProps {
   admission: any
@@ -55,7 +56,7 @@ function buildHTML(admission: any): string {
 
   html += tbl(section('Permanent Address', '#059669') + row('Address Line 1', demo.address_line1) + row('Address Line 2', demo.address_line2) + row('Address Line 3', demo.address_line3) + row('City', demo.city) + row('State', demo.state) + row('District', demo.district) + row('Taluka', demo.taluka) + row('Pin Code', demo.pincode))
 
-  html += tbl(section('Reservation Details', '#e11d48') + row('Apply for NRI?', demo.apply_nri) + row('OCI/PIO Card Holder?', demo.oci_pio) + row('Nationality', demo.nationality) + row('Domicile of Maharashtra?', demo.domicile_maharashtra) + row('Is the Candidate an Orphan?', demo.is_orphan) + row('Annual Family Income', demo.annual_income) + row('Region of Residence', demo.region_of_residence) + row('Person With Disability (PWD)?', demo.is_pwd) + row('Category of Candidate', demo.category_of_candidate) + row('Sub Category', demo.sub_category) + row('Claim Minority Quota?', demo.claim_minority_quota) + row('Claim Linguistic Minority?', demo.claim_linguistic_minority))
+  html += tbl(section('Reservation Details', '#e11d48') + row('Apply for NRI?', demo.apply_nri) + row('OCI/PIO Card Holder?', demo.oci_pio) + row('Nationality', demo.nationality) + row('Domicile of Maharashtra?', demo.domicile_maharashtra) + row('Is the Candidate an Orphan?', demo.is_orphan) + row('Annual Family Income', demo.annual_income) + row('Region of Residence', demo.region_of_residence) + row('Person With Disability (PWD)?', demo.is_pwd) + row('Category of Candidate', demo.category_of_candidate) + row('Sub Category', demo.sub_category) + row('Claim Minority Quota?', demo.claim_minority_quota) + (demo.selected_minority ? row('Selected Minority', demo.selected_minority) : '') + row('Claim Linguistic Minority?', demo.claim_linguistic_minority) + (demo.selected_linguistic_minority ? row('Selected Linguistic Minority', demo.selected_linguistic_minority) : ''))
 
   html += tbl(section('SSC / 10th Qualification', '#d97706') + row('Year of Passing', academic.ssc_year) + row('Language / Medium', academic.ssc_language) + row('State of SSC Passing', academic.ssc_state) + row('District of SSC Passing', academic.ssc_district) + row('Taluka of SSC Passing', academic.ssc_taluka) + row('School Name', academic.ssc_school_name) + row('SSC Roll / Seat No.', academic.ssc_roll_no))
 
@@ -100,10 +101,106 @@ function buildHTML(admission: any): string {
     html += tbl(section('Remarks / Notes', '#6b7280') + `<tr><td colspan="2" style="padding:8px 10px;font-size:11px;color:#374151;white-space:pre-wrap">${admission.notes}</td></tr>`)
   }
 
-  // Footer signatures
+  // ═══ DOCUMENT VERIFICATION CHECKLIST PAGE ═══
+  const courseName = admission?.course_name || ''
+  const applicableDocs = getApplicableDocuments(courseName, demo)
+  const grouped = groupByTier(applicableDocs)
+
+  html += `<div style="page-break-before:always"></div>`
+
+  // Checklist header
+  html += `<div style="display:flex;align-items:center;justify-content:center;gap:16px;border-bottom:3px double #1e40af;padding-bottom:12px;margin-bottom:14px">
+    <img src="/LOGO CCP.png" alt="CCP Logo" style="width:48px;height:48px;object-fit:contain" />
+    <div style="text-align:center">
+      <h1 style="margin:0;font-size:16px;font-weight:800;color:#1e3a5f;letter-spacing:0.02em">DOCUMENT VERIFICATION CHECKLIST</h1>
+      <p style="margin:4px 0 0;font-size:10px;color:#6b7280">Chanakya Career Point (CCP)</p>
+    </div>
+  </div>`
+
+  // Student info bar
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:11px">
+    <div><span style="font-weight:700;color:#6b7280">Admission No:</span> <span style="font-weight:800;font-family:monospace;color:#1e40af">${admission?.admission_number || '—'}</span></div>
+    <div><span style="font-weight:700;color:#6b7280">Student:</span> <span style="font-weight:700;color:#111827">${student.full_name || '—'}</span></div>
+    <div><span style="font-weight:700;color:#6b7280">Category:</span> <span style="font-weight:700;color:#111827">${demo.category_of_candidate || '—'}</span></div>
+  </div>`
+
+  // Helper for checklist row
+  const checkRow = (label: string) => `<tr><td style="padding:7px 10px;font-size:11px;color:#374151;border-bottom:1px solid #e5e7eb;width:85%"><span style="display:inline-block;width:16px;height:16px;border:2px solid #9ca3af;border-radius:3px;margin-right:10px;vertical-align:middle"></span>${label}</td><td style="padding:7px 10px;font-size:11px;color:#6b7280;border-bottom:1px solid #e5e7eb;text-align:center;width:15%"></td></tr>`
+
+  const checkSectionHeader = (title: string, color: string, count: number) => `<tr><td colspan="2" style="padding:10px 10px 6px;font-weight:800;font-size:11px;color:${color};text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid ${color};background:#fff">${title} <span style="font-weight:600;font-size:10px;color:#9ca3af">(${count} documents)</span></td></tr>`
+
+  const checkTableHeader = `<tr style="background:#f3f4f6"><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db">Document</td><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db;text-align:center">Remarks</td></tr>`
+
+  let checklistHtml = ''
+
+  // Mandatory documents
+  if (grouped.mandatory.length > 0) {
+    checklistHtml += checkSectionHeader('Mandatory Documents', '#dc2626', grouped.mandatory.length)
+    checklistHtml += checkTableHeader
+    for (const doc of grouped.mandatory) {
+      checklistHtml += checkRow(doc.label)
+    }
+  }
+
+  // Conditional documents (only shown for reserved categories)
+  if (grouped.conditional.length > 0) {
+    checklistHtml += checkSectionHeader('Category / Reservation Documents', '#d97706', grouped.conditional.length)
+    checklistHtml += checkTableHeader
+    for (const doc of grouped.conditional) {
+      checklistHtml += checkRow(doc.label)
+    }
+  }
+
+  // Optional documents
+  if (grouped.optional.length > 0) {
+    checklistHtml += checkSectionHeader('Optional Documents', '#6b7280', grouped.optional.length)
+    checklistHtml += checkTableHeader
+    for (const doc of grouped.optional) {
+      checklistHtml += checkRow(doc.label)
+    }
+  }
+
+  html += `<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:16px"><tbody>${checklistHtml}</tbody></table>`
+
+  // Verification footer
   html += `<div style="margin-top:30px;display:flex;justify-content:space-between;padding-top:16px">
-    <div style="text-align:center;width:45%"><div style="border-top:1px solid #374151;padding-top:6px;font-size:10px;font-weight:600;color:#374151">Student's Signature</div></div>
-    <div style="text-align:center;width:45%"><div style="border-top:1px solid #374151;padding-top:6px;font-size:10px;font-weight:600;color:#374151">Authorized Signature &amp; Stamp</div></div>
+    <div style="width:45%"><div style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:30px">Verified by (Counselor Name):</div><div style="border-top:1px solid #374151;padding-top:6px;font-size:10px;font-weight:600;color:#374151">Counselor's Signature</div></div>
+    <div style="width:45%"><div style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:30px">Date of Verification:</div><div style="border-top:1px solid #374151;padding-top:6px;font-size:10px;font-weight:600;color:#374151">Authorized Signature &amp; Stamp</div></div>
+  </div>`
+
+  // Footer signatures (application form)
+  html += `<div style="page-break-before:always"></div>`
+  html += `<div style="text-align:center;margin-bottom:14px;padding-bottom:12px;border-bottom:3px double #1e40af">
+    <img src="/LOGO CCP.png" alt="CCP Logo" style="width:48px;height:48px;object-fit:contain;display:inline-block" />
+    <p style="margin:6px 0 0;font-size:14px;font-weight:800;color:#1e3a5f">DECLARATION & SIGNATURES</p>
+    <p style="margin:2px 0 0;font-size:10px;color:#6b7280">Chanakya Career Point (CCP) — Admission No: ${admission?.admission_number || '—'}</p>
+  </div>`
+
+  html += `<div style="padding:16px;border:1px solid #d1d5db;border-radius:6px;margin-bottom:20px;background:#fafafa">
+    <p style="font-size:11px;color:#374151;line-height:1.8">I hereby declare that all the information provided in this admission application form is true and correct to the best of my knowledge. I understand that any false or misleading information may result in the cancellation of my admission.</p>
+  </div>`
+
+  html += `<div style="margin-top:20px;display:flex;justify-content:space-between;gap:30px">
+    <div style="width:45%">
+      <div style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:6px">Parent's / Guardian's Name:</div>
+      <div style="border-bottom:1px dashed #9ca3af;height:24px;margin-bottom:16px"></div>
+      <div style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:30px">Parent's Contact No.:</div>
+      <div style="border-top:1px solid #374151;padding-top:6px;font-size:10px;font-weight:600;color:#374151;text-align:center">Parent's / Guardian's Signature</div>
+    </div>
+    <div style="width:45%">
+      <div style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:6px">Student's Name:</div>
+      <div style="border-bottom:1px dashed #9ca3af;height:24px;margin-bottom:16px"></div>
+      <div style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:30px">Date:</div>
+      <div style="border-top:1px solid #374151;padding-top:6px;font-size:10px;font-weight:600;color:#374151;text-align:center">Student's Signature</div>
+    </div>
+  </div>`
+
+  html += `<div style="margin-top:40px;padding-top:16px;border-top:2px solid #d1d5db">
+    <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px">For Office Use Only</div>
+    <div style="display:flex;justify-content:space-between">
+      <div style="width:45%"><div style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:30px">Received by:</div><div style="border-top:1px solid #374151;padding-top:6px;font-size:10px;font-weight:600;color:#374151;text-align:center">Authorized Signature &amp; Stamp</div></div>
+      <div style="width:45%"><div style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:30px">Date:</div><div style="border-top:1px solid #374151;padding-top:6px;font-size:10px;font-weight:600;color:#374151;text-align:center">Manager's Signature</div></div>
+    </div>
   </div>`
 
   html += `<div style="text-align:center;margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:9px;color:#9ca3af">Filled by: ${admission?.manager_name || '—'} &nbsp;|&nbsp; Printed on: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>`

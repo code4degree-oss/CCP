@@ -108,6 +108,10 @@ export function WizardStep4({ admissionData, p2, receiptData, documents, onEdit,
         ['Nationality', p2.nationality],
         ['Domicile Maharashtra', p2.domicile_maharashtra],
         ['PWD', p2.is_pwd],
+        ['Claim Minority Quota', p2.claim_minority_quota],
+        ['Selected Minority', p2.selected_minority],
+        ['Claim Linguistic Minority', p2.claim_linguistic_minority],
+        ['Selected Linguistic Minority', p2.selected_linguistic_minority],
         ['Quota Applied For', p2.quota_apply_for],
       ]} />
 

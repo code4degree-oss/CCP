@@ -133,6 +133,10 @@ export function WizardStep5({ admission, onBack, onEdit }: { admission: any; onB
           <PrintRow label="Nationality" value={demo.nationality} />
           <PrintRow label="Domicile Maharashtra" value={demo.domicile_maharashtra} />
           <PrintRow label="PWD" value={demo.is_pwd} />
+          <PrintRow label="Claim Minority Quota" value={demo.claim_minority_quota} />
+          {demo.selected_minority && <PrintRow label="Selected Minority" value={demo.selected_minority} />}
+          <PrintRow label="Claim Linguistic Minority" value={demo.claim_linguistic_minority} />
+          {demo.selected_linguistic_minority && <PrintRow label="Selected Linguistic Minority" value={demo.selected_linguistic_minority} />}
           <PrintRow label="Quota" value={demo.quota_apply_for} />
         </tbody></table>
 
