@@ -6,7 +6,7 @@ import { Card, Button, Table } from '@/components/ui'
 import { studentsApi, branchesApi } from '@/lib/api'
 
 interface StudentRow {
-  id: number; enrollment_no: string; full_name: string; mobile: string; email: string; branch: number; branch_name?: string; category: string; neet_rank: number | null; neet_marks: number | null; created_at: string
+  id: number; enrollment_no: string; full_name: string; mobile: string; email: string; branch: number; branch_name?: string; category: string; gender: string; neet_rank: number | null; neet_marks: number | null; academic_details: any; created_at: string
 }
 
 export function StudentsModule() {
@@ -60,19 +60,42 @@ export function StudentsModule() {
   )
 
   const columns = [
-    { key: 'enrollment_no', label: 'Enrollment', render: (r: StudentRow) => <span className="font-mono text-[11px] text-accent-blue">{r.enrollment_no || '—'}</span> },
     { key: 'full_name', label: 'Student', render: (r: StudentRow) => (
       <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-accent-blue/30 to-accent-green/30 flex items-center justify-center text-[11px] font-semibold text-txt-primary shrink-0">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-blue/20 to-accent-green/20 flex items-center justify-center text-xs font-bold text-blue-700 shrink-0 border border-blue-100">
           {r.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2)}
         </div>
-        <div><div className="font-medium text-txt-primary text-xs">{r.full_name}</div><div className="text-[10px] text-txt-muted">{r.email}</div></div>
+        <div>
+          <div className="font-semibold text-txt-primary text-xs">{r.full_name}</div>
+          <div className="text-[10px] text-txt-muted">{r.mobile} {r.email ? `• ${r.email}` : ''}</div>
+        </div>
       </div>
     )},
-    { key: 'mobile', label: 'Mobile', render: (r: StudentRow) => <span className="font-mono text-[11px] text-txt-secondary">{r.mobile}</span> },
     { key: 'branch', label: 'Branch', render: (r: StudentRow) => <span className="text-xs text-txt-secondary">{branchName(r.branch)}</span> },
-    { key: 'category', label: 'Category', render: (r: StudentRow) => r.category ? <span className="text-[11px] bg-bg-hover border border-bg-border text-txt-secondary px-2 py-0.5 rounded">{r.category}</span> : <span className="text-txt-muted">—</span> },
-    { key: 'neet', label: 'NEET', render: (r: StudentRow) => r.neet_rank ? <div><div className="text-xs font-mono text-txt-primary">Rank: {r.neet_rank?.toLocaleString('en-IN')}</div><div className="text-[10px] text-txt-muted">Marks: {r.neet_marks}</div></div> : <span className="text-txt-muted text-xs">—</span> },
+    { key: 'demographics', label: 'Profile', render: (r: StudentRow) => {
+      if (!r.category && !r.gender) return <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-md font-medium">Incomplete</span>
+      return (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {r.gender && <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{r.gender}</span>}
+          {r.category && <span className="text-[10px] bg-blue-50 text-blue-600 border border-blue-100 px-1.5 py-0.5 rounded">{r.category}</span>}
+        </div>
+      )
+    }},
+    { key: 'academic', label: 'Exams', render: (r: StudentRow) => {
+      const acad = r.academic_details || {}
+      const hasNeet = r.neet_marks || acad.neet_marks
+      const hasJee = acad.jee_percentile || acad.jee_rank
+      
+      if (!hasNeet && !hasJee) return <span className="text-[10px] text-txt-muted italic">Not updated</span>
+      
+      return (
+        <div className="flex flex-col gap-1">
+          {hasNeet ? <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 inline-block w-fit">NEET: {r.neet_marks || acad.neet_marks}</span> : null}
+          {hasJee ? <span className="text-[10px] font-medium text-violet-700 bg-violet-50 px-1.5 py-0.5 rounded border border-violet-100 inline-block w-fit">JEE: {acad.jee_percentile ? `${acad.jee_percentile}%ile` : `Rank ${acad.jee_rank}`}</span> : null}
+        </div>
+      )
+    }},
+    { key: 'registered', label: 'Registered', render: (r: StudentRow) => <span className="text-[11px] font-mono text-txt-muted">{new Date(r.created_at).toLocaleDateString('en-IN')}</span> },
     { key: 'actions', label: '', render: (r: StudentRow) => (
       <div className="flex justify-end gap-2">
          {canDeleteStudents && (

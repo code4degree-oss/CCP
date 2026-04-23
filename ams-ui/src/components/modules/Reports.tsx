@@ -66,6 +66,7 @@ export function ReportsModule() {
           'Branch': a.branch_name || '-',
           'Course': a.course_name || '-',
           'Admission Status': displayStatus,
+          'Counselling Type': a.counselling_type || '-',
           'Admitted At': a.admitted_at ? new Date(a.admitted_at).toLocaleDateString() : '-',
           
           // Address & Demographic
@@ -79,6 +80,7 @@ export function ReportsModule() {
           'Name Changed': demo.name_changed || '-',
 
           // Academic SSC
+          'SSC Board': acad.ssc_board || '-',
           'SSC Year': acad.ssc_year || '-',
           'SSC %': acad.ssc_percentage || '-',
           'SSC Language': acad.ssc_language || '-',

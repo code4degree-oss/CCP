@@ -16,8 +16,14 @@ export default function LoginPage() {
   // Check if already logged in
   useEffect(() => {
     authApi.me()
-      .then(() => {
-        router.replace('/')
+      .then((user) => {
+        if (user.must_change_password) {
+          // User is authenticated but must change password first
+          setPendingUser(user)
+          setShowChangePassword(true)
+        } else {
+          router.replace('/')
+        }
       })
       .catch(() => {
         localStorage.removeItem('ams_user')

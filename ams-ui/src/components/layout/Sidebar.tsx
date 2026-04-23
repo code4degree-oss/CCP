@@ -22,12 +22,12 @@ const BASE_NAV: NavItem[] = [
   { label: 'Enquiries',   icon: BookOpen,         id: 'enquiries' },
   { label: 'Students',    icon: Users,            id: 'students' },
   { label: 'Admissions',  icon: GraduationCap,    id: 'admissions' },
+  { label: 'Payments',    icon: CreditCard,       id: 'payments' },
+  { label: 'Reports',     icon: FileSpreadsheet,  id: 'reports' },
 ]
 
 const ADMIN_NAV: NavItem[] = [
   ...BASE_NAV,
-  { label: 'Payments',    icon: CreditCard,       id: 'payments' },
-  { label: 'Reports',     icon: FileSpreadsheet,  id: 'reports' },
   { label: 'Branches',    icon: Building2,        id: 'branches' },
   { label: 'Users / Employees', icon: UserCheck, id: 'users' },
   { label: 'Settings',    icon: Settings,         id: 'settings' },

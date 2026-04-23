@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { Shield } from 'lucide-react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { authApi } from '@/lib/api'
@@ -48,6 +49,12 @@ export default function Home() {
   useEffect(() => {
     authApi.me()
       .then((user) => {
+        // If the user must change their password, redirect to login for force-change
+        if (user.must_change_password) {
+          localStorage.setItem('ams_user', JSON.stringify(user))
+          router.replace('/login')
+          return
+        }
         localStorage.setItem('ams_user', JSON.stringify(user))
         setAuthChecked(true)
       })
@@ -81,6 +88,20 @@ export default function Home() {
   const meta = PAGE_META[active] ?? { title: active }
 
   function renderModule() {
+    const userStr = typeof window !== 'undefined' ? localStorage.getItem('ams_user') : null
+    const user = userStr ? JSON.parse(userStr) : {}
+    const isEmployee = user.role && user.role.toLowerCase().includes('employee')
+
+    if (isEmployee && ['branches', 'users', 'settings'].includes(active)) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+          <Shield size={48} className="text-red-400 mb-4" />
+          <h2 className="text-xl font-bold text-gray-800">Access Denied</h2>
+          <p className="text-sm text-gray-500 mt-2">You do not have permission to view this module.</p>
+        </div>
+      )
+    }
+
     switch (active) {
       case 'dashboard':     return <DashboardModule />
       case 'enquiries':     return <EnquiriesModule />

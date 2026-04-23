@@ -50,7 +50,8 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
     is_orphan: '', annual_income: '', region_of_residence: '', is_pwd: '',
     category_of_candidate: '', sub_category: '',
     claim_minority_quota: '', claim_linguistic_minority: '',
-    ssc_year: '', ssc_language: '', ssc_state: '', ssc_district: '', ssc_taluka: '', ssc_school_name: '', ssc_roll_no: '',
+    selected_minority: '', selected_linguistic_minority: '',
+    ssc_board: '', ssc_year: '', ssc_language: '', ssc_state: '', ssc_district: '', ssc_taluka: '', ssc_school_name: '', ssc_roll_no: '',
     hsc_name: '', hsc_exam: '', hsc_passing_year: '', hsc_roll_no: '',
     hsc_state: '', hsc_district: '', hsc_taluka: '', hsc_exam_session: '',
     physics_obtained: '', chemistry_obtained: '', maths_obtained: '', biology_obtained: '', english_obtained: '',
@@ -113,8 +114,9 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
           region_of_residence: demo.region_of_residence || '', is_pwd: demo.is_pwd || '',
           category_of_candidate: demo.category_of_candidate || '', sub_category: demo.sub_category || '',
           claim_minority_quota: demo.claim_minority_quota || '', claim_linguistic_minority: demo.claim_linguistic_minority || '',
+          selected_minority: demo.selected_minority || '', selected_linguistic_minority: demo.selected_linguistic_minority || '',
           // SSC
-          ssc_year: acad.ssc_year || '', ssc_language: acad.ssc_language || '',
+          ssc_board: acad.ssc_board || '', ssc_year: acad.ssc_year || '', ssc_language: acad.ssc_language || '',
           ssc_state: acad.ssc_state || '', ssc_district: acad.ssc_district || '',
           ssc_taluka: acad.ssc_taluka || '', ssc_school_name: acad.ssc_school_name || '',
           ssc_roll_no: acad.ssc_roll_no || '',
@@ -151,7 +153,8 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
       const res = await admissionsApi.initiate({
         student_name: p1.student_name, student_mobile: p1.student_mobile,
         branch_id: p1.branch ? Number(p1.branch) : null, course_id: Number(p1.course_id),
-        amount: p1.amount, payment_mode: p1.payment_mode, transaction_id: p1.transaction_id, notes: p1.notes,
+        amount: p1.amount, payment_mode: p1.payment_mode, transaction_id: p1.transaction_id,
+        notes: p1.notes, counselling_type: p1.counselling_type || '',
       })
       setAdmissionData(res)
       setP2(prev => ({ ...prev, full_name: p1.student_name, mobile: p1.student_mobile }))
@@ -300,6 +303,8 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
         <WizardStep3
           admissionId={admissionData.id}
           existingDocs={documents}
+          courseName={courseName}
+          formData={p2}
           onNext={() => {
             setCompleted(prev => prev.includes(3) ? prev : [...prev, 3])
             // Refresh documents list

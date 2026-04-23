@@ -154,6 +154,7 @@ export const usersApi = {
   update: (id: number, data: any) => apiFetch(`users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   remove: (id: number) => apiFetch(`users/${id}`, { method: 'DELETE' }),
   suspend: (id: number) => apiFetch(`users/${id}/suspend`, { method: 'POST' }),
+  resetPassword: (id: number) => apiFetch(`users/${id}/reset-password`, { method: 'POST' }),
 }
 export const rolesApi = {
   list: () => apiFetch('roles'),

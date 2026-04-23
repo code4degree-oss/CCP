@@ -235,6 +235,7 @@ class AdmissionInitiateSerializer(serializers.Serializer):
     payment_mode = serializers.CharField(max_length=20)
     transaction_id = serializers.CharField(max_length=80, required=False, allow_blank=True)
     notes = serializers.CharField(required=False, allow_blank=True)
+    counselling_type = serializers.CharField(max_length=60, required=False, allow_blank=True)
 
 class AdmissionPreferenceSerializer(serializers.ModelSerializer):
     class Meta:

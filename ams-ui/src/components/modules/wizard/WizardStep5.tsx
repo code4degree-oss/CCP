@@ -133,6 +133,10 @@ export function WizardStep5({ admission, onBack, onEdit }: { admission: any; onB
           <PrintRow label="Nationality" value={demo.nationality} />
           <PrintRow label="Domicile Maharashtra" value={demo.domicile_maharashtra} />
           <PrintRow label="PWD" value={demo.is_pwd} />
+          <PrintRow label="Claim Minority Quota" value={demo.claim_minority_quota} />
+          {demo.selected_minority && <PrintRow label="Selected Minority" value={demo.selected_minority} />}
+          <PrintRow label="Claim Linguistic Minority" value={demo.claim_linguistic_minority} />
+          {demo.selected_linguistic_minority && <PrintRow label="Selected Linguistic Minority" value={demo.selected_linguistic_minority} />}
           <PrintRow label="Quota" value={demo.quota_apply_for} />
         </tbody></table>
 
@@ -151,6 +155,7 @@ export function WizardStep5({ admission, onBack, onEdit }: { admission: any; onB
         {/* SSC / HSC */}
         <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12 }}><tbody>
           <SectionTitle title="SSC / HSC Qualification" color="#d97706" />
+          <PrintRow label="SSC Board" value={academic.ssc_board} />
           <PrintRow label="SSC Year" value={academic.ssc_year} />
           <PrintRow label="SSC School" value={academic.ssc_school_name} />
           <PrintRow label="SSC State" value={academic.ssc_state} />
