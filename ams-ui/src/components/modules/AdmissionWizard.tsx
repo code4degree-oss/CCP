@@ -153,7 +153,8 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
       const res = await admissionsApi.initiate({
         student_name: p1.student_name, student_mobile: p1.student_mobile,
         branch_id: p1.branch ? Number(p1.branch) : null, course_id: Number(p1.course_id),
-        amount: p1.amount, payment_mode: p1.payment_mode, transaction_id: p1.transaction_id, notes: p1.notes,
+        amount: p1.amount, payment_mode: p1.payment_mode, transaction_id: p1.transaction_id,
+        notes: p1.notes, counselling_type: p1.counselling_type || '',
       })
       setAdmissionData(res)
       setP2(prev => ({ ...prev, full_name: p1.student_name, mobile: p1.student_mobile }))

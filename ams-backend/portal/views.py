@@ -434,6 +434,7 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             is_entrance_guidance_only=is_entrance,
             admission_status="Completed" if is_entrance else "Documents Pending",
             notes=data.get('notes', ''),
+            counselling_type=data.get('counselling_type', ''),
         )
 
         # Create Initial Payment

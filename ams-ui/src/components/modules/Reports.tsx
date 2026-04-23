@@ -66,6 +66,7 @@ export function ReportsModule() {
           'Branch': a.branch_name || '-',
           'Course': a.course_name || '-',
           'Admission Status': displayStatus,
+          'Counselling Type': a.counselling_type || '-',
           'Admitted At': a.admitted_at ? new Date(a.admitted_at).toLocaleDateString() : '-',
           
           // Address & Demographic

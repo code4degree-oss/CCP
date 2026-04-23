@@ -166,6 +166,7 @@ class Admission(models.Model):
     govt_submission_notes = models.TextField(blank=True, null=True)
     is_entrance_guidance_only = models.BooleanField(default=False)
     notes = models.TextField(blank=True, null=True)
+    counselling_type = models.CharField(max_length=60, blank=True, null=True, help_text='JoSAA / MHT-CET / Both – for Engineering Admission Guidance')
     is_finalized = models.BooleanField(default=False)
     info_verified = models.BooleanField(default=False)
     consent_given = models.BooleanField(default=False)

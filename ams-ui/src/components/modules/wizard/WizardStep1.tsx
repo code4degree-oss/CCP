@@ -11,7 +11,8 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
   const [p1, setP1] = useState({
     student_name: '', student_mobile: '', parent_mobile: '',
     course_id: '', branch: isSuper ? '' : (user.branch_id?.toString() || ''),
-    amount: '', payment_mode: 'Cash', transaction_id: '', notes: ''
+    amount: '', payment_mode: 'Cash', transaction_id: '', notes: '',
+    counselling_type: ''
   })
   const s = (k: string, v: any) => setP1(f => ({ ...f, [k]: v }))
 
@@ -20,6 +21,10 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
     const b = branches.find((br: any) => br.id.toString() === bid)
     return b?.branch_courses || []
   }, [branches, p1.branch, user.branch_id])
+
+  // Check if selected course is Engineering Admission Guidance
+  const selectedCourse = branchCourses.find((c: any) => c.course.toString() === p1.course_id)
+  const isEngAdmission = selectedCourse?.course_name?.toLowerCase().includes('engineering') && selectedCourse?.course_name?.toLowerCase().includes('admission')
 
   const handle = () => {
     if (!p1.student_name || !p1.student_mobile || !p1.course_id || !p1.amount) return
@@ -58,15 +63,25 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
             </Field>
           )}
           <Field label="Course" required>
-            <select value={p1.course_id} onChange={e => s('course_id', e.target.value)} className={selectClass}>
+            <select value={p1.course_id} onChange={e => { s('course_id', e.target.value); s('counselling_type', '') }} className={selectClass}>
               <option value="">Select a course</option>
               {branchCourses.map((c: any) => <option key={c.course} value={c.course}>{c.course_name} (₹{Number(c.fee_amount).toLocaleString()})</option>)}
             </select>
           </Field>
+          {/* Counselling Type - Engineering Admission only */}
+          {isEngAdmission && (
+            <Field label="Counselling Type" required>
+              <select value={p1.counselling_type} onChange={e => s('counselling_type', e.target.value)} className={selectClass}>
+                <option value="">Select Counselling Type</option>
+                <option>JoSAA (Central - IITs, NITs, IIITs)</option>
+                <option>MHT-CET (State CAP)</option>
+                <option>Both (JoSAA + MHT-CET)</option>
+              </select>
+            </Field>
+          )}
           {/* Total Fee indicator */}
           {p1.course_id && (() => {
-            const sel = branchCourses.find((c: any) => c.course.toString() === p1.course_id)
-            const totalFee = sel ? Number(sel.fee_amount) : 0
+            const totalFee = selectedCourse ? Number(selectedCourse.fee_amount) : 0
             return totalFee > 0 ? (
               <div className="flex items-center gap-2 -mt-2 ml-1">
                 <span className="text-xs font-semibold text-gray-600">Total Course Fee:</span>
@@ -88,8 +103,7 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
             </div>
             {/* Balance indicator */}
             {p1.course_id && p1.amount && (() => {
-              const sel = branchCourses.find((c: any) => c.course.toString() === p1.course_id)
-              const totalFee = sel ? Number(sel.fee_amount) : 0
+              const totalFee = selectedCourse ? Number(selectedCourse.fee_amount) : 0
               const paid = Number(p1.amount) || 0
               const balance = Math.max(0, totalFee - paid)
               if (totalFee <= 0) return null
