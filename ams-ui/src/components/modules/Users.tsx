@@ -212,12 +212,7 @@ export function UsersModule() {
               <input value={form.mobile} onChange={e => set('mobile', e.target.value)} className={inputCls} placeholder="9876543210" />
             </div>
             
-            {!!editId && (
-              <div>
-                <label className={labelCls}>New Password (leave blank to keep)</label>
-                <input type="password" value={form.password} onChange={e => set('password', e.target.value)} className={inputCls} placeholder="••••••••" />
-              </div>
-            )}
+
             
             <div>
               <label className={labelCls}>Role / Designation</label>

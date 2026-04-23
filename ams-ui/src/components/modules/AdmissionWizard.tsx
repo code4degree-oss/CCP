@@ -51,7 +51,7 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
     category_of_candidate: '', sub_category: '',
     claim_minority_quota: '', claim_linguistic_minority: '',
     selected_minority: '', selected_linguistic_minority: '',
-    ssc_year: '', ssc_language: '', ssc_state: '', ssc_district: '', ssc_taluka: '', ssc_school_name: '', ssc_roll_no: '',
+    ssc_board: '', ssc_year: '', ssc_language: '', ssc_state: '', ssc_district: '', ssc_taluka: '', ssc_school_name: '', ssc_roll_no: '',
     hsc_name: '', hsc_exam: '', hsc_passing_year: '', hsc_roll_no: '',
     hsc_state: '', hsc_district: '', hsc_taluka: '', hsc_exam_session: '',
     physics_obtained: '', chemistry_obtained: '', maths_obtained: '', biology_obtained: '', english_obtained: '',
@@ -116,7 +116,7 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
           claim_minority_quota: demo.claim_minority_quota || '', claim_linguistic_minority: demo.claim_linguistic_minority || '',
           selected_minority: demo.selected_minority || '', selected_linguistic_minority: demo.selected_linguistic_minority || '',
           // SSC
-          ssc_year: acad.ssc_year || '', ssc_language: acad.ssc_language || '',
+          ssc_board: acad.ssc_board || '', ssc_year: acad.ssc_year || '', ssc_language: acad.ssc_language || '',
           ssc_state: acad.ssc_state || '', ssc_district: acad.ssc_district || '',
           ssc_taluka: acad.ssc_taluka || '', ssc_school_name: acad.ssc_school_name || '',
           ssc_roll_no: acad.ssc_roll_no || '',

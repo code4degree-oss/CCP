@@ -155,6 +155,7 @@ export function WizardStep5({ admission, onBack, onEdit }: { admission: any; onB
         {/* SSC / HSC */}
         <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #d1d5db', marginBottom: 12 }}><tbody>
           <SectionTitle title="SSC / HSC Qualification" color="#d97706" />
+          <PrintRow label="SSC Board" value={academic.ssc_board} />
           <PrintRow label="SSC Year" value={academic.ssc_year} />
           <PrintRow label="SSC School" value={academic.ssc_school_name} />
           <PrintRow label="SSC State" value={academic.ssc_state} />

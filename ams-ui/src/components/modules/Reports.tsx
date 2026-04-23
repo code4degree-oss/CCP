@@ -79,6 +79,7 @@ export function ReportsModule() {
           'Name Changed': demo.name_changed || '-',
 
           // Academic SSC
+          'SSC Board': acad.ssc_board || '-',
           'SSC Year': acad.ssc_year || '-',
           'SSC %': acad.ssc_percentage || '-',
           'SSC Language': acad.ssc_language || '-',

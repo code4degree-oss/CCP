@@ -475,7 +475,7 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             # JEE fields
             'jee_roll_no', 'jee_application_no', 'jee_rank', 'jee_percentile',
             # SSC
-            'ssc_year', 'ssc_language', 'ssc_state', 'ssc_district', 'ssc_taluka',
+            'ssc_board', 'ssc_year', 'ssc_language', 'ssc_state', 'ssc_district', 'ssc_taluka',
             'ssc_school_name', 'ssc_roll_no',
             # HSC
             'hsc_name', 'hsc_exam', 'hsc_passing_year', 'hsc_roll_no',
