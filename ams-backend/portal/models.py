@@ -161,7 +161,7 @@ class Admission(models.Model):
     stream = models.ForeignKey(Stream, on_delete=models.SET_NULL, null=True)
     course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, blank=True, related_name='admissions')
     admission_status = models.CharField(max_length=30, default="Documents Pending")
-    application_scope = models.CharField(max_length=30, null=True, blank=True)
+    application_scope = models.CharField(max_length=100, null=True, blank=True)
     govt_submission_done = models.BooleanField(default=False)
     govt_submission_notes = models.TextField(blank=True, null=True)
     is_entrance_guidance_only = models.BooleanField(default=False)
