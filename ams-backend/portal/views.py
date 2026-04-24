@@ -732,7 +732,12 @@ class PaymentViewSet(viewsets.ModelViewSet):
         'admission__student', 'admission__course', 'admission__branch', 'collected_by'
     ).all()
     serializer_class = PaymentSerializer
-    permission_classes = [IsBranchAdminOrSuperAdmin]
+
+    def get_permissions(self):
+        """Allow any authenticated user to read; only admins can write."""
+        if self.action in ('list', 'retrieve'):
+            return [IsAuthenticated()]
+        return [IsBranchAdminOrSuperAdmin()]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -748,7 +753,12 @@ class PaymentViewSet(viewsets.ModelViewSet):
 class ReceiptViewSet(viewsets.ModelViewSet):
     queryset = Receipt.objects.all()
     serializer_class = ReceiptSerializer
-    permission_classes = [IsBranchAdminOrSuperAdmin]
+
+    def get_permissions(self):
+        """Allow any authenticated user to read; only admins can write."""
+        if self.action in ('list', 'retrieve'):
+            return [IsAuthenticated()]
+        return [IsBranchAdminOrSuperAdmin()]
 
     def get_queryset(self):
         qs = super().get_queryset()

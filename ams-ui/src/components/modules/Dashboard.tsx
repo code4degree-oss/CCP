@@ -17,8 +17,13 @@ export function DashboardModule() {
 
     const load = async () => {
       try {
-        let [students, admissions, enquiries, payments] = await Promise.all([
-          studentsApi.list(), admissionsApi.list(), enquiriesApi.list(), paymentsApi.list()
+        // Use individual try/catch so one failing API doesn't zero-out everything
+        const safe = async (fn: () => Promise<any>) => { try { return await fn() } catch { return [] } }
+        const [students, admissions, enquiries, payments] = await Promise.all([
+          safe(() => studentsApi.list()),
+          safe(() => admissionsApi.list()),
+          safe(() => enquiriesApi.list()),
+          safe(() => paymentsApi.list()),
         ])
 
         const admitted = admissions.filter((a: any) => a.admission_status === 'Admitted').length
