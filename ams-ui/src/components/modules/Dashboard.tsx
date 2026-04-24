@@ -21,15 +21,6 @@ export function DashboardModule() {
           studentsApi.list(), admissionsApi.list(), enquiriesApi.list(), paymentsApi.list()
         ])
 
-        if (!usr.is_superuser && usr.branch_id) {
-          students = students.filter((s: any) => s.branch === usr.branch_id)
-          admissions = admissions.filter((a: any) => a.branch === usr.branch_id)
-          enquiries = enquiries.filter((e: any) => e.branch === usr.branch_id)
-
-          const validAdmissions = new Set(admissions.map((a: any) => a.id))
-          payments = payments.filter((p: any) => validAdmissions.has(p.admission))
-        }
-
         const admitted = admissions.filter((a: any) => a.admission_status === 'Admitted').length
         const pending = admissions.filter((a: any) => a.admission_status === 'Documents Pending' || a.admission_status === 'Form Completed').length
         const revenue = payments.filter((p: any) => p.status === 'Paid').reduce((s: number, p: any) => s + Number(p.amount), 0)
