@@ -560,8 +560,10 @@ class AdmissionViewSet(viewsets.ModelViewSet):
         if ext not in allowed_extensions:
             return Response({'detail': 'Unsupported file type.'}, status=status.HTTP_400_BAD_REQUEST)
             
-        # Security: Sanitize filename to prevent path traversal
-        safe_filename = get_valid_filename(file_obj.name)
+        # Rename file to student_name_document_type
+        student_name = admission.student.full_name if admission.student else "student"
+        new_filename = f"{student_name}_{doc_type}{ext}"
+        safe_filename = get_valid_filename(new_filename)
         
         # Save file to media directory
         path = default_storage.save(f"admissions/{admission.id}/{safe_filename}", file_obj)

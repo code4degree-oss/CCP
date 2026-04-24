@@ -23,7 +23,10 @@ export function WizardStep5({ admission, onBack, onEdit }: { admission: any; onB
   const demo = student?.demographic_details || {}
   const payments = admission?.payments || []
 
-  const handlePrint = () => window.print()
+  const handlePrint = () => {
+    sessionStorage.setItem('ams_print_admission', JSON.stringify(admission))
+    window.dispatchEvent(new Event('ams-print-admission'))
+  }
 
   return (
     <div className="animate-fade-in">
