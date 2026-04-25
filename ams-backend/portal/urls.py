@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     RoleViewSet, PermissionViewSet, RolePermissionViewSet,
-    OrganizationViewSet, BranchViewSet, BranchCourseViewSet,
+    OrganizationViewSet, BranchViewSet, BranchCourseViewSet, BranchCourseCounsellingFeeViewSet,
     UserViewSet, UserBranchViewSet,
     EnquiryViewSet,
     StudentViewSet, StreamViewSet, CourseViewSet, CollegeViewSet, AdmissionViewSet, AdmissionPreferenceViewSet, AdmissionDocumentViewSet, StatusHistoryViewSet,
@@ -18,6 +18,7 @@ router.register(r'role-permissions', RolePermissionViewSet)
 router.register(r'organizations', OrganizationViewSet)
 router.register(r'branches', BranchViewSet)
 router.register(r'branch-courses', BranchCourseViewSet)
+router.register(r'branch-course-counselling-fees', BranchCourseCounsellingFeeViewSet)
 router.register(r'users', UserViewSet)
 router.register(r'user-branches', UserBranchViewSet)
 router.register(r'enquiries', EnquiryViewSet)

@@ -3,12 +3,17 @@
 import { useState, useEffect } from 'react'
 import { Plus, Building2, X, Loader2, Trash2, Pencil, GraduationCap, IndianRupee, ChevronDown, ChevronUp } from 'lucide-react'
 import { Card, Button } from '@/components/ui'
-import { branchesApi, orgsApi, coursesApi } from '@/lib/api'
+import { branchesApi, orgsApi, coursesApi, branchCoursesApi } from '@/lib/api'
 
 /* ── types ───────────────────────────────────────────── */
 
+interface CounsellingFee {
+  id?: number; counselling_type: string; fee_amount: string
+}
+
 interface BranchCourse {
   id: number; course: number; course_name: string; stream_name: string; fee_amount: string; is_active: boolean
+  counselling_fees?: CounsellingFee[]
 }
 
 interface Branch {
@@ -20,7 +25,19 @@ interface Org { id: number; name: string }
 
 interface Course { id: number; stream: number; stream_name: string; name: string; is_active: boolean }
 
-interface CourseRow { course_id: string; fee_amount: string }
+interface CourseRow {
+  course_id: string; fee_amount: string
+  // Counselling fees for Engineering Admission Guidance
+  josaa_fee: string; cet_fee: string; both_fee: string
+}
+
+/* ── helpers ─────────────────────────────────────────── */
+
+function isEngAdmissionCourse(courseId: string, courses: Course[]): boolean {
+  const c = courses.find(co => co.id.toString() === courseId)
+  if (!c) return false
+  return c.name.toLowerCase().includes('engineering') && c.name.toLowerCase().includes('admission')
+}
 
 /* ── component ───────────────────────────────────────── */
 
@@ -59,10 +76,12 @@ export function BranchesModule() {
 
   /* ── form handlers ── */
 
+  const emptyRow = (): CourseRow => ({ course_id: '', fee_amount: '', josaa_fee: '', cet_fee: '', both_fee: '' })
+
   const openNew = () => {
     setEditId(null)
     setForm({ organization: orgs[0]?.id?.toString() || '', name: '', email: '', address: '' })
-    setCourseRows([{ course_id: '', fee_amount: '' }])
+    setCourseRows([emptyRow()])
     setShowForm(true)
     setError('')
   }
@@ -72,14 +91,24 @@ export function BranchesModule() {
     setForm({ organization: b.organization.toString(), name: b.name, email: b.email || '', address: b.address || '' })
     setCourseRows(
       b.branch_courses?.length
-        ? b.branch_courses.map(bc => ({ course_id: bc.course.toString(), fee_amount: bc.fee_amount }))
-        : [{ course_id: '', fee_amount: '' }]
+        ? b.branch_courses.map(bc => {
+            const cfMap: Record<string, string> = {}
+            ;(bc.counselling_fees || []).forEach(cf => { cfMap[cf.counselling_type] = cf.fee_amount })
+            return {
+              course_id: bc.course.toString(),
+              fee_amount: bc.fee_amount,
+              josaa_fee: cfMap['JoSAA'] || '',
+              cet_fee: cfMap['CET'] || '',
+              both_fee: cfMap['Both'] || '',
+            }
+          })
+        : [emptyRow()]
     )
     setShowForm(true)
     setError('')
   }
 
-  const addCourseRow = () => setCourseRows(r => [...r, { course_id: '', fee_amount: '' }])
+  const addCourseRow = () => setCourseRows(r => [...r, emptyRow()])
   const removeCourseRow = (i: number) => setCourseRows(r => r.filter((_, idx) => idx !== i))
   const updateCourseRow = (i: number, field: keyof CourseRow, val: string) =>
     setCourseRows(r => r.map((row, idx) => idx === i ? { ...row, [field]: val } : row))
@@ -98,14 +127,74 @@ export function BranchesModule() {
     try {
       const payload: any = { ...form, organization: Number(form.organization), email: form.email || null }
       if (!editId) {
-        payload.courses = validCourses.map(r => ({
-          course_id: Number(r.course_id),
-          fee_amount: r.fee_amount,
-        }))
+        payload.courses = validCourses.map(r => {
+          const courseEntry: any = {
+            course_id: Number(r.course_id),
+            fee_amount: r.fee_amount,
+          }
+          // Add counselling fees for Engineering Admission Guidance courses
+          if (isEngAdmissionCourse(r.course_id, courses)) {
+            const cFees: any[] = []
+            if (r.josaa_fee) cFees.push({ counselling_type: 'JoSAA', fee_amount: r.josaa_fee })
+            if (r.cet_fee) cFees.push({ counselling_type: 'CET', fee_amount: r.cet_fee })
+            if (r.both_fee) cFees.push({ counselling_type: 'Both', fee_amount: r.both_fee })
+            if (cFees.length > 0) courseEntry.counselling_fees = cFees
+          }
+          return courseEntry
+        })
       }
 
       if (editId) {
         await branchesApi.update(editId, payload)
+
+        // Also update branch courses for edit mode
+        const branch = branches.find(b => b.id === editId)
+        if (branch) {
+          // For each valid course row, upsert the BranchCourse + counselling fees
+          for (const row of validCourses) {
+            const existingBC = branch.branch_courses.find(bc => bc.course.toString() === row.course_id)
+            if (existingBC) {
+              // Update existing branch course fee
+              await branchCoursesApi.update(existingBC.id, { fee_amount: row.fee_amount })
+
+              // Sync counselling fees for engineering courses
+              if (isEngAdmissionCourse(row.course_id, courses)) {
+                const { apiFetch } = await import('@/lib/api')
+                // Delete old counselling fees and recreate
+                const existingCFs = existingBC.counselling_fees || []
+                for (const cf of existingCFs) {
+                  if (cf.id) await apiFetch(`branch-course-counselling-fees/${cf.id}`, { method: 'DELETE' }).catch(() => {})
+                }
+                // Create new ones
+                const newCFs = []
+                if (row.josaa_fee) newCFs.push({ branch_course: existingBC.id, counselling_type: 'JoSAA', fee_amount: row.josaa_fee })
+                if (row.cet_fee) newCFs.push({ branch_course: existingBC.id, counselling_type: 'CET', fee_amount: row.cet_fee })
+                if (row.both_fee) newCFs.push({ branch_course: existingBC.id, counselling_type: 'Both', fee_amount: row.both_fee })
+                for (const cf of newCFs) {
+                  await apiFetch('branch-course-counselling-fees', { method: 'POST', body: JSON.stringify(cf) }).catch(() => {})
+                }
+              }
+            } else {
+              // Create new branch course
+              const newBC = await branchCoursesApi.create({
+                branch: editId,
+                course: Number(row.course_id),
+                fee_amount: row.fee_amount,
+              })
+              // Create counselling fees
+              if (isEngAdmissionCourse(row.course_id, courses) && newBC?.id) {
+                const { apiFetch } = await import('@/lib/api')
+                const cFees = []
+                if (row.josaa_fee) cFees.push({ branch_course: newBC.id, counselling_type: 'JoSAA', fee_amount: row.josaa_fee })
+                if (row.cet_fee) cFees.push({ branch_course: newBC.id, counselling_type: 'CET', fee_amount: row.cet_fee })
+                if (row.both_fee) cFees.push({ branch_course: newBC.id, counselling_type: 'Both', fee_amount: row.both_fee })
+                for (const cf of cFees) {
+                  await apiFetch('branch-course-counselling-fees', { method: 'POST', body: JSON.stringify(cf) }).catch(() => {})
+                }
+              }
+            }
+          }
+        }
       } else {
         await branchesApi.create(payload)
       }
@@ -207,18 +296,43 @@ export function BranchesModule() {
                     <div className="px-4 py-2.5 bg-bg-base/50">
                       <div className="text-[10px] font-semibold text-txt-muted uppercase tracking-wider mb-2">Courses &amp; Fee Structure</div>
                       <div className="space-y-1.5">
-                        {b.branch_courses.map(bc => (
-                          <div key={bc.id} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-bg-surface border border-bg-border">
-                            <div className="flex items-center gap-2.5">
-                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent-purple/10 text-accent-purple font-semibold">{bc.stream_name}</span>
-                              <span className="text-xs text-txt-primary">{bc.course_name}</span>
+                        {b.branch_courses.map(bc => {
+                          const hasCounsellingFees = bc.counselling_fees && bc.counselling_fees.length > 0
+                          return (
+                            <div key={bc.id} className="rounded-lg bg-bg-surface border border-bg-border overflow-hidden">
+                              <div className="flex items-center justify-between py-1.5 px-3">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent-purple/10 text-accent-purple font-semibold">{bc.stream_name}</span>
+                                  <span className="text-xs text-txt-primary">{bc.course_name}</span>
+                                </div>
+                                {!hasCounsellingFees && (
+                                  <span className="text-xs font-semibold text-emerald-400 font-mono flex items-center gap-0.5">
+                                    <IndianRupee size={10} />
+                                    {Number(bc.fee_amount).toLocaleString('en-IN')}
+                                  </span>
+                                )}
+                              </div>
+                              {/* Counselling-type fee breakdown */}
+                              {hasCounsellingFees && (
+                                <div className="px-3 pb-2 pt-1 border-t border-bg-border/50">
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {bc.counselling_fees!.map(cf => (
+                                      <div key={cf.counselling_type} className="flex flex-col items-center px-2 py-1.5 rounded bg-bg-base">
+                                        <span className="text-[9px] text-txt-muted font-medium">
+                                          {cf.counselling_type === 'JoSAA' ? 'JoSAA' : cf.counselling_type === 'CET' ? 'MHT-CET' : 'Both'}
+                                        </span>
+                                        <span className="text-[11px] font-bold text-emerald-400 font-mono flex items-center gap-0.5 mt-0.5">
+                                          <IndianRupee size={9} />
+                                          {Number(cf.fee_amount).toLocaleString('en-IN')}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <span className="text-xs font-semibold text-emerald-400 font-mono flex items-center gap-0.5">
-                              <IndianRupee size={10} />
-                              {Number(bc.fee_amount).toLocaleString('en-IN')}
-                            </span>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
                   </div>
@@ -266,51 +380,106 @@ export function BranchesModule() {
                 </button>
               </div>
 
-              <div className="space-y-2">
-                {courseRows.map((row, i) => (
-                  <div key={i} className="flex items-end gap-2">
-                    {/* Course select */}
-                    <div className="flex-1">
-                      {i === 0 && <label className={labelCls}>Course</label>}
-                      <select
-                        value={row.course_id}
-                        onChange={e => updateCourseRow(i, 'course_id', e.target.value)}
-                        className={inputCls}
-                      >
-                        <option value="">Select a course...</option>
-                        {Object.entries(coursesByStream).map(([stream, streamCourses]) => (
-                          <optgroup key={stream} label={stream}>
-                            {streamCourses.map(c => (
-                              <option key={c.id} value={c.id} disabled={selectedCourseIds.has(c.id.toString()) && row.course_id !== c.id.toString()}>
-                                {c.name}
-                              </option>
+              <div className="space-y-3">
+                {courseRows.map((row, i) => {
+                  const isEng = isEngAdmissionCourse(row.course_id, courses)
+                  return (
+                    <div key={i} className={`rounded-lg border ${isEng ? 'border-amber-300/40 bg-amber-50/30' : 'border-transparent'}`}>
+                      <div className="flex items-end gap-2 p-1">
+                        {/* Course select */}
+                        <div className="flex-1">
+                          {i === 0 && <label className={labelCls}>Course</label>}
+                          <select
+                            value={row.course_id}
+                            onChange={e => {
+                              updateCourseRow(i, 'course_id', e.target.value)
+                              // Reset counselling fees when course changes
+                              setCourseRows(r => r.map((ro, idx) => idx === i ? { ...ro, course_id: e.target.value, josaa_fee: '', cet_fee: '', both_fee: '' } : ro))
+                            }}
+                            className={inputCls}
+                          >
+                            <option value="">Select a course...</option>
+                            {Object.entries(coursesByStream).map(([stream, streamCourses]) => (
+                              <optgroup key={stream} label={stream}>
+                                {streamCourses.map(c => (
+                                  <option key={c.id} value={c.id} disabled={selectedCourseIds.has(c.id.toString()) && row.course_id !== c.id.toString()}>
+                                    {c.name}
+                                  </option>
+                                ))}
+                              </optgroup>
                             ))}
-                          </optgroup>
-                        ))}
-                      </select>
+                          </select>
+                        </div>
+                        {/* Fee input — base fee (used as fallback / for non-engineering courses) */}
+                        <div className="w-[140px]">
+                          {i === 0 && <label className={labelCls}>{isEng ? 'Base Fee (₹)' : 'Fee Amount (₹)'}</label>}
+                          <input
+                            type="number"
+                            value={row.fee_amount}
+                            onChange={e => updateCourseRow(i, 'fee_amount', e.target.value)}
+                            className={inputCls}
+                            placeholder="50000"
+                            min="0"
+                          />
+                        </div>
+                        {/* Remove */}
+                        <button
+                          onClick={() => removeCourseRow(i)}
+                          className="p-2 rounded hover:bg-red-500/10 transition-colors mb-[1px]"
+                          disabled={courseRows.length === 1}
+                        >
+                          <Trash2 size={13} className={courseRows.length === 1 ? 'text-txt-muted/30' : 'text-red-400'} />
+                        </button>
+                      </div>
+
+                      {/* Counselling-type fees for Engineering Admission Guidance */}
+                      {isEng && (
+                        <div className="px-2 pb-2 pt-1">
+                          <div className="text-[9px] font-semibold text-amber-700 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                            ⚡ Counselling-Type Fees
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <label className="text-[10px] text-txt-muted block mb-0.5 font-medium">JoSAA Fee (₹)</label>
+                              <input
+                                type="number" min="0"
+                                value={row.josaa_fee}
+                                onChange={e => updateCourseRow(i, 'josaa_fee', e.target.value)}
+                                className={inputCls}
+                                placeholder="8000"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-txt-muted block mb-0.5 font-medium">MHT-CET Fee (₹)</label>
+                              <input
+                                type="number" min="0"
+                                value={row.cet_fee}
+                                onChange={e => updateCourseRow(i, 'cet_fee', e.target.value)}
+                                className={inputCls}
+                                placeholder="8000"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-txt-muted block mb-0.5 font-medium">Both Fee (₹)</label>
+                              <input
+                                type="number" min="0"
+                                value={row.both_fee}
+                                onChange={e => updateCourseRow(i, 'both_fee', e.target.value)}
+                                className={inputCls}
+                                placeholder="10000"
+                              />
+                            </div>
+                          </div>
+                          {row.josaa_fee && row.cet_fee && row.both_fee && Number(row.both_fee) < (Number(row.josaa_fee) + Number(row.cet_fee)) && (
+                            <div className="mt-1.5 text-[9px] text-emerald-600 font-medium">
+                              💰 Bundle saves ₹{((Number(row.josaa_fee) + Number(row.cet_fee)) - Number(row.both_fee)).toLocaleString('en-IN')} vs individual
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    {/* Fee input */}
-                    <div className="w-[140px]">
-                      {i === 0 && <label className={labelCls}>Fee Amount (₹)</label>}
-                      <input
-                        type="number"
-                        value={row.fee_amount}
-                        onChange={e => updateCourseRow(i, 'fee_amount', e.target.value)}
-                        className={inputCls}
-                        placeholder="50000"
-                        min="0"
-                      />
-                    </div>
-                    {/* Remove */}
-                    <button
-                      onClick={() => removeCourseRow(i)}
-                      className="p-2 rounded hover:bg-red-500/10 transition-colors mb-[1px]"
-                      disabled={courseRows.length === 1}
-                    >
-                      <Trash2 size={13} className={courseRows.length === 1 ? 'text-txt-muted/30' : 'text-red-400'} />
-                    </button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 

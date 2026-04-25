@@ -5,7 +5,7 @@ from .models import (
     User, UserBranch,
     Enquiry,
     Student, Stream, Course, College, Admission, AdmissionPreference, AdmissionDocument, StatusHistory,
-    BranchFeeConfig, BranchCourse, Payment, Receipt,
+    BranchFeeConfig, BranchCourse, BranchCourseCounsellingFee, Payment, Receipt,
     WhatsappConfig, NotificationTemplate, NotificationLog
 )
 
@@ -50,13 +50,21 @@ class CourseSerializer(serializers.ModelSerializer):
 
 # ── BRANCH COURSE (per-branch fee) ───────────────────────
 
+class BranchCourseCounsellingFeeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BranchCourseCounsellingFee
+        fields = ['id', 'branch_course', 'counselling_type', 'fee_amount']
+        extra_kwargs = {'branch_course': {'required': False}}
+
+
 class BranchCourseSerializer(serializers.ModelSerializer):
     course_name = serializers.CharField(source='course.name', read_only=True)
     stream_name = serializers.CharField(source='course.stream.name', read_only=True)
+    counselling_fees = BranchCourseCounsellingFeeSerializer(many=True, read_only=True)
 
     class Meta:
         model = BranchCourse
-        fields = ['id', 'branch', 'course', 'course_name', 'stream_name', 'fee_amount', 'is_active', 'created_at', 'updated_at']
+        fields = ['id', 'branch', 'course', 'course_name', 'stream_name', 'fee_amount', 'is_active', 'counselling_fees', 'created_at', 'updated_at']
 
 
 # ── BRANCH ───────────────────────────────────────────────
@@ -80,10 +88,17 @@ class BranchSerializer(serializers.ModelSerializer):
         return obj.branch_courses.filter(is_active=True).count()
 
 
+class CounsellingFeeInputSerializer(serializers.Serializer):
+    """Nested inside BranchCourseInputSerializer for counselling-type fees."""
+    counselling_type = serializers.ChoiceField(choices=['JoSAA', 'CET', 'Both'])
+    fee_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+
 class BranchCourseInputSerializer(serializers.Serializer):
     """Used inside BranchCreateSerializer to accept course + fee pairs."""
     course_id = serializers.IntegerField()
     fee_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    counselling_fees = CounsellingFeeInputSerializer(many=True, required=False)
 
 
 class BranchCreateSerializer(serializers.ModelSerializer):

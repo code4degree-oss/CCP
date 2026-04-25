@@ -166,10 +166,22 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
       const branchObj = branches.find((b: any) => b.id.toString() === branchId)
       const isEntrance = cName.toLowerCase().includes('entrance') && cName.toLowerCase().includes('guidance')
 
+      // Resolve fee — use counselling-type fee if applicable
+      let courseFee = Number(selectedCourse?.fee_amount || 0)
+      if (p1.counselling_type && selectedCourse?.counselling_fees?.length) {
+        let ctKey = ''
+        if (p1.counselling_type.toLowerCase().includes('both')) ctKey = 'Both'
+        else if (p1.counselling_type.toLowerCase().includes('josaa')) ctKey = 'JoSAA'
+        else if (p1.counselling_type.toLowerCase().includes('cet')) ctKey = 'CET'
+        const match = selectedCourse.counselling_fees.find((cf: any) => cf.counselling_type === ctKey)
+        if (match) courseFee = Number(match.fee_amount)
+      }
+
       setReceiptData({
         admission_number: res.admission_number, student_name: p1.student_name,
         student_mobile: p1.student_mobile, parent_mobile: p1.parent_mobile,
-        course_name: cName || '—', course_fee: Number(selectedCourse?.fee_amount || 0),
+        course_name: cName || '—', course_fee: courseFee,
+        counselling_type: p1.counselling_type || '',
         amount_paid: Number(p1.amount), payment_mode: p1.payment_mode, transaction_id: p1.transaction_id,
         branch_name: branchObj?.name || user.branch_name || 'CCP', branch_address: branchObj?.address || '',
         date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }),

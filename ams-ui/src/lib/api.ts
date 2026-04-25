@@ -130,6 +130,7 @@ export const admissionsApi = {
   listDocuments: (id: number) => apiFetch(`admissions/${id}/documents`),
   recordPayment: (id: number, data: any) => apiFetch(`admissions/${id}/record-payment`, { method: 'POST', body: JSON.stringify(data) }),
   paymentSummary: () => apiFetch('admissions/payment-summary'),
+  upgradeCounselling: (id: number, data?: any) => apiFetch(`admissions/${id}/upgrade-counselling`, { method: 'POST', body: JSON.stringify(data || {}) }),
 }
 
 // ---------- STREAMS / COURSES / COLLEGES ----------
