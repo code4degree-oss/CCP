@@ -81,7 +81,10 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
           <Field label="Course" required>
             <select value={p1.course_id} onChange={e => { s('course_id', e.target.value); s('counselling_type', '') }} className={selectClass}>
               <option value="">Select a course</option>
-              {branchCourses.map((c: any) => <option key={c.course} value={c.course}>{c.course_name} (₹{Number(c.fee_amount).toLocaleString()})</option>)}
+              {branchCourses.map((c: any) => {
+                const isEng = c.course_name?.toLowerCase().includes('engineering') && c.course_name?.toLowerCase().includes('admission')
+                return <option key={c.course} value={c.course}>{c.course_name}{!isEng && Number(c.fee_amount) > 0 ? ` (₹${Number(c.fee_amount).toLocaleString()})` : ''}</option>
+              })}
             </select>
           </Field>
           {/* Counselling Type - Engineering Admission only */}
@@ -95,8 +98,10 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
               </select>
             </Field>
           )}
-          {/* Total Fee indicator — uses counselling-type fee when applicable */}
+          {/* Total Fee indicator — only show when fee is resolved */}
           {p1.course_id && (() => {
+            // For engineering admission: only show fee after counselling type is selected
+            if (isEngAdmission && !p1.counselling_type) return null
             const totalFee = resolvedFee
             return totalFee > 0 ? (
               <div className="flex items-center gap-2 -mt-2 ml-1">
