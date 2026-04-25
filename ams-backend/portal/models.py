@@ -135,7 +135,7 @@ class BranchCourse(models.Model):
     """Links a course to a branch with branch-specific fee amount."""
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='branch_courses')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='branch_offerings')
-    fee_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    fee_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

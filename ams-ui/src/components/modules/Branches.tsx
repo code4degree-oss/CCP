@@ -117,7 +117,14 @@ export function BranchesModule() {
     if (!form.name) { setError('Name is required'); return }
     if (!form.organization) { setError('An organization is required. Please ensure an Organization exists in the system.'); return }
     // Validate course rows — at least one valid course needed for new branches
-    const validCourses = courseRows.filter(r => r.course_id && r.fee_amount)
+    const validCourses = courseRows.filter(r => {
+      if (!r.course_id) return false
+      // Engineering Admission Guidance: valid if any counselling fee is set
+      if (isEngAdmissionCourse(r.course_id, courses)) {
+        return r.josaa_fee || r.cet_fee || r.both_fee
+      }
+      return !!r.fee_amount
+    })
     if (!editId && validCourses.length === 0) {
       setError('Add at least one course with a fee amount')
       return
@@ -128,12 +135,13 @@ export function BranchesModule() {
       const payload: any = { ...form, organization: Number(form.organization), email: form.email || null }
       if (!editId) {
         payload.courses = validCourses.map(r => {
+          const isEng = isEngAdmissionCourse(r.course_id, courses)
           const courseEntry: any = {
             course_id: Number(r.course_id),
-            fee_amount: r.fee_amount,
+            fee_amount: isEng ? 0 : r.fee_amount,
           }
           // Add counselling fees for Engineering Admission Guidance courses
-          if (isEngAdmissionCourse(r.course_id, courses)) {
+          if (isEng) {
             const cFees: any[] = []
             if (r.josaa_fee) cFees.push({ counselling_type: 'JoSAA', fee_amount: r.josaa_fee })
             if (r.cet_fee) cFees.push({ counselling_type: 'CET', fee_amount: r.cet_fee })
@@ -299,8 +307,8 @@ export function BranchesModule() {
                         {b.branch_courses.map(bc => {
                           const hasCounsellingFees = bc.counselling_fees && bc.counselling_fees.length > 0
                           return (
-                            <div key={bc.id} className="rounded-lg bg-bg-surface border border-bg-border overflow-hidden">
-                              <div className="flex items-center justify-between py-1.5 px-3">
+                            <div key={bc.id}>
+                              <div className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-bg-surface border border-bg-border">
                                 <div className="flex items-center gap-2.5">
                                   <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent-purple/10 text-accent-purple font-semibold">{bc.stream_name}</span>
                                   <span className="text-xs text-txt-primary">{bc.course_name}</span>
@@ -312,22 +320,21 @@ export function BranchesModule() {
                                   </span>
                                 )}
                               </div>
-                              {/* Counselling-type fee breakdown */}
+                              {/* Counselling-type fees as sub-rows */}
                               {hasCounsellingFees && (
-                                <div className="px-3 pb-2 pt-1 border-t border-bg-border/50">
-                                  <div className="grid grid-cols-3 gap-2">
-                                    {bc.counselling_fees!.map(cf => (
-                                      <div key={cf.counselling_type} className="flex flex-col items-center px-2 py-1.5 rounded bg-bg-base">
-                                        <span className="text-[9px] text-txt-muted font-medium">
-                                          {cf.counselling_type === 'JoSAA' ? 'JoSAA' : cf.counselling_type === 'CET' ? 'MHT-CET' : 'Both'}
-                                        </span>
-                                        <span className="text-[11px] font-bold text-emerald-400 font-mono flex items-center gap-0.5 mt-0.5">
-                                          <IndianRupee size={9} />
-                                          {Number(cf.fee_amount).toLocaleString('en-IN')}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
+                                <div className="ml-6 mt-1 space-y-1">
+                                  {bc.counselling_fees!.map(cf => (
+                                    <div key={cf.counselling_type} className="flex items-center justify-between py-1 px-3 rounded bg-bg-base border border-bg-border/50">
+                                      <span className="text-[10px] text-txt-muted font-medium flex items-center gap-1.5">
+                                        <span className="w-1 h-1 rounded-full bg-accent-blue/50"></span>
+                                        {cf.counselling_type === 'JoSAA' ? 'JoSAA' : cf.counselling_type === 'CET' ? 'MHT-CET' : 'Both (JoSAA + CET)'}
+                                      </span>
+                                      <span className="text-[11px] font-semibold text-emerald-400 font-mono flex items-center gap-0.5">
+                                        <IndianRupee size={9} />
+                                        {Number(cf.fee_amount).toLocaleString('en-IN')}
+                                      </span>
+                                    </div>
+                                  ))}
                                 </div>
                               )}
                             </div>
@@ -365,7 +372,7 @@ export function BranchesModule() {
               )}
               <div className="col-span-2"><label className={labelCls}>Branch Name *</label><input value={form.name} onChange={e => set('name', e.target.value)} className={inputCls} placeholder="e.g. Latur Branch" /></div>
               <div className="col-span-2"><label className={labelCls}>Branch Address (for receipts)</label><textarea value={form.address} onChange={e => set('address', e.target.value)} className={inputCls + ' min-h-[60px]'} placeholder="Full address that will appear on fee receipts" rows={2} /></div>
-              {editId && <div><label className={labelCls}>Email</label><input value={form.email} onChange={e => set('email', e.target.value)} className={inputCls} placeholder="branch@CCP.com" /></div>}
+
             </div>
 
             {/* Courses & Fees Section */}
@@ -384,7 +391,7 @@ export function BranchesModule() {
                 {courseRows.map((row, i) => {
                   const isEng = isEngAdmissionCourse(row.course_id, courses)
                   return (
-                    <div key={i} className={`rounded-lg border ${isEng ? 'border-amber-300/40 bg-amber-50/30' : 'border-transparent'}`}>
+                    <div key={i}>
                       <div className="flex items-end gap-2 p-1">
                         {/* Course select */}
                         <div className="flex-1">
@@ -410,18 +417,20 @@ export function BranchesModule() {
                             ))}
                           </select>
                         </div>
-                        {/* Fee input — base fee (used as fallback / for non-engineering courses) */}
-                        <div className="w-[140px]">
-                          {i === 0 && <label className={labelCls}>{isEng ? 'Base Fee (₹)' : 'Fee Amount (₹)'}</label>}
-                          <input
-                            type="number"
-                            value={row.fee_amount}
-                            onChange={e => updateCourseRow(i, 'fee_amount', e.target.value)}
-                            className={inputCls}
-                            placeholder="50000"
-                            min="0"
-                          />
-                        </div>
+                        {/* Fee input — only for non-engineering courses */}
+                        {!isEng && (
+                          <div className="w-[140px]">
+                            {i === 0 && <label className={labelCls}>Fee Amount (₹)</label>}
+                            <input
+                              type="number"
+                              value={row.fee_amount}
+                              onChange={e => updateCourseRow(i, 'fee_amount', e.target.value)}
+                              className={inputCls}
+                              placeholder="50000"
+                              min="0"
+                            />
+                          </div>
+                        )}
                         {/* Remove */}
                         <button
                           onClick={() => removeCourseRow(i)}
