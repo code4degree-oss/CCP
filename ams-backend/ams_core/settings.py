@@ -175,8 +175,8 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '10/minute',     # Unauthenticated users (login, public endpoints)
-        'user': '60/minute',    # Authenticated users (normal app usage)
+        'anon': '60/minute',     # Unauthenticated users (login, public endpoints)
+        'user': '1000/minute',   # Authenticated users (normal app usage)
     },
 }
 
