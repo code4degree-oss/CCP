@@ -25,6 +25,9 @@ jobs:
             # Navigate to the project directory on the server
             cd /home/ccp/CCP
             
+            # Fix git ownership error (running as root in a directory owned by ccp)
+            git config --global --add safe.directory /home/ccp/CCP
+            
             # Force pull from main to ensure the server has the latest deploy.sh
             git fetch origin
             git checkout main

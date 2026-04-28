@@ -65,14 +65,9 @@ export function Sidebar({ active, onChange }: SidebarProps) {
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
-        {/* Logo — fixed container, image scales inside */}
+        {/* Logo */}
         <div className={clsx('flex items-center gap-3 h-14 px-4 border-b border-bg-border shrink-0 justify-center overflow-hidden')}>
-          <div className="relative w-10 h-10 shrink-0 flex items-center justify-center overflow-hidden">
-            {/* Light Theme Logo */}
-            <img src="/LOGO%20CCP.png" alt="Logo" className="absolute inset-0 w-full h-full object-contain dark:hidden" />
-            {/* Dark Theme Logo */}
-            <img src="/LOGO%20SVG.svg" alt="Logo" className="absolute inset-0 w-full h-full object-contain hidden dark:block" />
-          </div>
+          <span className="font-bold text-2xl tracking-wider text-txt-primary">CCP</span>
         </div>
 
         {/* Nav items */}
