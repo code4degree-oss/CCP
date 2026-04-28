@@ -66,8 +66,10 @@ export function Sidebar({ active, onChange }: SidebarProps) {
         )}
       >
         {/* Logo */}
-        <div className={clsx('flex items-center gap-3 h-14 px-4 border-b border-bg-border shrink-0 justify-center overflow-hidden')}>
-          <span className="font-bold text-2xl tracking-wider text-txt-primary">CCP</span>
+        <div className={clsx('flex items-center h-14 px-4 border-b border-bg-border shrink-0 justify-center overflow-hidden')}>
+          <span className="font-bold text-[17px] tracking-wide text-txt-primary truncate">
+            {collapsed ? 'CCP' : 'Chanakya Career Point'}
+          </span>
         </div>
 
         {/* Nav items */}
