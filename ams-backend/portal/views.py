@@ -252,6 +252,10 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
+        # Force new employees to change their auto-generated password on first login
+        user.must_change_password = True
+        user.save(update_fields=['must_change_password'])
+
         if branch_id:
             try:
                 branch = Branch.objects.get(pk=branch_id)
