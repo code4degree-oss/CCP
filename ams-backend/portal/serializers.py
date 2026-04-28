@@ -225,10 +225,14 @@ class ReceiptSerializer(serializers.ModelSerializer):
 
 class StudentSerializer(serializers.ModelSerializer):
     is_entrance_only = serializers.SerializerMethodField()
+    course_names = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
         fields = '__all__'
+
+    def get_course_names(self, obj):
+        return [a.course.name for a in obj.admissions.all() if a.course]
 
     def get_is_entrance_only(self, obj):
         admissions = obj.admissions.all()

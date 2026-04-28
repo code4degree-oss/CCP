@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Download, Inbox, Loader2, Pencil, FileText, Printer, FolderOpen, X, ExternalLink } from 'lucide-react'
+import { Plus, Download, Inbox, Loader2, Pencil, FileText, Printer, FolderOpen, X, ExternalLink, Search } from 'lucide-react'
 import { Card, Button, Table } from '@/components/ui'
 import { admissionsApi, studentsApi, branchesApi, streamsApi, branchCoursesApi } from '@/lib/api'
 import { AdmissionWizard } from './AdmissionWizard'
@@ -17,8 +17,7 @@ const STATUS_FILTERS = [
   { label: 'All', value: 'all' },
   { label: 'Documents Pending', value: 'Documents Pending' },
   { label: 'Form Completed', value: 'Form Completed' },
-  { label: 'Admitted', value: 'Admitted' },
-  { label: 'Rejected', value: 'Rejected' },
+  { label: 'Completed', value: 'Completed' },
 ]
 
 export function AdmissionsModule() {
@@ -28,6 +27,9 @@ export function AdmissionsModule() {
   const [streams, setStreams] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
+  const [search, setSearch] = useState('')
+  const [branchFilter, setBranchFilter] = useState('all')
+  const [courseFilter, setCourseFilter] = useState('all')
   const [error, setError] = useState('')
 
   // View management: 'list' | 'new' | 'edit' | 'print' | 'receipt'
@@ -75,7 +77,17 @@ export function AdmissionsModule() {
 
   const getName = (list: any[], id: number, key = 'name') => list.find(i => i.id === id)?.[key] || '—'
 
-  const filtered = admissions.filter(a => statusFilter === 'all' || a.admission_status === statusFilter)
+  const filtered = admissions.filter(a => {
+    const matchStatus = statusFilter === 'all' || a.admission_status === statusFilter
+    const matchBranch = branchFilter === 'all' || a.branch?.toString() === branchFilter
+    const matchCourse = courseFilter === 'all' || a.course_name === courseFilter
+    const matchSearch = !search || 
+      a.student_name?.toLowerCase().includes(search.toLowerCase()) || 
+      a.admission_number?.toLowerCase().includes(search.toLowerCase())
+    return matchStatus && matchBranch && matchCourse && matchSearch
+  })
+  
+  const uniqueCourses = Array.from(new Set(admissions.map(a => a.course_name).filter(Boolean)))
 
   const openNew = () => {
     setEditAdmission(null)
@@ -328,10 +340,31 @@ export function AdmissionsModule() {
         {!isSuper && <Button variant="primary" size="sm" onClick={openNew}><Plus size={12} />New Admission</Button>}
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        {STATUS_FILTERS.map(f => (
-          <button key={f.value} onClick={() => setStatusFilter(f.value)} className={clsx('px-3 py-1.5 rounded text-xs font-medium transition-colors border', statusFilter === f.value ? 'bg-accent-blue text-white border-accent-blue' : 'bg-bg-card border-bg-border text-txt-secondary hover:text-txt-primary')}>{f.label}</button>
-        ))}
+      <div className="flex flex-col gap-3">
+        {/* Top row: Status pills & Search */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            {STATUS_FILTERS.map(f => (
+              <button key={f.value} onClick={() => setStatusFilter(f.value)} className={clsx('px-3 py-1.5 rounded text-xs font-medium transition-colors border', statusFilter === f.value ? 'bg-accent-blue text-white border-accent-blue' : 'bg-bg-card border-bg-border text-txt-secondary hover:text-txt-primary')}>{f.label}</button>
+            ))}
+          </div>
+          <div className="relative w-full sm:w-64">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-txt-muted" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search admission # or name..." className="w-full bg-bg-card border border-bg-border rounded pl-8 pr-4 py-1.5 text-xs text-txt-primary placeholder:text-txt-muted outline-none focus:border-accent-blue/40 transition-colors" />
+          </div>
+        </div>
+
+        {/* Bottom row: Dropdown filters */}
+        <div className="flex items-center gap-3">
+          <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)} className="bg-bg-card border border-bg-border rounded px-3 py-1.5 text-xs text-txt-primary outline-none focus:border-accent-blue/40">
+            <option value="all">All Branches</option>
+            {branches.map(b => <option key={b.id} value={b.id.toString()}>{b.name}</option>)}
+          </select>
+          <select value={courseFilter} onChange={e => setCourseFilter(e.target.value)} className="bg-bg-card border border-bg-border rounded px-3 py-1.5 text-xs text-txt-primary outline-none focus:border-accent-blue/40 max-w-xs truncate">
+            <option value="all">All Courses</option>
+            {uniqueCourses.map(c => <option key={c as string} value={c as string}>{c as string}</option>)}
+          </select>
+        </div>
       </div>
 
       {error && <div className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2">{error}</div>}

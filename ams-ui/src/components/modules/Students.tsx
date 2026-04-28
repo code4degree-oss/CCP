@@ -6,7 +6,7 @@ import { Card, Button, Table } from '@/components/ui'
 import { studentsApi, branchesApi } from '@/lib/api'
 
 interface StudentRow {
-  id: number; enrollment_no: string; full_name: string; mobile: string; email: string; branch: number; branch_name?: string; category: string; gender: string; neet_rank: number | null; neet_marks: number | null; academic_details: any; created_at: string; is_entrance_only?: boolean
+  id: number; enrollment_no: string; full_name: string; mobile: string; email: string; branch: number; branch_name?: string; category: string; gender: string; neet_rank: number | null; neet_marks: number | null; academic_details: any; created_at: string; is_entrance_only?: boolean; course_names?: string[];
 }
 
 export function StudentsModule() {
@@ -14,6 +14,8 @@ export function StudentsModule() {
   const [branches, setBranches] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [branchFilter, setBranchFilter] = useState('all')
+  const [courseFilter, setCourseFilter] = useState('all')
   const [error, setError] = useState('')
   const [deleteDialog, setDeleteDialog] = useState<number | null>(null)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
@@ -53,11 +55,17 @@ export function StudentsModule() {
 
   const branchName = (id: number) => branches.find((b: any) => b.id === id)?.name || '—'
 
-  const filtered = students.filter(s =>
-    s.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-    s.enrollment_no?.toLowerCase().includes(search.toLowerCase()) ||
-    s.mobile?.includes(search)
-  )
+  const filtered = students.filter(s => {
+    const matchSearch = !search ||
+      s.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      s.enrollment_no?.toLowerCase().includes(search.toLowerCase()) ||
+      s.mobile?.includes(search);
+    const matchBranch = branchFilter === 'all' || s.branch?.toString() === branchFilter;
+    const matchCourse = courseFilter === 'all' || (s.course_names && s.course_names.includes(courseFilter));
+    return matchSearch && matchBranch && matchCourse;
+  })
+
+  const uniqueCourses = Array.from(new Set(students.flatMap(s => s.course_names || [])))
 
   const columns = [
     { key: 'full_name', label: 'Student', render: (r: StudentRow) => (
@@ -116,10 +124,22 @@ export function StudentsModule() {
       </div>
 
       <div className="flex gap-2 items-center">
-        <div className="relative">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative w-full sm:w-72">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-txt-muted" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, enrollment, mobile…" className="bg-bg-card border border-bg-border rounded pl-8 pr-4 py-1.5 text-xs text-txt-primary placeholder:text-txt-muted outline-none focus:border-accent-blue/40 transition-colors w-72" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, mobile, enrollment #..." className="w-full bg-bg-card border border-bg-border rounded pl-8 pr-4 py-1.5 text-xs text-txt-primary placeholder:text-txt-muted outline-none focus:border-accent-blue/40 transition-colors" />
         </div>
+        <div className="flex items-center gap-3">
+          <select value={branchFilter} onChange={e => setBranchFilter(e.target.value)} className="bg-bg-card border border-bg-border rounded px-3 py-1.5 text-xs text-txt-primary outline-none focus:border-accent-blue/40">
+            <option value="all">All Branches</option>
+            {branches.map(b => <option key={b.id} value={b.id.toString()}>{b.name}</option>)}
+          </select>
+          <select value={courseFilter} onChange={e => setCourseFilter(e.target.value)} className="bg-bg-card border border-bg-border rounded px-3 py-1.5 text-xs text-txt-primary outline-none focus:border-accent-blue/40 max-w-xs truncate">
+            <option value="all">All Courses</option>
+            {uniqueCourses.map(c => <option key={c as string} value={c as string}>{c as string}</option>)}
+          </select>
+        </div>
+      </div>
       </div>
 
       {error && <div className="text-xs text-red-400 bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-2">{error}</div>}
