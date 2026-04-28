@@ -46,9 +46,13 @@ npm install
 npm run build
 cd ..
 
-# 3. Restart services via PM2
+# 3. Fix Permissions
+echo "Fixing file ownership..."
+chown -R ccp:ccp /home/ccp/CCP
+
+# 4. Restart services via PM2 (Must be run as ccp user!)
 echo "Restarting services via PM2..."
-pm2 restart ecosystem.config.js --env production
-pm2 save
+sudo -u ccp pm2 restart ecosystem.config.js --env production
+sudo -u ccp pm2 save
 
 echo "Deployment completed successfully!"
