@@ -20,11 +20,11 @@ const config: Config = {
         accent: {
           blue:    '#f4a440',
           'blue-dim': '#dc8a26',
-          cyan:    '#ffffff',
+          cyan:    '#06b6d4',
           green:   '#10b981',
           amber:   '#f59e0b',
           red:     '#ef4444',
-          purple:  '#ffffff',
+          purple:  '#a855f7',
         },
         txt: {
           primary:   'var(--txt-primary)',
