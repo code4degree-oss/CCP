@@ -92,7 +92,7 @@ export function EnquiriesModule() {
       ) : (
         <Card>
           {enquiries.length > 0 ? (
-            <Table columns={columns} data={filtered} keyField="id" onRowClick={(row) => window.open(`/enquiries/${row.id}`, '_blank')} />
+            <Table columns={columns} data={filtered} keyField="id" onRowClick={(row) => window.location.href = `/enquiries/${row.id}`} />
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Phone size={24} className="text-txt-muted mb-3" />

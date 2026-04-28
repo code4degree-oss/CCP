@@ -98,8 +98,8 @@ export default function EnquiryDetailsPage() {
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header Actions */}
         <div className="flex items-center justify-between">
-          <Button variant="secondary" onClick={() => window.close()}>
-            <ArrowLeft size={16} /> Close Tab
+          <Button variant="secondary" onClick={() => window.location.href = '/#enquiries'}>
+            <ArrowLeft size={16} /> Back to Enquiries
           </Button>
         </div>
 
