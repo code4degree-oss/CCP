@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Search, Inbox, Loader2, X, Phone } from 'lucide-react'
 import { Card, Button, Table } from '@/components/ui'
 import { enquiriesApi, branchesApi } from '@/lib/api'
+import { EnquiryDetailsSidepanel } from './EnquiryDetailsSidepanel'
 
 interface EnqRow {
   id: number; full_name: string; mobile: string; parent_mobile: string; branch: number; counselor: number; counselor_name: string | null; course_interest: string; source: string; category: string; neet_expected_marks: number | null; created_at: string
@@ -15,6 +16,7 @@ export function EnquiriesModule() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [selectedEnquiry, setSelectedEnquiry] = useState<any>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({ full_name: '', mobile: '', parent_mobile: '', mother_name: '', gender: '', dob: '', branch: '', category: '', candidate_type: '', hsc_percentage: '', neet_application_no: '', neet_roll_no: '', neet_expected_marks: '', course_interest: '', tuition_name: '', reference_name: '', source: '' })
@@ -92,7 +94,7 @@ export function EnquiriesModule() {
       ) : (
         <Card>
           {enquiries.length > 0 ? (
-            <Table columns={columns} data={filtered} keyField="id" />
+            <Table columns={columns} data={filtered} keyField="id" onRowClick={setSelectedEnquiry} />
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Phone size={24} className="text-txt-muted mb-3" />
@@ -162,6 +164,14 @@ export function EnquiriesModule() {
             </div>
           </div>
         </div>
+      )}
+
+      {selectedEnquiry && (
+        <EnquiryDetailsSidepanel
+          enquiry={selectedEnquiry}
+          onClose={() => setSelectedEnquiry(null)}
+          branchName={branchName}
+        />
       )}
     </div>
   )
