@@ -67,9 +67,14 @@ export function Sidebar({ active, onChange }: SidebarProps) {
       >
         {/* Logo */}
         <div className={clsx('flex items-center h-14 px-4 border-b border-bg-border shrink-0 justify-center overflow-hidden')}>
-          <span className="font-bold text-[17px] tracking-wide text-txt-primary truncate">
-            {collapsed ? 'CCP' : 'Chanakya Career Point'}
-          </span>
+          {collapsed ? (
+            <span className="font-bold text-xl tracking-wide text-txt-primary">CCP</span>
+          ) : (
+            <div className="flex flex-col items-center justify-center">
+              <span className="font-bold text-[15px] tracking-wide text-txt-primary leading-tight">Chanakya Career</span>
+              <span className="font-bold text-[15px] tracking-wide text-txt-primary leading-tight">Point</span>
+            </div>
+          )}
         </div>
 
         {/* Nav items */}
