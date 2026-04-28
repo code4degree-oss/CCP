@@ -430,6 +430,13 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             }
         )
 
+        parent_mobile = data.get('parent_mobile', '')
+        if parent_mobile:
+            demo = student.demographic_details or {}
+            demo['alternate_mobile'] = parent_mobile
+            student.demographic_details = demo
+            student.save()
+
         # Generate admission number (CCP001, CCP002, ...)
         # Use select_for_update to prevent race conditions under concurrent requests
         last = Admission.objects.select_for_update().filter(

@@ -234,7 +234,13 @@ class StudentSerializer(serializers.ModelSerializer):
         admissions = obj.admissions.all()
         if not admissions:
             return False
-        return all(a.is_entrance_guidance_only for a in admissions)
+        for a in admissions:
+            if a.is_entrance_guidance_only:
+                continue
+            if a.course and 'entrance' in a.course.name.lower() and 'guidance' in a.course.name.lower():
+                continue
+            return False
+        return True
 
 class CollegeSerializer(serializers.ModelSerializer):
     class Meta:

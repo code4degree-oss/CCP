@@ -82,10 +82,17 @@ export function AdmissionsModule() {
     setView('new')
   }
 
-  const openEdit = (a: any) => {
+  const openEdit = async (a: any) => {
     const isEntrance = a.is_entrance_guidance_only || (a.course_name && a.course_name.toLowerCase().includes('entrance') && a.course_name.toLowerCase().includes('guidance'))
     if (isEntrance) {
-      setEntranceEditModal(a)
+      setPrintLoading(true)
+      try {
+        const fullData = await admissionsApi.get(a.id)
+        setEntranceEditModal(fullData)
+      } catch {
+        setEntranceEditModal(a)
+      }
+      setPrintLoading(false)
     } else {
       setEditAdmission(a)
       setView('edit')
@@ -354,14 +361,19 @@ export function AdmissionsModule() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Mobile Number</label>
-                <input type="text" id="edit_entrance_mobile" defaultValue={entranceEditModal.student_mobile || getName(students, entranceEditModal.student, 'mobile')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-accent-blue outline-none" />
+                <input type="text" id="edit_entrance_mobile" defaultValue={entranceEditModal.student_mobile || entranceEditModal.student_detail?.mobile || getName(students, entranceEditModal.student, 'mobile')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-accent-blue outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Parent's Mobile</label>
+                <input type="text" id="edit_entrance_parent_mobile" defaultValue={entranceEditModal.student_detail?.demographic_details?.alternate_mobile || ''} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-accent-blue outline-none" />
               </div>
               <button onClick={async () => {
                 const newName = (document.getElementById('edit_entrance_name') as HTMLInputElement).value;
                 const newMobile = (document.getElementById('edit_entrance_mobile') as HTMLInputElement).value;
+                const newParentMobile = (document.getElementById('edit_entrance_parent_mobile') as HTMLInputElement).value;
                 if (!newName) return;
                 try {
-                  await studentsApi.update(entranceEditModal.student, { full_name: newName, mobile: newMobile });
+                  await admissionsApi.completeProfile(entranceEditModal.id, { full_name: newName, mobile: newMobile, alternate_mobile: newParentMobile });
                   setEntranceEditModal(null);
                   load();
                 } catch (e) {
