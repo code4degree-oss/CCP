@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CreditCard, Loader2, Inbox, X, Check, AlertCircle, ChevronRight, FileText, Printer } from 'lucide-react'
+import { CreditCard, Loader2, Inbox, X, Check, AlertCircle, ChevronRight, FileText, Printer, ArrowUpCircle } from 'lucide-react'
 import { Card, Table } from '@/components/ui'
 import { admissionsApi, paymentsApi } from '@/lib/api'
 import { PrintFeeReceipt } from './PrintFeeReceipt'
@@ -22,6 +22,7 @@ interface PaymentSummary {
   payment_status: string
   created_at: string
   admission_status: string
+  counselling_type?: string
 }
 
 const TAB_ITEMS = [
@@ -44,6 +45,13 @@ export function PaymentsModule() {
 
   // Receipt view
   const [receiptView, setReceiptView] = useState<any[] | null>(null)
+
+  // Upgrade modal
+  const [upgradeModal, setUpgradeModal] = useState<PaymentSummary | null>(null)
+  const [upgradeForm, setUpgradeForm] = useState({ payment_mode: 'Cash', reference_no: '' })
+  const [upgradeLoading, setUpgradeLoading] = useState(false)
+  const [upgradeResult, setUpgradeResult] = useState<any>(null)
+  const [upgradeError, setUpgradeError] = useState('')
 
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('ams_user') : null
   const user = userStr ? JSON.parse(userStr) : {}
@@ -99,6 +107,34 @@ export function PaymentsModule() {
       setRpError(e.message || 'Failed to record payment')
     }
     setRpSaving(false)
+  }
+
+  // Check if admission can be upgraded (JoSAA or CET only, not Both)
+  const canUpgrade = (s: PaymentSummary) => {
+    const ct = (s.counselling_type || '').toLowerCase()
+    if (!ct) return false
+    if (ct.includes('both')) return false
+    return ct.includes('josaa') || ct.includes('cet')
+  }
+
+  const handleUpgrade = async () => {
+    if (!upgradeModal) return
+    setUpgradeLoading(true); setUpgradeError('')
+    try {
+      const result = await admissionsApi.upgradeCounselling(upgradeModal.admission_id, {
+        payment_mode: upgradeForm.payment_mode,
+        reference_no: upgradeForm.reference_no,
+      })
+      setUpgradeResult(result)
+      setTimeout(() => {
+        setUpgradeModal(null)
+        setUpgradeResult(null)
+        load()
+      }, 2000)
+    } catch (e: any) {
+      setUpgradeError(e.message || 'Failed to upgrade')
+    }
+    setUpgradeLoading(false)
   }
 
   const openReceiptView = async (s: PaymentSummary) => {
@@ -205,6 +241,15 @@ export function PaymentsModule() {
           >
             <FileText size={12} /> Receipt
           </button>
+          {canUpgrade(r) && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setUpgradeModal(r); setUpgradeForm({ payment_mode: 'Cash', reference_no: '' }); setUpgradeError(''); setUpgradeResult(null) }}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition-colors"
+              title="Upgrade to Both (JoSAA + CET)"
+            >
+              <ArrowUpCircle size={12} /> Upgrade
+            </button>
+          )}
           {r.balance > 0 && (
             <button
               onClick={(e) => { e.stopPropagation(); openRecordModal(r) }}
@@ -422,6 +467,85 @@ export function PaymentsModule() {
                 {rpSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                 Record Payment — ₹{Number(rpForm.amount || 0).toLocaleString('en-IN')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════ UPGRADE COUNSELLING MODAL ══════ */}
+      {upgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            <div className="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
+                    <ArrowUpCircle size={18} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Upgrade to Both</h3>
+                    <p className="text-[11px] text-amber-100 mt-0.5">{upgradeModal.admission_number} — {upgradeModal.student_name}</p>
+                  </div>
+                </div>
+                <button onClick={() => setUpgradeModal(null)} className="p-1.5 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="px-6 py-3 bg-amber-50 border-b border-amber-200">
+              <p className="text-xs text-amber-800">
+                Current counselling type: <strong>{upgradeModal.counselling_type}</strong>
+              </p>
+              <p className="text-[11px] text-amber-700 mt-1">
+                Upgrading to <strong>Both (JoSAA + MHT-CET)</strong>. The system will calculate the fee difference automatically and record it as a new payment.
+              </p>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Payment Mode</label>
+                  <select
+                    value={upgradeForm.payment_mode}
+                    onChange={e => setUpgradeForm(f => ({ ...f, payment_mode: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors bg-white"
+                  >
+                    <option>Cash</option><option>Online</option><option>Cheque</option><option>NEFT/RTGS</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Reference / TXN ID</label>
+                  <input
+                    value={upgradeForm.reference_no}
+                    onChange={e => setUpgradeForm(f => ({ ...f, reference_no: e.target.value }))}
+                    className="w-full px-3 py-2.5 rounded-xl border border-gray-300 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+
+              {upgradeResult && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-emerald-700 flex items-center gap-2"><Check size={14} /> {upgradeResult.detail}</p>
+                  {upgradeResult.upgrade_amount > 0 && (
+                    <p className="text-[11px] text-emerald-600 mt-1">Difference payment of ₹{Number(upgradeResult.upgrade_amount).toLocaleString('en-IN')} recorded.</p>
+                  )}
+                </div>
+              )}
+
+              {upgradeError && <p className="text-xs text-red-600 bg-red-50 border border-red-200 p-2.5 rounded-lg">{upgradeError}</p>}
+
+              {!upgradeResult && (
+                <button
+                  onClick={handleUpgrade}
+                  disabled={upgradeLoading}
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+                >
+                  {upgradeLoading ? <Loader2 size={16} className="animate-spin" /> : <ArrowUpCircle size={16} />}
+                  Upgrade to Both (JoSAA + MHT-CET)
+                </button>
+              )}
             </div>
           </div>
         </div>

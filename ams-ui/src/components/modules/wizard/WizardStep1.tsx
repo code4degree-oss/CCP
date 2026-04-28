@@ -26,6 +26,22 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
   const selectedCourse = branchCourses.find((c: any) => c.course.toString() === p1.course_id)
   const isEngAdmission = selectedCourse?.course_name?.toLowerCase().includes('engineering') && selectedCourse?.course_name?.toLowerCase().includes('admission')
 
+  // Resolve the correct fee based on counselling type
+  const resolvedFee = useMemo(() => {
+    if (!selectedCourse) return 0
+    if (!isEngAdmission || !p1.counselling_type) return Number(selectedCourse.fee_amount) || 0
+
+    // Map counselling type display value to DB key
+    const counsellingFees = selectedCourse.counselling_fees || []
+    let ctKey = ''
+    if (p1.counselling_type.toLowerCase().includes('both')) ctKey = 'Both'
+    else if (p1.counselling_type.toLowerCase().includes('josaa')) ctKey = 'JoSAA'
+    else if (p1.counselling_type.toLowerCase().includes('cet')) ctKey = 'CET'
+
+    const match = counsellingFees.find((cf: any) => cf.counselling_type === ctKey)
+    return match ? Number(match.fee_amount) : Number(selectedCourse.fee_amount) || 0
+  }, [selectedCourse, isEngAdmission, p1.counselling_type])
+
   const handle = () => {
     if (!p1.student_name || !p1.student_mobile || !p1.course_id || !p1.amount) return
     onSubmit(p1, branchCourses)
@@ -65,7 +81,10 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
           <Field label="Course" required>
             <select value={p1.course_id} onChange={e => { s('course_id', e.target.value); s('counselling_type', '') }} className={selectClass}>
               <option value="">Select a course</option>
-              {branchCourses.map((c: any) => <option key={c.course} value={c.course}>{c.course_name} (₹{Number(c.fee_amount).toLocaleString()})</option>)}
+              {branchCourses.map((c: any) => {
+                const isEng = c.course_name?.toLowerCase().includes('engineering') && c.course_name?.toLowerCase().includes('admission')
+                return <option key={c.course} value={c.course}>{c.course_name}{!isEng && Number(c.fee_amount) > 0 ? ` (₹${Number(c.fee_amount).toLocaleString()})` : ''}</option>
+              })}
             </select>
           </Field>
           {/* Counselling Type - Engineering Admission only */}
@@ -79,12 +98,16 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
               </select>
             </Field>
           )}
-          {/* Total Fee indicator */}
+          {/* Total Fee indicator — only show when fee is resolved */}
           {p1.course_id && (() => {
-            const totalFee = selectedCourse ? Number(selectedCourse.fee_amount) : 0
+            // For engineering admission: only show fee after counselling type is selected
+            if (isEngAdmission && !p1.counselling_type) return null
+            const totalFee = resolvedFee
             return totalFee > 0 ? (
               <div className="flex items-center gap-2 -mt-2 ml-1">
-                <span className="text-xs font-semibold text-gray-600">Total Course Fee:</span>
+                <span className="text-xs font-semibold text-gray-600">
+                  {isEngAdmission && p1.counselling_type ? `Fee (${p1.counselling_type.split('(')[0].trim()}):` : 'Total Course Fee:'}
+                </span>
                 <span className="text-sm font-bold text-blue-700">₹{totalFee.toLocaleString('en-IN')}</span>
               </div>
             ) : null
@@ -101,9 +124,9 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
               <Field label="Reference / TXN ID" half><input value={p1.transaction_id} onChange={e => s('transaction_id', e.target.value)} placeholder="Optional" className={inputClass} /></Field>
               <Field label="Remarks" half><input value={p1.notes} onChange={e => s('notes', e.target.value)} placeholder="Optional notes" className={inputClass} /></Field>
             </div>
-            {/* Balance indicator */}
+            {/* Balance indicator — uses counselling-type fee */}
             {p1.course_id && p1.amount && (() => {
-              const totalFee = selectedCourse ? Number(selectedCourse.fee_amount) : 0
+              const totalFee = resolvedFee
               const paid = Number(p1.amount) || 0
               const balance = Math.max(0, totalFee - paid)
               if (totalFee <= 0) return null

@@ -135,7 +135,7 @@ class BranchCourse(models.Model):
     """Links a course to a branch with branch-specific fee amount."""
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE, related_name='branch_courses')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='branch_offerings')
-    fee_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    fee_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -146,6 +146,27 @@ class BranchCourse(models.Model):
 
     def __str__(self):
         return f"{self.branch.name} — {self.course.name} (₹{self.fee_amount})"
+
+
+class BranchCourseCounsellingFee(models.Model):
+    """Per-counselling-type fee for Engineering Admission Guidance courses.
+    Allows each branch to set separate fees for JoSAA, MHT-CET, and Both (bundle)."""
+    COUNSELLING_CHOICES = [
+        ('JoSAA', 'JoSAA'),
+        ('CET', 'MHT-CET'),
+        ('Both', 'Both (JoSAA + CET)'),
+    ]
+    branch_course = models.ForeignKey(BranchCourse, on_delete=models.CASCADE, related_name='counselling_fees')
+    counselling_type = models.CharField(max_length=20, choices=COUNSELLING_CHOICES)
+    fee_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        unique_together = ('branch_course', 'counselling_type')
+        ordering = ['counselling_type']
+
+    def __str__(self):
+        return f"{self.branch_course} — {self.counselling_type}: ₹{self.fee_amount}"
+
 
 class College(models.Model):
     name = models.CharField(max_length=150)
@@ -161,7 +182,7 @@ class Admission(models.Model):
     stream = models.ForeignKey(Stream, on_delete=models.SET_NULL, null=True)
     course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, blank=True, related_name='admissions')
     admission_status = models.CharField(max_length=30, default="Documents Pending")
-    application_scope = models.CharField(max_length=30, null=True, blank=True)
+    application_scope = models.CharField(max_length=100, null=True, blank=True)
     govt_submission_done = models.BooleanField(default=False)
     govt_submission_notes = models.TextField(blank=True, null=True)
     is_entrance_guidance_only = models.BooleanField(default=False)

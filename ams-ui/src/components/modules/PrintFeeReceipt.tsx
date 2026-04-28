@@ -126,15 +126,10 @@ export function buildSingleReceiptHTML(r: ReceiptItem): string {
   // Declaration acceptance + Signature fields
   html += `<div style="margin-top:6px;border-top:1px solid #374151;padding-top:5px">
     <p style="font-size:8px;font-weight:700;color:#111827;margin:0 0 5px;text-align:center">I have carefully read the above terms and conditions, understood them fully, and accept them without any objection.</p>
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:8px">
-      <div style="width:30%"><p style="margin:0;font-size:7.5px;color:#374151"><strong>Parent&#39;s Name:</strong></p><div style="border-bottom:1px solid #374151;height:16px;margin-top:2px"></div></div>
-      <div style="width:30%"><p style="margin:0;font-size:7.5px;color:#374151"><strong>Student&#39;s Name:</strong></p><div style="border-bottom:1px solid #374151;height:16px;margin-top:2px"></div></div>
-      <div style="width:18%"><p style="margin:0;font-size:7.5px;color:#374151"><strong>Signature:</strong></p><div style="border-bottom:1px solid #374151;height:16px;margin-top:2px"></div></div>
-      <div style="width:14%"><p style="margin:0;font-size:7.5px;color:#374151"><strong>Date:</strong></p><div style="border-bottom:1px solid #374151;height:16px;margin-top:2px"></div></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px">
-      <div style="text-align:center;width:35%"><div style="border-top:1px solid #374151;padding-top:4px"><p style="margin:0;font-size:9px;font-weight:800;color:#111827">Student Sign</p></div></div>
-      <div style="text-align:center;width:35%"><div style="border-top:1px solid #374151;padding-top:4px"><p style="margin:0 0 1px;font-size:9px;font-weight:800;color:#111827">${r.filled_by || 'Coordinator'}</p><p style="margin:0;font-size:7px;font-weight:600;color:#6b7280">Coordinator</p></div></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:30px">
+      <div style="text-align:center;width:28%"><div style="border-top:1px solid #374151;padding-top:4px"><p style="margin:0;font-size:9px;font-weight:800;color:#111827">Parent Sign</p></div></div>
+      <div style="text-align:center;width:28%"><div style="border-top:1px solid #374151;padding-top:4px"><p style="margin:0;font-size:9px;font-weight:800;color:#111827">Student Sign</p></div></div>
+      <div style="text-align:center;width:28%"><div style="border-top:1px solid #374151;padding-top:4px"><p style="margin:0 0 1px;font-size:9px;font-weight:800;color:#111827">${r.filled_by || 'Coordinator'}</p><p style="margin:0;font-size:7px;font-weight:600;color:#6b7280">Coordinator Sign</p></div></div>
     </div>
   </div>`
 

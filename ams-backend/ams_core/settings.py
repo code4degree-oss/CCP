@@ -53,6 +53,10 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
 
+    # ── Security: Rate limiting & request guards (before Django processing) ──
+    'portal.middleware.GlobalIPRateLimitMiddleware',
+    'portal.middleware.RequestSizeLimitMiddleware',
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -60,6 +64,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    # ── Security: Login brute-force protection (after auth middleware) ──
+    'portal.middleware.LoginRateLimitMiddleware',
 ]
 
 CORS_ALLOW_ALL_ORIGINS = False
@@ -162,6 +169,15 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    # ── DRF Throttling (API-level rate limiting) ──
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '10/minute',     # Unauthenticated users (login, public endpoints)
+        'user': '60/minute',    # Authenticated users (normal app usage)
+    },
 }
 
 # ── Session Security ──────────────────────────────────────
@@ -178,3 +194,57 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 # SECURE_SSL_REDIRECT = True
 # SESSION_COOKIE_SECURE = True
 # CSRF_COOKIE_SECURE = True
+
+# ── Cache (used by rate-limiting middleware) ───────────────
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'rate-limit-cache',
+    }
+}
+
+# ── Rate Limiting Configuration ───────────────────────────
+# Login brute-force protection
+LOGIN_RATELIMIT_MAX_ATTEMPTS = 5       # Max failed logins before lockout
+LOGIN_RATELIMIT_WINDOW = 300           # Tracking window (5 minutes)
+LOGIN_RATELIMIT_LOCKOUT = 900          # Lockout duration (15 minutes)
+
+# Global per-IP rate limit (all endpoints)
+GLOBAL_RATELIMIT_REQUESTS = 80         # Max requests per window
+GLOBAL_RATELIMIT_WINDOW = 60           # Window in seconds (1 minute)
+
+# Request size limits
+MAX_REQUEST_BODY_SIZE = 5 * 1024 * 1024    # 5 MB for normal API calls
+MAX_UPLOAD_BODY_SIZE = 20 * 1024 * 1024    # 20 MB for document uploads
+
+# ── Logging ───────────────────────────────────────────────
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'security': {
+            'format': '[{asctime}] SECURITY {levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'security_file': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'security.log'),
+            'formatter': 'security',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'security',
+        },
+    },
+    'loggers': {
+        'portal.security': {
+            'handlers': ['security_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

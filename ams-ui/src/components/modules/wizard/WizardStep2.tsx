@@ -176,12 +176,14 @@ export function WizardStep2({ p2, setP2, courseName, admissionNumber, saving, er
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
         <WizSectionHeader icon={Shield} title="Parallel Reservation & Application" color="text-rose-700" />
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Claim Exception?" half><select value={p2.claim_exception} onChange={e => s('claim_exception', e.target.value)} className={selectClass}><option value="">Select</option><option>YES</option><option>NO</option></select></Field>
-          <Field label="Specified Reservation" half>
-            <div className="space-y-2 pt-1">{['Hilly Area','Defence Quota','MKB'].map(opt => (
-              <label key={opt} className="flex items-center gap-2 cursor-pointer"><input type="radio" name="specified_reservation" value={opt} checked={p2.specified_reservation===opt} onChange={e => s('specified_reservation', e.target.value)} className="w-4 h-4 text-blue-600" /><span className="text-sm text-gray-700">{opt}</span></label>
-            ))}</div>
-          </Field>
+          <Field label="Claim Exception?" half><select value={p2.claim_exception} onChange={e => { s('claim_exception', e.target.value); if (e.target.value !== 'YES') s('specified_reservation', '') }} className={selectClass}><option value="">Select</option><option>YES</option><option>NO</option></select></Field>
+          {p2.claim_exception === 'YES' && (
+            <Field label="Specified Reservation" half>
+              <div className="space-y-2 pt-1">{['Hilly Area','Defence Quota','MKB'].map(opt => (
+                <label key={opt} className="flex items-center gap-2 cursor-pointer"><input type="radio" name="specified_reservation" value={opt} checked={p2.specified_reservation===opt} onChange={e => s('specified_reservation', e.target.value)} className="w-4 h-4 text-blue-600" /><span className="text-sm text-gray-700">{opt}</span></label>
+              ))}</div>
+            </Field>
+          )}
           <Field label="I want to apply for" half><select value={p2.quota_apply_for} onChange={e => s('quota_apply_for', e.target.value)} className={selectClass}><option value="">Select</option><option>ONLY STATE QUOTA</option><option>ONLY INSTITUTE QUOTA (FOR ALL COURSES)</option><option>BOTH STATE AND INSTITUTE QUOTA</option><option>ONLY ALLIED COURSES STATE AND INSTITUTE QUOTA</option></select></Field>
           <Field label="All documents received?" half><select value={p2.documents_received} onChange={e => s('documents_received', e.target.value)} className={selectClass}><option value="">Select</option><option>YES</option><option>NO</option></select></Field>
         </div>

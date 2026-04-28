@@ -13,12 +13,13 @@ from .models import (
     User, UserBranch,
     Enquiry,
     Student, Stream, Course, College, Admission, AdmissionPreference, AdmissionDocument, StatusHistory,
-    BranchFeeConfig, BranchCourse, Payment, Receipt,
+    BranchFeeConfig, BranchCourse, BranchCourseCounsellingFee, Payment, Receipt,
     WhatsappConfig, NotificationTemplate, NotificationLog
 )
 from .serializers import (
     RoleSerializer, PermissionSerializer, RolePermissionSerializer,
     OrganizationSerializer, BranchSerializer, BranchCreateSerializer, BranchCourseSerializer,
+    BranchCourseCounsellingFeeSerializer,
     UserSerializer, UserBranchSerializer,
     EnquirySerializer, ChangePasswordSerializer,
     StudentSerializer, StreamSerializer, CourseSerializer, CollegeSerializer, AdmissionSerializer, AdmissionPreferenceSerializer, AdmissionDocumentSerializer, StatusHistorySerializer,
@@ -67,7 +68,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
 
 
 class BranchViewSet(viewsets.ModelViewSet):
-    queryset = Branch.objects.prefetch_related('branch_courses__course__stream').all()
+    queryset = Branch.objects.prefetch_related('branch_courses__course__stream', 'branch_courses__counselling_fees').all()
     serializer_class = BranchSerializer
 
     def get_queryset(self):
@@ -122,8 +123,9 @@ class BranchViewSet(viewsets.ModelViewSet):
         Atomic branch creation:
         1. Create the branch
         2. Create BranchCourse rows for each course + fee
-        3. Assign manager role & UserBranch mapping if manager is set
-        4. Return branch data
+        3. Create BranchCourseCounsellingFee rows for engineering courses
+        4. Assign manager role & UserBranch mapping if manager is set
+        5. Return branch data
         """
         courses_data = request.data.pop('courses', []) if isinstance(request.data, dict) else []
 
@@ -138,11 +140,19 @@ class BranchViewSet(viewsets.ModelViewSet):
             if course_id:
                 try:
                     course = Course.objects.get(pk=course_id)
-                    BranchCourse.objects.create(
+                    bc = BranchCourse.objects.create(
                         branch=branch,
                         course=course,
                         fee_amount=fee_amount,
                     )
+                    # Create counselling fees if provided
+                    counselling_fees = entry.get('counselling_fees', [])
+                    for cf in counselling_fees:
+                        BranchCourseCounsellingFee.objects.create(
+                            branch_course=bc,
+                            counselling_type=cf['counselling_type'],
+                            fee_amount=cf['fee_amount'],
+                        )
                 except Course.DoesNotExist:
                     pass  # silently skip invalid course IDs
 
@@ -174,7 +184,7 @@ class BranchViewSet(viewsets.ModelViewSet):
 
 
 class BranchCourseViewSet(viewsets.ModelViewSet):
-    queryset = BranchCourse.objects.select_related('course__stream').all()
+    queryset = BranchCourse.objects.select_related('course__stream').prefetch_related('counselling_fees').all()
     serializer_class = BranchCourseSerializer
 
     def get_queryset(self):
@@ -190,6 +200,19 @@ class BranchCourseViewSet(viewsets.ModelViewSet):
         branch_id = self.request.query_params.get('branch')
         if branch_id:
             qs = qs.filter(branch_id=branch_id)
+        return qs
+
+
+class BranchCourseCounsellingFeeViewSet(viewsets.ModelViewSet):
+    queryset = BranchCourseCounsellingFee.objects.select_related('branch_course__course__stream').all()
+    serializer_class = BranchCourseCounsellingFeeSerializer
+    permission_classes = [IsBranchAdminOrSuperAdmin]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        branch_course_id = self.request.query_params.get('branch_course')
+        if branch_course_id:
+            qs = qs.filter(branch_course_id=branch_course_id)
         return qs
 
 
@@ -423,6 +446,9 @@ class AdmissionViewSet(viewsets.ModelViewSet):
         # Determine if this is entrance-guidance-only
         is_entrance = 'entrance' in course.name.lower() and 'guidance' in course.name.lower()
 
+        # Resolve counselling type
+        counselling_type = data.get('counselling_type', '')
+
         # Create Admission
         admission = Admission.objects.create(
             admission_number=admission_number,
@@ -434,7 +460,7 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             is_entrance_guidance_only=is_entrance,
             admission_status="Completed" if is_entrance else "Documents Pending",
             notes=data.get('notes', ''),
-            counselling_type=data.get('counselling_type', ''),
+            counselling_type=counselling_type,
         )
 
         # Create Initial Payment
@@ -449,6 +475,67 @@ class AdmissionViewSet(viewsets.ModelViewSet):
 
         # Return the new admission serialized
         return Response(AdmissionSerializer(admission).data, status=status.HTTP_201_CREATED)
+
+    @transaction.atomic
+    @action(detail=True, methods=['post'], url_path='upgrade-counselling')
+    def upgrade_counselling(self, request, pk=None):
+        """Upgrade a single-type (JoSAA or CET) admission to Both.
+        Calculates the fee difference and records it as a new payment."""
+        admission = self.get_object()
+
+        # Validate current counselling type
+        current = (admission.counselling_type or '').strip()
+        if not current or current.lower() == 'both' or 'both' in current.lower():
+            return Response({'detail': 'Admission is already Both or has no counselling type.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Look up BranchCourse
+        bc = BranchCourse.objects.filter(branch=admission.branch, course=admission.course).first()
+        if not bc:
+            return Response({'detail': 'No fee configuration found for this branch/course.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get "Both" fee
+        both_fee_obj = BranchCourseCounsellingFee.objects.filter(branch_course=bc, counselling_type='Both').first()
+        if not both_fee_obj:
+            return Response({'detail': 'No "Both" fee configured for this branch/course.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        both_fee = float(both_fee_obj.fee_amount)
+
+        # Get total already paid
+        from django.db.models import Sum, Q
+        total_paid = float(
+            admission.payments.filter(status='Paid').aggregate(s=Sum('amount'))['s'] or 0
+        )
+
+        upgrade_amount = max(0, both_fee - total_paid)
+
+        # Update counselling type
+        admission.counselling_type = 'Both (JoSAA + MHT-CET)'
+        admission.save(update_fields=['counselling_type', 'updated_at'])
+
+        # Record upgrade payment if amount > 0
+        payment_data = None
+        if upgrade_amount > 0:
+            payment_mode = request.data.get('payment_mode', 'Cash')
+            reference_no = request.data.get('reference_no', '')
+            payment = Payment.objects.create(
+                admission=admission,
+                amount=upgrade_amount,
+                payment_mode=payment_mode,
+                status='Paid',
+                reference_no=reference_no,
+                notes=f'Upgrade from {current} to Both',
+                collected_by=request.user if request.user.is_authenticated else None,
+            )
+            payment_data = PaymentSerializer(payment).data
+
+        return Response({
+            'detail': f'Upgraded to Both. Difference: ₹{upgrade_amount}',
+            'upgrade_amount': upgrade_amount,
+            'both_fee': both_fee,
+            'total_paid_before': total_paid,
+            'payment': payment_data,
+            'admission': AdmissionSerializer(admission).data,
+        })
 
     @action(detail=True, methods=['patch'], url_path='complete-profile')
     def complete_profile(self, request, pk=None):
@@ -560,8 +647,10 @@ class AdmissionViewSet(viewsets.ModelViewSet):
         if ext not in allowed_extensions:
             return Response({'detail': 'Unsupported file type.'}, status=status.HTTP_400_BAD_REQUEST)
             
-        # Security: Sanitize filename to prevent path traversal
-        safe_filename = get_valid_filename(file_obj.name)
+        # Rename file to student_name_document_type
+        student_name = admission.student.full_name if admission.student else "student"
+        new_filename = f"{student_name}_{doc_type}{ext}"
+        safe_filename = get_valid_filename(new_filename)
         
         # Save file to media directory
         path = default_storage.save(f"admissions/{admission.id}/{safe_filename}", file_obj)
@@ -638,7 +727,24 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             if adm.course_id and adm.branch_id:
                 bc = BranchCourse.objects.filter(branch_id=adm.branch_id, course_id=adm.course_id).first()
                 if bc:
-                    course_fee = float(bc.fee_amount)
+                    # Use counselling-type fee if applicable
+                    ct = (adm.counselling_type or '').strip()
+                    ct_key = None
+                    if 'both' in ct.lower():
+                        ct_key = 'Both'
+                    elif 'josaa' in ct.lower():
+                        ct_key = 'JoSAA'
+                    elif 'cet' in ct.lower():
+                        ct_key = 'CET'
+
+                    if ct_key:
+                        cf = bc.counselling_fees.filter(counselling_type=ct_key).first()
+                        if cf:
+                            course_fee = float(cf.fee_amount)
+                        else:
+                            course_fee = float(bc.fee_amount)
+                    else:
+                        course_fee = float(bc.fee_amount)
 
             total_paid = float(adm.total_paid or 0)
             balance = max(0, course_fee - total_paid)
@@ -658,6 +764,7 @@ class AdmissionViewSet(viewsets.ModelViewSet):
                 'payment_status': 'Fully Paid' if balance == 0 and total_paid > 0 else 'Pending',
                 'created_at': adm.created_at.isoformat(),
                 'admission_status': adm.admission_status,
+                'counselling_type': adm.counselling_type or '',
             })
 
         return Response(results)
@@ -730,7 +837,12 @@ class PaymentViewSet(viewsets.ModelViewSet):
         'admission__student', 'admission__course', 'admission__branch', 'collected_by'
     ).all()
     serializer_class = PaymentSerializer
-    permission_classes = [IsBranchAdminOrSuperAdmin]
+
+    def get_permissions(self):
+        """Allow any authenticated user to read; only admins can write."""
+        if self.action in ('list', 'retrieve'):
+            return [IsAuthenticated()]
+        return [IsBranchAdminOrSuperAdmin()]
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -746,7 +858,12 @@ class PaymentViewSet(viewsets.ModelViewSet):
 class ReceiptViewSet(viewsets.ModelViewSet):
     queryset = Receipt.objects.all()
     serializer_class = ReceiptSerializer
-    permission_classes = [IsBranchAdminOrSuperAdmin]
+
+    def get_permissions(self):
+        """Allow any authenticated user to read; only admins can write."""
+        if self.action in ('list', 'retrieve'):
+            return [IsAuthenticated()]
+        return [IsBranchAdminOrSuperAdmin()]
 
     def get_queryset(self):
         qs = super().get_queryset()
