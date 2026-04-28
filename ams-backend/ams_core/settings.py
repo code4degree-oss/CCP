@@ -53,6 +53,9 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
 
+    # ── Performance: GZip compress all responses ──
+    'django.middleware.gzip.GZipMiddleware',
+
     # ── Security: Rate limiting & request guards (before Django processing) ──
     'portal.middleware.GlobalIPRateLimitMiddleware',
     'portal.middleware.RequestSizeLimitMiddleware',
@@ -115,6 +118,9 @@ DATABASES = {
         'PASSWORD': os.environ.get('DB_PASSWORD', ''),
         'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
+        # ── Performance: Persistent DB connections ──
+        'CONN_MAX_AGE': 600,       # Keep connections alive for 10 minutes
+        'CONN_HEALTH_CHECKS': True, # Verify connection health before reuse
     }
 }
 

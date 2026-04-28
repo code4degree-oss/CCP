@@ -342,12 +342,12 @@ class EnquiryViewSet(viewsets.ModelViewSet):
             serializer.save()
 
 class StudentViewSet(viewsets.ModelViewSet):
-    queryset = Student.objects.all()
+    queryset = Student.objects.select_related('branch', 'counselor').all()
     serializer_class = StudentSerializer
     permission_classes = [CanDeleteStudent]
 
     def get_queryset(self):
-        qs = Student.objects.all()
+        qs = Student.objects.select_related('branch', 'counselor').all()
         user = self.request.user
         if hasattr(user, 'is_superuser') and not user.is_superuser:
             branch_mapping = getattr(user, 'branch_mappings', None)
@@ -730,13 +730,27 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             )
         )
 
+        # Prefetch ALL BranchCourse + counselling fees in bulk (eliminates N+1 queries)
+        admissions_list = list(qs.order_by('-created_at'))
+        branch_course_pairs = set(
+            (adm.branch_id, adm.course_id) for adm in admissions_list
+            if adm.branch_id and adm.course_id
+        )
+        bc_lookup = {}
+        if branch_course_pairs:
+            bcs = BranchCourse.objects.prefetch_related('counselling_fees').filter(
+                *[Q(branch_id=bp[0], course_id=bp[1]) for bp in branch_course_pairs]
+            ) if len(branch_course_pairs) == 1 else BranchCourse.objects.prefetch_related('counselling_fees').all()
+            for bc in bcs:
+                bc_lookup[(bc.branch_id, bc.course_id)] = bc
+
         # Build response
         results = []
-        for adm in qs.order_by('-created_at'):
-            # Get course fee from BranchCourse
+        for adm in admissions_list:
+            # Get course fee from prefetched BranchCourse
             course_fee = 0
             if adm.course_id and adm.branch_id:
-                bc = BranchCourse.objects.filter(branch_id=adm.branch_id, course_id=adm.course_id).first()
+                bc = bc_lookup.get((adm.branch_id, adm.course_id))
                 if bc:
                     # Use counselling-type fee if applicable
                     ct = (adm.counselling_type or '').strip()
@@ -749,7 +763,7 @@ class AdmissionViewSet(viewsets.ModelViewSet):
                         ct_key = 'CET'
 
                     if ct_key:
-                        cf = bc.counselling_fees.filter(counselling_type=ct_key).first()
+                        cf = next((f for f in bc.counselling_fees.all() if f.counselling_type == ct_key), None)
                         if cf:
                             course_fee = float(cf.fee_amount)
                         else:

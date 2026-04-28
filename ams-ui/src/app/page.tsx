@@ -1,20 +1,25 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import { Shield } from 'lucide-react'
+import { Shield, Loader2 } from 'lucide-react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Topbar } from '@/components/layout/Topbar'
 import { authApi } from '@/lib/api'
-import { DashboardModule } from '@/components/modules/Dashboard'
-import { StudentsModule } from '@/components/modules/Students'
-import { AdmissionsModule } from '@/components/modules/Admissions'
-import { EnquiriesModule } from '@/components/modules/Enquiries'
-import { BranchesModule } from '@/components/modules/Branches'
-import { UsersModule } from '@/components/modules/Users'
-import { ReportsModule } from '@/components/modules/Reports'
-import { PaymentsModule } from '@/components/modules/Payments'
-import { PlaceholderModule } from '@/components/modules/Placeholder'
+
+// ── Lazy-loaded modules (code-split per route) ──────────────
+const LoadingSkeleton = () => <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin text-txt-muted" /></div>
+
+const DashboardModule = dynamic(() => import('@/components/modules/Dashboard').then(m => ({ default: m.DashboardModule })), { loading: LoadingSkeleton })
+const StudentsModule = dynamic(() => import('@/components/modules/Students').then(m => ({ default: m.StudentsModule })), { loading: LoadingSkeleton })
+const AdmissionsModule = dynamic(() => import('@/components/modules/Admissions').then(m => ({ default: m.AdmissionsModule })), { loading: LoadingSkeleton })
+const EnquiriesModule = dynamic(() => import('@/components/modules/Enquiries').then(m => ({ default: m.EnquiriesModule })), { loading: LoadingSkeleton })
+const BranchesModule = dynamic(() => import('@/components/modules/Branches').then(m => ({ default: m.BranchesModule })), { loading: LoadingSkeleton })
+const UsersModule = dynamic(() => import('@/components/modules/Users').then(m => ({ default: m.UsersModule })), { loading: LoadingSkeleton })
+const ReportsModule = dynamic(() => import('@/components/modules/Reports').then(m => ({ default: m.ReportsModule })), { loading: LoadingSkeleton })
+const PaymentsModule = dynamic(() => import('@/components/modules/Payments').then(m => ({ default: m.PaymentsModule })), { loading: LoadingSkeleton })
+const PlaceholderModule = dynamic(() => import('@/components/modules/Placeholder').then(m => ({ default: m.PlaceholderModule })), { loading: LoadingSkeleton })
 
 const PAGE_META: Record<string, { title: string; subtitle?: string }> = {
   dashboard:     { title: 'Dashboard', subtitle: 'Overview of your admission pipeline' },
@@ -87,11 +92,15 @@ export default function Home() {
 
   const meta = PAGE_META[active] ?? { title: active }
 
-  function renderModule() {
+  // Memoize user context to avoid repeated localStorage parsing on every render
+  const userContext = useMemo(() => {
     const userStr = typeof window !== 'undefined' ? localStorage.getItem('ams_user') : null
-    const user = userStr ? JSON.parse(userStr) : {}
-    const isEmployee = user.role && user.role.toLowerCase().includes('employee')
+    return userStr ? JSON.parse(userStr) : {}
+  }, [authChecked])
 
+  const isEmployee = userContext.role && userContext.role.toLowerCase().includes('employee')
+
+  const renderModule = useCallback(() => {
     if (isEmployee && ['branches', 'users', 'settings'].includes(active)) {
       return (
         <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
@@ -116,7 +125,7 @@ export default function Home() {
         return p ? <PlaceholderModule title={p.title} description={p.description} /> : null
       }
     }
-  }
+  }, [active, isEmployee])
 
   return (
     <div className="flex h-screen bg-bg-base grid-bg overflow-hidden">
