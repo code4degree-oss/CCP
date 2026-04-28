@@ -35,6 +35,7 @@ export function AdmissionsModule() {
   const [editAdmission, setEditAdmission] = useState<any>(null)
   const [printAdmission, setPrintAdmission] = useState<any>(null)
   const [receiptData, setReceiptData] = useState<any>(null)
+  const [entranceEditModal, setEntranceEditModal] = useState<any>(null)
   const [printLoading, setPrintLoading] = useState(false)
   const [docModal, setDocModal] = useState<{ admission: any; docs: any[] } | null>(null)
   const [docsLoading, setDocsLoading] = useState(false)
@@ -82,8 +83,13 @@ export function AdmissionsModule() {
   }
 
   const openEdit = (a: any) => {
-    setEditAdmission(a)
-    setView('edit')
+    const isEntrance = a.is_entrance_guidance_only || (a.course_name && a.course_name.toLowerCase().includes('entrance') && a.course_name.toLowerCase().includes('guidance'))
+    if (isEntrance) {
+      setEntranceEditModal(a)
+    } else {
+      setEditAdmission(a)
+      setView('edit')
+    }
   }
 
   const openPrint = async (a: any) => {
@@ -329,6 +335,42 @@ export function AdmissionsModule() {
           <div className="bg-white rounded-xl px-6 py-4 flex items-center gap-3 shadow-xl">
             <Loader2 size={18} className="animate-spin text-blue-600" />
             <span className="text-sm font-medium text-gray-700">Loading admission details...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Entrance Edit Modal */}
+      {entranceEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-4 overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-900">Edit Details</h3>
+              <button onClick={() => setEntranceEditModal(null)} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={16} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Student / Receipt Name</label>
+                <input type="text" id="edit_entrance_name" defaultValue={entranceEditModal.student_name || getName(students, entranceEditModal.student, 'full_name')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-accent-blue outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Mobile Number</label>
+                <input type="text" id="edit_entrance_mobile" defaultValue={entranceEditModal.student_mobile || getName(students, entranceEditModal.student, 'mobile')} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-accent-blue outline-none" />
+              </div>
+              <button onClick={async () => {
+                const newName = (document.getElementById('edit_entrance_name') as HTMLInputElement).value;
+                const newMobile = (document.getElementById('edit_entrance_mobile') as HTMLInputElement).value;
+                if (!newName) return;
+                try {
+                  await studentsApi.update(entranceEditModal.student, { full_name: newName, mobile: newMobile });
+                  setEntranceEditModal(null);
+                  load();
+                } catch (e) {
+                  alert('Failed to update details');
+                }
+              }} className="w-full bg-accent-blue text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-accent-blue/90 transition-colors mt-2">
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
       )}

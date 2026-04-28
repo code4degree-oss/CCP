@@ -224,9 +224,17 @@ class ReceiptSerializer(serializers.ModelSerializer):
 # ── STUDENT / ADMISSION ─────────────────────────────────
 
 class StudentSerializer(serializers.ModelSerializer):
+    is_entrance_only = serializers.SerializerMethodField()
+
     class Meta:
         model = Student
         fields = '__all__'
+
+    def get_is_entrance_only(self, obj):
+        admissions = obj.admissions.all()
+        if not admissions:
+            return False
+        return all(a.is_entrance_guidance_only for a in admissions)
 
 class CollegeSerializer(serializers.ModelSerializer):
     class Meta:

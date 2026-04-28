@@ -6,7 +6,7 @@ import { Card, Button, Table } from '@/components/ui'
 import { studentsApi, branchesApi } from '@/lib/api'
 
 interface StudentRow {
-  id: number; enrollment_no: string; full_name: string; mobile: string; email: string; branch: number; branch_name?: string; category: string; gender: string; neet_rank: number | null; neet_marks: number | null; academic_details: any; created_at: string
+  id: number; enrollment_no: string; full_name: string; mobile: string; email: string; branch: number; branch_name?: string; category: string; gender: string; neet_rank: number | null; neet_marks: number | null; academic_details: any; created_at: string; is_entrance_only?: boolean
 }
 
 export function StudentsModule() {
@@ -73,6 +73,7 @@ export function StudentsModule() {
     )},
     { key: 'branch', label: 'Branch', render: (r: StudentRow) => <span className="text-xs text-txt-secondary">{branchName(r.branch)}</span> },
     { key: 'demographics', label: 'Profile', render: (r: StudentRow) => {
+      if (r.is_entrance_only) return <span className="text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-md font-medium">Completed</span>
       if (!r.category && !r.gender) return <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-md font-medium">Incomplete</span>
       return (
         <div className="flex items-center gap-1.5 flex-wrap">
