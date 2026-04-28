@@ -91,9 +91,9 @@ export const studentsApi = {
   remove: (id: number) => apiFetch(`students/${id}`, { method: 'DELETE' }),
 }
 
-// ---------- ENQUIRIES ----------
 export const enquiriesApi = {
   list: (qs?: string) => apiFetch(`enquiries${qs || ''}`),
+  get: (id: number | string) => apiFetch(`enquiries/${id}`),
   create: (data: any) => apiFetch('enquiries', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: number, data: any) => apiFetch(`enquiries/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   remove: (id: number) => apiFetch(`enquiries/${id}`, { method: 'DELETE' }),
