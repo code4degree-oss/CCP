@@ -23,18 +23,19 @@ if [ ! -f .env ]; then
   cat > .env << 'EOF'
 DJANGO_SECRET_KEY=CHANGE-ME-IN-PRODUCTION
 DJANGO_DEBUG=False
-DB_NAME=amsdb
-DB_USER=postgres
-DB_PASSWORD=CHANGE-ME
+DB_NAME=ccpdb
+DB_USER=ccp
+DB_PASSWORD=CCP@123
 DB_HOST=localhost
 DB_PORT=5432
-DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,ccp.dybusinesssolutions.com
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,crm.chanakyacp.com
 EOF
 fi
 
 source venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate
+python manage.py collectstatic --noinput
 deactivate
 cd ..
 
