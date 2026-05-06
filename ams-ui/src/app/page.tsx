@@ -17,21 +17,21 @@ import { PaymentsModule } from '@/components/modules/Payments'
 import { PlaceholderModule } from '@/components/modules/Placeholder'
 
 const PAGE_META: Record<string, { title: string; subtitle?: string }> = {
-  dashboard:     { title: 'Dashboard', subtitle: 'Overview of your admission pipeline' },
-  enquiries:     { title: 'Enquiries', subtitle: 'Track and manage student enquiries' },
-  students:      { title: 'Students', subtitle: 'Registered student profiles' },
-  admissions:    { title: 'Admissions', subtitle: 'Full admission lifecycle management' },
-  payments:      { title: 'Payments', subtitle: 'Fee collection and payment tracking' },
-  branches:      { title: 'Branches', subtitle: 'Manage your branch network' },
-  users:         { title: 'Users & Roles', subtitle: 'Manage branch admins and employees' },
-  reports:       { title: 'Reports', subtitle: 'Download comprehensive reports and data' },
-  settings:      { title: 'Settings', subtitle: 'System configuration and preferences' },
+  dashboard: { title: 'Dashboard', subtitle: 'Overview of your admission pipeline' },
+  enquiries: { title: 'Enquiries', subtitle: 'Track and manage student enquiries' },
+  students: { title: 'Students', subtitle: 'Registered student profiles' },
+  admissions: { title: 'Admissions', subtitle: 'Full admission lifecycle management' },
+  payments: { title: 'Payments', subtitle: 'Fee collection and payment tracking' },
+  branches: { title: 'Branches', subtitle: 'Manage your branch network' },
+  users: { title: 'Users & Roles', subtitle: 'Manage branch admins and employees' },
+  reports: { title: 'Reports', subtitle: 'Download comprehensive reports and data' },
+  settings: { title: 'Settings', subtitle: 'System configuration and preferences' },
 }
 
 const VALID_PAGES = Object.keys(PAGE_META)
 
 const PLACEHOLDER_META: Record<string, { title: string; description: string }> = {
-  settings:   { title: 'Settings', description: 'Configure organization, notification templates, and integrations.' },
+  settings: { title: 'Settings', description: 'Configure organization, notification templates, and integrations.' },
 }
 
 /* Read active page from URL hash, e.g. /#admissions → 'admissions' */
@@ -107,14 +107,14 @@ export default function Home() {
     }
 
     switch (active) {
-      case 'dashboard':     return <DashboardModule />
-      case 'enquiries':     return <EnquiriesModule />
-      case 'students':      return <StudentsModule />
-      case 'admissions':    return <AdmissionsModule />
-      case 'branches':      return <BranchesModule />
-      case 'users':         return <UsersModule />
-      case 'reports':       return <ReportsModule />
-      case 'payments':      return <PaymentsModule />
+      case 'dashboard': return <DashboardModule />
+      case 'enquiries': return <EnquiriesModule />
+      case 'students': return <StudentsModule />
+      case 'admissions': return <AdmissionsModule />
+      case 'branches': return <BranchesModule />
+      case 'users': return <UsersModule />
+      case 'reports': return <ReportsModule />
+      case 'payments': return <PaymentsModule />
       default: {
         const p = PLACEHOLDER_META[active]
         return p ? <PlaceholderModule title={p.title} description={p.description} /> : null

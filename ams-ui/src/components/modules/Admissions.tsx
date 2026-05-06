@@ -131,13 +131,37 @@ export function AdmissionsModule() {
       const isEntrance = fullData.course_name?.toLowerCase().includes('entrance') && fullData.course_name?.toLowerCase().includes('guidance')
       const payments = fullData.payments || []
 
-      // Get course fee from branch courses
+      // Get course fee from branch courses (mirrors backend payment-summary logic)
       let courseFee = 0
       try {
         const bcs = await branchCoursesApi.list(fullData.branch)
         const matchedCourse = bcs.find((bc: any) => bc.course === fullData.course)
-        if (matchedCourse) courseFee = Number(matchedCourse.fee_amount)
-      } catch { /* fallback to 0 */ }
+        if (matchedCourse) {
+          // Check counselling-type specific fee first (JoSAA / CET / Both)
+          const ct = (fullData.counselling_type || '').trim().toLowerCase()
+          let ctKey: string | null = null
+          if (ct.includes('both')) ctKey = 'Both'
+          else if (ct.includes('josaa')) ctKey = 'JoSAA'
+          else if (ct.includes('cet')) ctKey = 'CET'
+
+          if (ctKey && matchedCourse.counselling_fees?.length) {
+            const cf = matchedCourse.counselling_fees.find((f: any) => f.counselling_type === ctKey)
+            courseFee = cf ? Number(cf.fee_amount) : Number(matchedCourse.fee_amount)
+          } else {
+            courseFee = Number(matchedCourse.fee_amount)
+          }
+        }
+      } catch { /* continue with fallback */ }
+
+      // Fallback: if fee is still 0, get it from the backend payment-summary
+      // (the server computes it reliably from the DB)
+      if (courseFee === 0) {
+        try {
+          const summaries = await admissionsApi.paymentSummary()
+          const match = summaries.find((s: any) => s.admission_id === a.id)
+          if (match && Number(match.course_fee) > 0) courseFee = Number(match.course_fee)
+        } catch { /* keep 0 */ }
+      }
 
       const totalPaid = payments.reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0)
 
