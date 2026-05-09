@@ -292,24 +292,33 @@ export function ReportsModule() {
         bcList = await branchCoursesApi.list()
       } catch { /* ignore */ }
 
-      // Build a lookup: (branch_id, course_id) -> fee info
+      // Build a lookup: (branch_id, course_name) -> fee info
+      // PaymentSerializer exposes branch_id and course_name (not course_id),
+      // so we key by branch + course_name for reliable matching
       const bcLookup: Record<string, any> = {}
       for (const bc of bcList) {
+        // Key by branch_id + course_name for matching with payment data
+        bcLookup[`${bc.branch}_${bc.course_name}`] = bc
+        // Also key by branch_id + course_id as fallback
         bcLookup[`${bc.branch}_${bc.course}`] = bc
       }
 
       let totalAmountPaid = 0
       let totalCourseFee = 0
+      let totalDuePayment = 0
 
       const excelData = list.map((p: any) => {
         // Calculate the course fee from branch-course data
         let courseFee = 0
-        const bcKey = `${p.branch_id}_${p.admission?.course || ''}`
-        const bc = bcLookup[bcKey]
+        // Try matching by branch_id + course_name first (most reliable)
+        let bc = bcLookup[`${p.branch_id}_${p.course_name}`]
+        // Fallback: try branch_id + course_id from admission FK
+        if (!bc) bc = bcLookup[`${p.branch_id}_${p.admission?.course || ''}`]
+
         if (bc) {
           // Check counselling fees first
           if (bc.counselling_fees && bc.counselling_fees.length > 0) {
-            // Use the first counselling fee as default, or match by admission counselling_type
+            // Use the first counselling fee as default
             const cf = bc.counselling_fees[0]
             courseFee = Number(cf?.fee_amount || bc.fee_amount || 0)
           } else {
@@ -317,8 +326,12 @@ export function ReportsModule() {
           }
         }
 
-        totalAmountPaid += Number(p.amount || 0)
+        const paidAmount = Number(p.amount || 0)
+        const duePayment = Math.max(0, courseFee - paidAmount)
+
+        totalAmountPaid += paidAmount
         totalCourseFee += courseFee
+        totalDuePayment += duePayment
 
         return {
           'Payment ID': p.id,
@@ -327,8 +340,9 @@ export function ReportsModule() {
           'Branch': p.branch_name || '-',
           'Payment Date': p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '-',
           'Payment Mode': p.payment_mode || '-',
-          'Paid Fees': Number(p.amount || 0),
+          'Paid Fees': paidAmount,
           'Total Fees': courseFee,
+          'Due Payment': duePayment,
           'Status': p.status || '-',
           'Student Contact': p.student_mobile || '-',
           'Collected By': p.collected_by_name || '-',
@@ -347,6 +361,7 @@ export function ReportsModule() {
         'Payment Mode': '',
         'Paid Fees': totalAmountPaid,
         'Total Fees': totalCourseFee,
+        'Due Payment': totalDuePayment,
         'Status': '',
         'Student Contact': '',
         'Collected By': '',
