@@ -918,6 +918,24 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 branch = branch_mapping.first()
                 if branch:
                     qs = qs.filter(admission__branch_id=branch.branch_id)
+
+        # Support filtering via query params (used by Reports)
+        branch_id = self.request.query_params.get('branch')
+        if branch_id and (user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'Super Admin')):
+            qs = qs.filter(admission__branch_id=branch_id)
+
+        course_id = self.request.query_params.get('course')
+        if course_id:
+            qs = qs.filter(admission__course_id=course_id)
+
+        date_from = self.request.query_params.get('date_from')
+        if date_from:
+            qs = qs.filter(paid_at__gte=f"{date_from}T00:00:00Z")
+
+        date_to = self.request.query_params.get('date_to')
+        if date_to:
+            qs = qs.filter(paid_at__lte=f"{date_to}T23:59:59Z")
+
         return qs.order_by('-created_at')
 
     @action(detail=False, methods=['get'], url_path='export')

@@ -90,7 +90,7 @@ class BranchSerializer(serializers.ModelSerializer):
 
 class CounsellingFeeInputSerializer(serializers.Serializer):
     """Nested inside BranchCourseInputSerializer for counselling-type fees."""
-    counselling_type = serializers.ChoiceField(choices=['JoSAA', 'CET', 'Both'])
+    counselling_type = serializers.ChoiceField(choices=['JoSAA', 'CET', 'Both', 'MH_Medical', 'Other_Medical', 'Combo_Medical'])
     fee_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 

@@ -58,14 +58,9 @@ export function ReportsModule() {
         return
       }
 
-      // Fetch full details for each admission to get marks, caste, state etc.
-      // We do this in chunks to avoid overwhelming the server
-      const fullData = []
-      for (let i = 0; i < list.length; i += 5) {
-        const chunk = list.slice(i, i + 5)
-        const res = await Promise.all(chunk.map((a: any) => admissionsApi.get(a.id).catch(() => a)))
-        fullData.push(...res)
-      }
+      // The list endpoint already returns full student details via AdmissionSerializer
+      // No need for individual fetches (which cause 429 rate-limit errors)
+      const fullData = list
 
       // Flatten data for Excel
       const excelData = fullData.map((a: any) => {
@@ -250,19 +245,46 @@ export function ReportsModule() {
       if (filterPayDateFrom) qs += `date_from=${filterPayDateFrom}&`
       if (filterPayDateTo) qs += `date_to=${filterPayDateTo}&`
       
-      const list = await paymentsApi.export(qs !== '?' ? qs : undefined)
+      const list = await paymentsApi.list(qs !== '?' ? qs : undefined)
       if (!list || list.length === 0) {
         setPayError('No payments found for the selected filters.')
         setPayLoading(false)
         return
       }
 
+      // Fetch branch-course fees to compute total course fee per payment
+      let bcList: any[] = []
+      try {
+        bcList = await branchCoursesApi.list()
+      } catch { /* ignore */ }
+
+      // Build a lookup: (branch_id, course_id) -> fee info
+      const bcLookup: Record<string, any> = {}
+      for (const bc of bcList) {
+        bcLookup[`${bc.branch}_${bc.course}`] = bc
+      }
+
       let totalAmountPaid = 0
       let totalCourseFee = 0
 
       const excelData = list.map((p: any) => {
-        totalAmountPaid += (p.amount_paid || 0)
-        totalCourseFee += (p.total_course_fee || 0)
+        // Calculate the course fee from branch-course data
+        let courseFee = 0
+        const bcKey = `${p.branch_id}_${p.admission?.course || ''}`
+        const bc = bcLookup[bcKey]
+        if (bc) {
+          // Check counselling fees first
+          if (bc.counselling_fees && bc.counselling_fees.length > 0) {
+            // Use the first counselling fee as default, or match by admission counselling_type
+            const cf = bc.counselling_fees[0]
+            courseFee = Number(cf?.fee_amount || bc.fee_amount || 0)
+          } else {
+            courseFee = Number(bc.fee_amount || 0)
+          }
+        }
+
+        totalAmountPaid += Number(p.amount || 0)
+        totalCourseFee += courseFee
 
         return {
           'Payment ID': p.id,
@@ -271,12 +293,11 @@ export function ReportsModule() {
           'Branch': p.branch_name || '-',
           'Payment Date': p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '-',
           'Payment Mode': p.payment_mode || '-',
-          'Paid Fees': p.amount_paid || 0,
-          'Total Fees': p.total_course_fee || 0,
+          'Paid Fees': Number(p.amount || 0),
+          'Total Fees': courseFee,
           'Status': p.status || '-',
           'Student Contact': p.student_mobile || '-',
-          'Parent Contact': p.parent_mobile || '-',
-          'Collected By': p.collected_by || '-',
+          'Collected By': p.collected_by_name || '-',
           'Reference No': p.reference_no || '-',
           'Notes': p.notes || '-'
         }
@@ -294,7 +315,6 @@ export function ReportsModule() {
         'Total Fees': totalCourseFee,
         'Status': '',
         'Student Contact': '',
-        'Parent Contact': '',
         'Collected By': '',
         'Reference No': '',
         'Notes': ''
