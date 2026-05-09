@@ -790,12 +790,17 @@ class AdmissionViewSet(viewsets.ModelViewSet):
                     # Use counselling-type fee if applicable
                     ct = (adm.counselling_type or '').strip()
                     ct_key = None
-                    if 'both' in ct.lower():
-                        ct_key = 'Both'
+                    if 'both' in ct.lower() or 'combo' in ct.lower():
+                        # 'Both' is for engineering, 'Combo' is for medical
+                        ct_key = 'Both' if 'both' in ct.lower() else 'Combo_Medical'
                     elif 'josaa' in ct.lower():
                         ct_key = 'JoSAA'
                     elif 'cet' in ct.lower():
                         ct_key = 'CET'
+                    elif 'maharashtra' in ct.lower():
+                        ct_key = 'MH_Medical'
+                    elif 'other state' in ct.lower():
+                        ct_key = 'Other_Medical'
 
                     if ct_key:
                         cf = next((f for f in bc.counselling_fees.all() if f.counselling_type == ct_key), None)
@@ -960,9 +965,12 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 if bc:
                     ct = (p.admission.counselling_type or '').strip()
                     ct_key = None
-                    if 'both' in ct.lower(): ct_key = 'Both'
+                    if 'both' in ct.lower() or 'combo' in ct.lower():
+                        ct_key = 'Both' if 'both' in ct.lower() else 'Combo_Medical'
                     elif 'josaa' in ct.lower(): ct_key = 'JoSAA'
                     elif 'cet' in ct.lower(): ct_key = 'CET'
+                    elif 'maharashtra' in ct.lower(): ct_key = 'MH_Medical'
+                    elif 'other state' in ct.lower(): ct_key = 'Other_Medical'
 
                     if ct_key:
                         cf = next((f for f in bc.counselling_fees.all() if f.counselling_type == ct_key), None)

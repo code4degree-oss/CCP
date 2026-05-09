@@ -31,7 +31,18 @@ export async function apiFetch<T = any>(endpoint: string, options?: RequestInit)
     }
   }
 
-  const res = await fetch(`${API_BASE}/${endpoint}/`, {
+  // Ensure trailing slash goes BEFORE query string, not after
+  const qIdx = endpoint.indexOf('?')
+  let url: string
+  if (qIdx !== -1) {
+    const path = endpoint.substring(0, qIdx)
+    const query = endpoint.substring(qIdx)
+    url = `${API_BASE}/${path}/${query}`
+  } else {
+    url = `${API_BASE}/${endpoint}/`
+  }
+
+  const res = await fetch(url, {
     credentials: 'include',
     ...options,
     headers,

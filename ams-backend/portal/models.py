@@ -162,6 +162,9 @@ class BranchCourseCounsellingFee(models.Model):
         ('JoSAA', 'JoSAA'),
         ('CET', 'MHT-CET'),
         ('Both', 'Both (JoSAA + CET)'),
+        ('MH_Medical', 'MH_Medical'),
+        ('Other_Medical', 'Other_Medical'),
+        ('Combo_Medical', 'Combo_Medical'),
     ]
     branch_course = models.ForeignKey(BranchCourse, on_delete=models.CASCADE, related_name='counselling_fees')
     counselling_type = models.CharField(max_length=20, choices=COUNSELLING_CHOICES)
