@@ -25,22 +25,29 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
   // Check if selected course is Engineering Admission Guidance
   const selectedCourse = branchCourses.find((c: any) => c.course.toString() === p1.course_id)
   const isEngAdmission = selectedCourse?.course_name?.toLowerCase().includes('engineering') && selectedCourse?.course_name?.toLowerCase().includes('admission')
+  const isMedAdmission = selectedCourse?.course_name?.toLowerCase().includes('medical') && selectedCourse?.course_name?.toLowerCase().includes('admission')
+  const hasCounsellingDropdown = isEngAdmission || isMedAdmission
 
   // Resolve the correct fee based on counselling type
   const resolvedFee = useMemo(() => {
     if (!selectedCourse) return 0
-    if (!isEngAdmission || !p1.counselling_type) return Number(selectedCourse.fee_amount) || 0
+    if (!hasCounsellingDropdown || !p1.counselling_type) return Number(selectedCourse.fee_amount) || 0
 
     // Map counselling type display value to DB key
     const counsellingFees = selectedCourse.counselling_fees || []
     let ctKey = ''
+    // Engineering keys
     if (p1.counselling_type.toLowerCase().includes('both')) ctKey = 'Both'
     else if (p1.counselling_type.toLowerCase().includes('josaa')) ctKey = 'JoSAA'
-    else if (p1.counselling_type.toLowerCase().includes('cet')) ctKey = 'CET'
+    else if (p1.counselling_type.toLowerCase().includes('mht-cet') || p1.counselling_type.toLowerCase().includes('state cap')) ctKey = 'CET'
+    // Medical keys
+    else if (p1.counselling_type.toLowerCase().includes('two state') || p1.counselling_type.toLowerCase().includes('combo')) ctKey = 'Combo_Medical'
+    else if (p1.counselling_type.toLowerCase().includes('maharashtra')) ctKey = 'MH_Medical'
+    else if (p1.counselling_type.toLowerCase().includes('other state')) ctKey = 'Other_Medical'
 
     const match = counsellingFees.find((cf: any) => cf.counselling_type === ctKey)
     return match ? Number(match.fee_amount) : Number(selectedCourse.fee_amount) || 0
-  }, [selectedCourse, isEngAdmission, p1.counselling_type])
+  }, [selectedCourse, hasCounsellingDropdown, p1.counselling_type])
 
   const handle = () => {
     if (!p1.student_name || !p1.student_mobile || !p1.course_id || !p1.amount) return
@@ -83,7 +90,8 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
               <option value="">Select a course</option>
               {branchCourses.map((c: any) => {
                 const isEng = c.course_name?.toLowerCase().includes('engineering') && c.course_name?.toLowerCase().includes('admission')
-                return <option key={c.course} value={c.course}>{c.course_name}{!isEng && Number(c.fee_amount) > 0 ? ` (₹${Number(c.fee_amount).toLocaleString()})` : ''}</option>
+                const isMed = c.course_name?.toLowerCase().includes('medical') && c.course_name?.toLowerCase().includes('admission')
+                return <option key={c.course} value={c.course}>{c.course_name}{!isEng && !isMed && Number(c.fee_amount) > 0 ? ` (₹${Number(c.fee_amount).toLocaleString()})` : ''}</option>
               })}
             </select>
           </Field>
@@ -98,15 +106,26 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
               </select>
             </Field>
           )}
+          {/* Counselling Type - Medical Admission only */}
+          {isMedAdmission && (
+            <Field label="Counselling Type" required>
+              <select value={p1.counselling_type} onChange={e => s('counselling_type', e.target.value)} className={selectClass}>
+                <option value="">Select Counselling Type</option>
+                <option>Maharashtra State Medical Counseling</option>
+                <option>Other State Medical Counseling</option>
+                <option>Two State Medical Counseling (Combo)</option>
+              </select>
+            </Field>
+          )}
           {/* Total Fee indicator — only show when fee is resolved */}
           {p1.course_id && (() => {
-            // For engineering admission: only show fee after counselling type is selected
-            if (isEngAdmission && !p1.counselling_type) return null
+            // For engineering/medical admission: only show fee after counselling type is selected
+            if (hasCounsellingDropdown && !p1.counselling_type) return null
             const totalFee = resolvedFee
             return totalFee > 0 ? (
               <div className="flex items-center gap-2 -mt-2 ml-1">
                 <span className="text-xs font-semibold text-gray-600">
-                  {isEngAdmission && p1.counselling_type ? `Fee (${p1.counselling_type.split('(')[0].trim()}):` : 'Total Course Fee:'}
+                  {hasCounsellingDropdown && p1.counselling_type ? `Fee (${p1.counselling_type.split('(')[0].trim()}):` : 'Total Course Fee:'}
                 </span>
                 <span className="text-sm font-bold text-blue-700">₹{totalFee.toLocaleString('en-IN')}</span>
               </div>

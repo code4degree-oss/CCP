@@ -136,11 +136,36 @@ export default function EnquiryDetailsPage() {
             <Field label="Source" value={enquiry.source} />
           </Section>
 
-          <Section title="Academic & NEET Details">
+          <Section title="Academic & Exam Details">
             <Field label="HSC Percentage" value={enquiry.hsc_percentage ? `${enquiry.hsc_percentage}%` : ''} mono />
-            <Field label="Expected NEET Marks" value={enquiry.neet_expected_marks} mono accent="text-accent-green" />
-            <Field label="NEET Application No" value={enquiry.neet_application_no} mono />
-            <Field label="NEET Roll No" value={enquiry.neet_roll_no} mono />
+            
+            {enquiry.course_type === 'Engineering' && (
+              <>
+                <Field label="JEE Application No" value={enquiry.jee_application_no} mono />
+                <Field label="Expected JEE Marks" value={enquiry.jee_expected_marks} mono accent="text-accent-blue" />
+                <Field label="MHT CET (PCM) App No" value={enquiry.mht_cet_pcm_application_no} mono />
+                <Field label="Expected MHT CET (PCM)" value={enquiry.mht_cet_pcm_expected_marks} mono accent="text-accent-blue" />
+              </>
+            )}
+
+            {enquiry.course_type === 'Medical' && (
+              <>
+                <Field label="NEET Application No" value={enquiry.neet_application_no} mono />
+                <Field label="Expected NEET Marks" value={enquiry.neet_expected_marks} mono accent="text-accent-green" />
+                <Field label="NEET Roll No" value={enquiry.neet_roll_no} mono />
+                <Field label="MHT CET (PCB) App No" value={enquiry.mht_cet_pcb_application_no} mono />
+                <Field label="Expected MHT CET (PCB)" value={enquiry.mht_cet_pcb_expected_marks} mono accent="text-accent-green" />
+              </>
+            )}
+
+            {/* Fallback for old enquiries without course_type but with NEET data */}
+            {!enquiry.course_type && enquiry.neet_expected_marks && (
+              <>
+                <Field label="NEET Application No" value={enquiry.neet_application_no} mono />
+                <Field label="Expected NEET Marks" value={enquiry.neet_expected_marks} mono accent="text-accent-green" />
+                <Field label="NEET Roll No" value={enquiry.neet_roll_no} mono />
+              </>
+            )}
           </Section>
 
           <Section title="Additional Information">

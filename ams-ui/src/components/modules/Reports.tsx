@@ -3,17 +3,35 @@
 import { useState, useEffect } from 'react'
 import { Download, Loader2, FileSpreadsheet, Calendar, BookOpen } from 'lucide-react'
 import { Card, Button } from '@/components/ui'
-import { admissionsApi, branchesApi, branchCoursesApi, coursesApi } from '@/lib/api'
-import * as XLSX from 'xlsx'
+import { admissionsApi, branchesApi, branchCoursesApi, coursesApi, enquiriesApi, paymentsApi } from '@/lib/api'
+import * as XLSX from 'xlsx-js-style'
 
 export function ReportsModule() {
   const [loading, setLoading] = useState(false)
   const [courses, setCourses] = useState<any[]>([])
   const [branches, setBranches] = useState<any[]>([])
+  const [filterBranch, setFilterBranch] = useState('')
   const [filterCourse, setFilterCourse] = useState('')
   const [filterDateFrom, setFilterDateFrom] = useState('')
   const [filterDateTo, setFilterDateTo] = useState('')
   const [error, setError] = useState('')
+
+  const [filterEnqBranch, setFilterEnqBranch] = useState('')
+  const [filterEnqCourseType, setFilterEnqCourseType] = useState('')
+  const [filterEnqDateFrom, setFilterEnqDateFrom] = useState('')
+  const [filterEnqDateTo, setFilterEnqDateTo] = useState('')
+  const [enqLoading, setEnqLoading] = useState(false)
+  const [enqError, setEnqError] = useState('')
+
+  const [filterPayBranch, setFilterPayBranch] = useState('')
+  const [filterPayCourse, setFilterPayCourse] = useState('')
+  const [filterPayDateFrom, setFilterPayDateFrom] = useState('')
+  const [filterPayDateTo, setFilterPayDateTo] = useState('')
+  const [payLoading, setPayLoading] = useState(false)
+  const [payError, setPayError] = useState('')
+
+  const currentUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('ams_user') || '{}') : {}
+  const isSuper = currentUser.is_superuser || currentUser.role === 'Super Admin'
 
   useEffect(() => {
     Promise.all([coursesApi.list(), branchesApi.list()]).then(([c, b]) => {
@@ -28,6 +46,7 @@ export function ReportsModule() {
     try {
       // Fetch base admissions list
       let qs = '?'
+      if (filterBranch) qs += `branch=${filterBranch}&`
       if (filterCourse) qs += `course=${filterCourse}&`
       if (filterDateFrom) qs += `date_from=${filterDateFrom}&`
       if (filterDateTo) qs += `date_to=${filterDateTo}&`
@@ -58,6 +77,7 @@ export function ReportsModule() {
 
         return {
           'Admission Number': a.admission_number || '-',
+          'Date of Admission': a.created_at ? new Date(a.created_at).toLocaleDateString() : '-',
           'Student Name': a.student_name || details.full_name || '-',
           'Mobile': a.student_mobile || details.mobile || '-',
           'Email': details.email || '-',
@@ -67,7 +87,6 @@ export function ReportsModule() {
           'Course': a.course_name || '-',
           'Admission Status': displayStatus,
           'Counselling Type': a.counselling_type || '-',
-          'Admitted At': a.admitted_at ? new Date(a.admitted_at).toLocaleDateString() : '-',
           
           // Address & Demographic
           'City': demo.city || '-',
@@ -88,7 +107,6 @@ export function ReportsModule() {
           'SSC District': acad.ssc_district || '-',
           'SSC Taluka': acad.ssc_taluka || '-',
           'SSC School Name': acad.ssc_school_name || '-',
-          'SSC Roll No': acad.ssc_roll_no || '-',
 
           // Academic HSC
           'HSC Year': acad.hsc_passing_year || '-',
@@ -159,6 +177,153 @@ export function ReportsModule() {
     setLoading(false)
   }
 
+  const handleEnquiryExport = async () => {
+    setEnqLoading(true)
+    setEnqError('')
+    try {
+      let qs = '?'
+      if (filterEnqBranch) qs += `branch=${filterEnqBranch}&`
+      if (filterEnqCourseType) qs += `course_type=${filterEnqCourseType}&`
+      if (filterEnqDateFrom) qs += `date_from=${filterEnqDateFrom}&`
+      if (filterEnqDateTo) qs += `date_to=${filterEnqDateTo}&`
+      
+      const list = await enquiriesApi.list(qs !== '?' ? qs : undefined)
+      if (!list || list.length === 0) {
+        setEnqError('No enquiries found for the selected filters.')
+        setEnqLoading(false)
+        return
+      }
+
+      const excelData = list.map((e: any) => ({
+        'ID': e.id,
+        'Date': e.created_at ? new Date(e.created_at).toLocaleDateString() : '-',
+        'Full Name': e.full_name || '-',
+        'Mobile': e.mobile || '-',
+        'Parent Mobile': e.parent_mobile || '-',
+        'Mother Name': e.mother_name || '-',
+        'Gender': e.gender || '-',
+        'DOB': e.dob || '-',
+        'Branch': branches.find((b:any) => b.id === e.branch)?.name || '-',
+        'Category': e.category || '-',
+        'Candidate Type': e.candidate_type || '-',
+        'HSC %': e.hsc_percentage || '-',
+        'Course Type': e.course_type || '-',
+        'Course Interest': e.course_interest || '-',
+        'Source': e.source || '-',
+        'Tuition Name': e.tuition_name || '-',
+        'Reference Name': e.reference_name || '-',
+        'Filled By': e.counselor_name || '-',
+        
+        // Engineering
+        'JEE Application No': e.jee_application_no || '-',
+        'JEE Expected Marks': e.jee_expected_marks || '-',
+        'MHT CET (PCM) App No': e.mht_cet_pcm_application_no || '-',
+        'MHT CET (PCM) Marks': e.mht_cet_pcm_expected_marks || '-',
+        
+        // Medical
+        'NEET Application No': e.neet_application_no || '-',
+        'NEET Expected Marks': e.neet_expected_marks || '-',
+        'NEET Roll No': e.neet_roll_no || '-',
+        'MHT CET (PCB) App No': e.mht_cet_pcb_application_no || '-',
+        'MHT CET (PCB) Marks': e.mht_cet_pcb_expected_marks || '-',
+      }))
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Enquiries')
+      XLSX.writeFile(workbook, `Enquiries_Report_${new Date().getTime()}.xlsx`)
+
+    } catch (err: any) {
+      console.error(err)
+      setEnqError('Failed to generate report. Please try again.')
+    }
+    setEnqLoading(false)
+  }
+
+  const handlePaymentExport = async () => {
+    setPayLoading(true)
+    setPayError('')
+    try {
+      let qs = '?'
+      if (filterPayBranch) qs += `branch=${filterPayBranch}&`
+      if (filterPayCourse) qs += `course=${filterPayCourse}&`
+      if (filterPayDateFrom) qs += `date_from=${filterPayDateFrom}&`
+      if (filterPayDateTo) qs += `date_to=${filterPayDateTo}&`
+      
+      const list = await paymentsApi.export(qs !== '?' ? qs : undefined)
+      if (!list || list.length === 0) {
+        setPayError('No payments found for the selected filters.')
+        setPayLoading(false)
+        return
+      }
+
+      let totalAmountPaid = 0
+      let totalCourseFee = 0
+
+      const excelData = list.map((p: any) => {
+        totalAmountPaid += (p.amount_paid || 0)
+        totalCourseFee += (p.total_course_fee || 0)
+
+        return {
+          'Payment ID': p.id,
+          'Student Name': p.student_name || '-',
+          'Course Name': p.course_name || '-',
+          'Branch': p.branch_name || '-',
+          'Payment Date': p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '-',
+          'Payment Mode': p.payment_mode || '-',
+          'Paid Fees': p.amount_paid || 0,
+          'Total Fees': p.total_course_fee || 0,
+          'Status': p.status || '-',
+          'Student Contact': p.student_mobile || '-',
+          'Parent Contact': p.parent_mobile || '-',
+          'Collected By': p.collected_by || '-',
+          'Reference No': p.reference_no || '-',
+          'Notes': p.notes || '-'
+        }
+      })
+
+      // Add total row
+      excelData.push({
+        'Payment ID': 'TOTAL',
+        'Student Name': '',
+        'Course Name': '',
+        'Branch': '',
+        'Payment Date': '',
+        'Payment Mode': '',
+        'Paid Fees': totalAmountPaid,
+        'Total Fees': totalCourseFee,
+        'Status': '',
+        'Student Contact': '',
+        'Parent Contact': '',
+        'Collected By': '',
+        'Reference No': '',
+        'Notes': ''
+      })
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData)
+      
+      // Add styles
+      for (const cellAddress in worksheet) {
+        if (cellAddress[0] === '!') continue
+        const cell = worksheet[cellAddress]
+        if (cell.v === 'Pending') {
+          cell.s = { font: { color: { rgb: 'FF0000' }, bold: true } }
+        } else if (cell.v === 'TOTAL') {
+          cell.s = { font: { bold: true } }
+        }
+      }
+
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Payments')
+      XLSX.writeFile(workbook, `Payments_Report_${new Date().getTime()}.xlsx`)
+
+    } catch (err: any) {
+      console.error(err)
+      setPayError('Failed to generate report. Please try again.')
+    }
+    setPayLoading(false)
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       <div>
@@ -177,7 +342,26 @@ export function ReportsModule() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {/* Branch Filter */}
+          {isSuper && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+                Branch
+              </label>
+              <select 
+                value={filterBranch} 
+                onChange={e => setFilterBranch(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              >
+                <option value="">All Branches</option>
+                {branches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Course Filter */}
           <div className="space-y-2">
             <label className="text-xs font-semibold text-gray-600 flex items-center gap-1">
@@ -234,9 +418,204 @@ export function ReportsModule() {
             {loading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
             {loading ? 'Generating Excel File...' : 'Download Excel Report'}
           </Button>
-          {(filterCourse || filterDateFrom || filterDateTo) && (
+          {(filterBranch || filterCourse || filterDateFrom || filterDateTo) && (
             <button
-              onClick={() => { setFilterCourse(''); setFilterDateFrom(''); setFilterDateTo('') }}
+              onClick={() => { setFilterBranch(''); setFilterCourse(''); setFilterDateFrom(''); setFilterDateTo('') }}
+              className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <div className="flex items-center gap-3 mb-6 border-b pb-4">
+          <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
+            <FileSpreadsheet size={20} />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-800">Export Enquiries Data</h3>
+            <p className="text-xs text-gray-500">Select filters to download specific enquiries, or leave empty for all.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {/* Branch Filter */}
+          {isSuper && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+                Branch
+              </label>
+              <select 
+                value={filterEnqBranch} 
+                onChange={e => setFilterEnqBranch(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+              >
+                <option value="">All Branches</option>
+                {branches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Course Type Filter */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+              Stream / Course
+            </label>
+            <select 
+              value={filterEnqCourseType} 
+              onChange={e => setFilterEnqCourseType(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+            >
+              <option value="">All Streams</option>
+              <option value="Engineering">Engineering</option>
+              <option value="Medical">Medical</option>
+            </select>
+          </div>
+
+          {/* Date From Filter */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+              <Calendar size={14} /> From Date
+            </label>
+            <input 
+              type="date" 
+              value={filterEnqDateFrom} 
+              onChange={e => setFilterEnqDateFrom(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+            />
+          </div>
+
+          {/* Date To Filter */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+              <Calendar size={14} /> To Date
+            </label>
+            <input 
+              type="date" 
+              value={filterEnqDateTo} 
+              onChange={e => setFilterEnqDateTo(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+            />
+          </div>
+        </div>
+
+        {enqError && <div className="mb-6 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{enqError}</div>}
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button 
+            variant="primary" 
+            className="px-8 py-2.5 flex items-center justify-center gap-2 !bg-green-600 hover:!bg-green-700"
+            onClick={handleEnquiryExport}
+            disabled={enqLoading}
+          >
+            {enqLoading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {enqLoading ? 'Generating Excel File...' : 'Download Excel Report'}
+          </Button>
+          {(filterEnqBranch || filterEnqCourseType || filterEnqDateFrom || filterEnqDateTo) && (
+            <button
+              onClick={() => { setFilterEnqBranch(''); setFilterEnqCourseType(''); setFilterEnqDateFrom(''); setFilterEnqDateTo('') }}
+              className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <div className="flex items-center gap-3 mb-6 border-b pb-4">
+          <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+            <FileSpreadsheet size={20} />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-800">Export Payments Data</h3>
+            <p className="text-xs text-gray-500">Download transaction records, paid amounts, and fee balances.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {/* Branch Filter */}
+          {isSuper && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+                Branch
+              </label>
+              <select 
+                value={filterPayBranch} 
+                onChange={e => setFilterPayBranch(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+              >
+                <option value="">All Branches</option>
+                {branches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Course Filter */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+              Course
+            </label>
+            <select 
+              value={filterPayCourse} 
+              onChange={e => setFilterPayCourse(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+            >
+              <option value="">All Courses</option>
+              {courses.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Date From Filter */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+              <Calendar size={14} /> From Date
+            </label>
+            <input 
+              type="date" 
+              value={filterPayDateFrom} 
+              onChange={e => setFilterPayDateFrom(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+            />
+          </div>
+
+          {/* Date To Filter */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+              <Calendar size={14} /> To Date
+            </label>
+            <input 
+              type="date" 
+              value={filterPayDateTo} 
+              onChange={e => setFilterPayDateTo(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+            />
+          </div>
+        </div>
+
+        {payError && <div className="mb-6 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{payError}</div>}
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button 
+            variant="primary" 
+            className="px-8 py-2.5 flex items-center justify-center gap-2 !bg-purple-600 hover:!bg-purple-700"
+            onClick={handlePaymentExport}
+            disabled={payLoading}
+          >
+            {payLoading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {payLoading ? 'Generating Excel File...' : 'Download Excel Report'}
+          </Button>
+          {(filterPayBranch || filterPayCourse || filterPayDateFrom || filterPayDateTo) && (
+            <button
+              onClick={() => { setFilterPayBranch(''); setFilterPayCourse(''); setFilterPayDateFrom(''); setFilterPayDateTo('') }}
               className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Clear Filters

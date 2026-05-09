@@ -173,5 +173,6 @@ export const feesApi = {
 export const paymentsApi = {
   list: (qs?: string) => apiFetch(`payments${qs || ''}`),
   create: (data: any) => apiFetch('payments', { method: 'POST', body: JSON.stringify(data) }),
+  export: (qs?: string) => apiFetch(`payments/export${qs || ''}`),
 }
 

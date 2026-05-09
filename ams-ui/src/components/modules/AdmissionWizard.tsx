@@ -93,7 +93,7 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
           email: s.email || '', gender: s.gender || '',
           dob: s.dob || '', aadhaar_no: s.aadhaar_no || '',
           father_name: s.father_name || '',
-          alternate_mobile: s.alternate_mobile || '',
+          alternate_mobile: demo.alternate_mobile || s.alternate_mobile || '',
           // Academic / Exam
           neet_roll_no: acad.neet_roll_no || s.neet_roll_no || '',
           neet_application_no: acad.neet_application_no || '',
@@ -171,9 +171,14 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
       let courseFee = Number(selectedCourse?.fee_amount || 0)
       if (p1.counselling_type && selectedCourse?.counselling_fees?.length) {
         let ctKey = ''
+        // Engineering keys
         if (p1.counselling_type.toLowerCase().includes('both')) ctKey = 'Both'
         else if (p1.counselling_type.toLowerCase().includes('josaa')) ctKey = 'JoSAA'
-        else if (p1.counselling_type.toLowerCase().includes('cet')) ctKey = 'CET'
+        else if (p1.counselling_type.toLowerCase().includes('mht-cet') || p1.counselling_type.toLowerCase().includes('state cap')) ctKey = 'CET'
+        // Medical keys
+        else if (p1.counselling_type.toLowerCase().includes('two state') || p1.counselling_type.toLowerCase().includes('combo')) ctKey = 'Combo_Medical'
+        else if (p1.counselling_type.toLowerCase().includes('maharashtra')) ctKey = 'MH_Medical'
+        else if (p1.counselling_type.toLowerCase().includes('other state')) ctKey = 'Other_Medical'
         const match = selectedCourse.counselling_fees.find((cf: any) => cf.counselling_type === ctKey)
         if (match) courseFee = Number(match.fee_amount)
       }

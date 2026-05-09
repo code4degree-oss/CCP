@@ -140,9 +140,14 @@ export function AdmissionsModule() {
           // Check counselling-type specific fee first (JoSAA / CET / Both)
           const ct = (fullData.counselling_type || '').trim().toLowerCase()
           let ctKey: string | null = null
+          // Engineering keys
           if (ct.includes('both')) ctKey = 'Both'
           else if (ct.includes('josaa')) ctKey = 'JoSAA'
-          else if (ct.includes('cet')) ctKey = 'CET'
+          else if (ct.includes('mht-cet') || ct.includes('state cap')) ctKey = 'CET'
+          // Medical keys
+          else if (ct.includes('two state') || ct.includes('combo')) ctKey = 'Combo_Medical'
+          else if (ct.includes('maharashtra')) ctKey = 'MH_Medical'
+          else if (ct.includes('other state')) ctKey = 'Other_Medical'
 
           if (ctKey && matchedCourse.counselling_fees?.length) {
             const cf = matchedCourse.counselling_fees.find((f: any) => f.counselling_type === ctKey)
@@ -173,7 +178,7 @@ export function AdmissionsModule() {
           receipt_label: payments.length > 1 ? `${fullData.admission_number}-${idx + 1}` : fullData.admission_number,
           student_name: fullData.student_name || a.student_name,
           student_mobile: fullData.student_mobile || '',
-          parent_mobile: fullData.student_detail?.demographic_details?.alternate_mobile || fullData.student_detail?.alternate_mobile || '',
+          parent_mobile: fullData.student_detail?.demographic_details?.alternate_mobile || fullData.student_detail?.demographic_details?.father_mobile || fullData.student_detail?.alternate_mobile || '',
           course_name: fullData.course_name || '—',
           course_fee: courseFee,
           amount_paid: Number(p.amount || 0),
@@ -198,7 +203,7 @@ export function AdmissionsModule() {
           receipt_label: fullData.admission_number,
           student_name: fullData.student_name || a.student_name,
           student_mobile: fullData.student_mobile || '',
-          parent_mobile: fullData.student_detail?.demographic_details?.alternate_mobile || fullData.student_detail?.alternate_mobile || '',
+          parent_mobile: fullData.student_detail?.demographic_details?.alternate_mobile || fullData.student_detail?.demographic_details?.father_mobile || fullData.student_detail?.alternate_mobile || '',
           course_name: fullData.course_name || '—',
           course_fee: courseFee,
           amount_paid: 0,

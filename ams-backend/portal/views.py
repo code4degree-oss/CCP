@@ -331,6 +331,23 @@ class EnquiryViewSet(viewsets.ModelViewSet):
                 branch = branch_mapping.first()
                 if branch:
                     qs = qs.filter(branch_id=branch.branch_id)
+                    
+        branch_id = self.request.query_params.get('branch')
+        if branch_id and (user.is_superuser or user.role.name == 'Super Admin'):
+            qs = qs.filter(branch_id=branch_id)
+            
+        course_type = self.request.query_params.get('course_type')
+        if course_type:
+            qs = qs.filter(course_type__iexact=course_type)
+            
+        date_from = self.request.query_params.get('date_from')
+        if date_from:
+            qs = qs.filter(created_at__gte=f"{date_from}T00:00:00Z")
+            
+        date_to = self.request.query_params.get('date_to')
+        if date_to:
+            qs = qs.filter(created_at__lte=f"{date_to}T23:59:59Z")
+            
         return qs.order_by('-created_at')
 
     def perform_create(self, serializer):
@@ -376,7 +393,6 @@ class AdmissionViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         qs = Admission.objects.select_related('manager', 'student').all()
-        # Branch-level filtering for non-superusers
         user = self.request.user
         if hasattr(user, 'is_superuser') and not user.is_superuser:
             branch_mapping = getattr(user, 'branch_mappings', None)
@@ -384,6 +400,23 @@ class AdmissionViewSet(viewsets.ModelViewSet):
                 branch = branch_mapping.first()
                 if branch:
                     qs = qs.filter(branch_id=branch.branch_id)
+                    
+        branch_id = self.request.query_params.get('branch')
+        if branch_id and (user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'Super Admin')):
+            qs = qs.filter(branch_id=branch_id)
+            
+        course_id = self.request.query_params.get('course')
+        if course_id:
+            qs = qs.filter(course_id=course_id)
+            
+        date_from = self.request.query_params.get('date_from')
+        if date_from:
+            qs = qs.filter(created_at__gte=f"{date_from}T00:00:00Z")
+            
+        date_to = self.request.query_params.get('date_to')
+        if date_to:
+            qs = qs.filter(created_at__lte=f"{date_to}T23:59:59Z")
+            
         return qs.order_by('-created_at')
 
     def perform_create(self, serializer):
@@ -617,7 +650,9 @@ class AdmissionViewSet(viewsets.ModelViewSet):
         demo = student.demographic_details or {}
         for k in demo_keys:
             if k in data:
-                demo[k] = data[k]
+                # Don't overwrite existing value with empty string
+                if data[k] or not demo.get(k):
+                    demo[k] = data[k]
         student.demographic_details = demo
 
         student.save()
@@ -879,6 +914,89 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 if branch:
                     qs = qs.filter(admission__branch_id=branch.branch_id)
         return qs.order_by('-created_at')
+
+    @action(detail=False, methods=['get'], url_path='export')
+    def export_payments(self, request):
+        from django.db.models import Q
+        qs = self.get_queryset()
+        
+        branch_id = request.query_params.get('branch')
+        user = request.user
+        if branch_id and (user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'Super Admin')):
+            qs = qs.filter(admission__branch_id=branch_id)
+            
+        course_id = request.query_params.get('course')
+        if course_id:
+            qs = qs.filter(admission__course_id=course_id)
+            
+        date_from = request.query_params.get('date_from')
+        if date_from:
+            qs = qs.filter(paid_at__gte=f"{date_from}T00:00:00Z")
+            
+        date_to = request.query_params.get('date_to')
+        if date_to:
+            qs = qs.filter(paid_at__lte=f"{date_to}T23:59:59Z")
+
+        payments = list(qs)
+        
+        # Calculate total fee per admission (same approach as payment_summary)
+        branch_course_pairs = set(
+            (p.admission.branch_id, p.admission.course_id) for p in payments
+            if p.admission and p.admission.branch_id and p.admission.course_id
+        )
+        bc_lookup = {}
+        if branch_course_pairs:
+            bcs = BranchCourse.objects.prefetch_related('counselling_fees').filter(
+                *[Q(branch_id=bp[0], course_id=bp[1]) for bp in branch_course_pairs]
+            ) if len(branch_course_pairs) == 1 else BranchCourse.objects.prefetch_related('counselling_fees').all()
+            for bc in bcs:
+                bc_lookup[(bc.branch_id, bc.course_id)] = bc
+
+        results = []
+        for p in payments:
+            course_fee = 0
+            if p.admission and p.admission.course_id and p.admission.branch_id:
+                bc = bc_lookup.get((p.admission.branch_id, p.admission.course_id))
+                if bc:
+                    ct = (p.admission.counselling_type or '').strip()
+                    ct_key = None
+                    if 'both' in ct.lower(): ct_key = 'Both'
+                    elif 'josaa' in ct.lower(): ct_key = 'JoSAA'
+                    elif 'cet' in ct.lower(): ct_key = 'CET'
+
+                    if ct_key:
+                        cf = next((f for f in bc.counselling_fees.all() if f.counselling_type == ct_key), None)
+                        if cf:
+                            course_fee = float(cf.fee_amount)
+                        else:
+                            course_fee = float(bc.fee_amount)
+                    else:
+                        course_fee = float(bc.fee_amount)
+            
+            parent_mobile = None
+            if p.admission and p.admission.student and p.admission.student.demographic_details:
+                parent_mobile = p.admission.student.demographic_details.get('alternate_mobile', None)
+                if not parent_mobile:
+                    parent_mobile = p.admission.student.demographic_details.get('father_mobile', None)
+
+            results.append({
+                'id': p.id,
+                'student_name': p.admission.student.full_name if p.admission and p.admission.student else None,
+                'student_mobile': p.admission.student.mobile if p.admission and p.admission.student else None,
+                'parent_mobile': parent_mobile,
+                'course_name': p.admission.course.name if p.admission and p.admission.course else None,
+                'branch_name': p.admission.branch.name if p.admission and p.admission.branch else None,
+                'paid_at': p.paid_at.isoformat() if p.paid_at else None,
+                'payment_mode': p.payment_mode,
+                'status': p.status,
+                'amount_paid': float(p.amount),
+                'total_course_fee': course_fee,
+                'collected_by': p.collected_by.full_name if p.collected_by else None,
+                'reference_no': p.reference_no,
+                'notes': p.notes,
+            })
+            
+        return Response(results, status=status.HTTP_200_OK)
 
 class ReceiptViewSet(viewsets.ModelViewSet):
     queryset = Receipt.objects.all()

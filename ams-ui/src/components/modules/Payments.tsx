@@ -109,12 +109,17 @@ export function PaymentsModule() {
     setRpSaving(false)
   }
 
-  // Check if admission can be upgraded (JoSAA or CET only, not Both)
+  // Check if admission can be upgraded (JoSAA/CET only, not Both; or MH_Medical/Other_Medical only, not Combo_Medical)
   const canUpgrade = (s: PaymentSummary) => {
     const ct = (s.counselling_type || '').toLowerCase()
     if (!ct) return false
+    // Engineering: can upgrade single to Both
     if (ct.includes('both')) return false
-    return ct.includes('josaa') || ct.includes('cet')
+    if (ct.includes('josaa') || (ct.includes('cet') && !ct.includes('combo'))) return true
+    // Medical: can upgrade single to Combo
+    if (ct.includes('combo')) return false
+    if (ct.includes('maharashtra') || ct.includes('other state')) return true
+    return false
   }
 
   const handleUpgrade = async () => {
@@ -149,7 +154,7 @@ export function PaymentsModule() {
           receipt_label: payments.length > 1 ? `${s.admission_number}-${idx + 1}` : s.admission_number,
           student_name: s.student_name,
           student_mobile: s.student_mobile,
-          parent_mobile: fullData.student_detail?.demographic_details?.alternate_mobile || '',
+          parent_mobile: fullData.student_detail?.demographic_details?.alternate_mobile || fullData.student_detail?.demographic_details?.father_mobile || fullData.student_detail?.alternate_mobile || '',
           course_name: s.course_name || '—',
           course_fee: s.course_fee,
           amount_paid: Number(p.amount || 0),
@@ -171,7 +176,7 @@ export function PaymentsModule() {
         receipt_label: s.admission_number,
         student_name: s.student_name,
         student_mobile: s.student_mobile,
-        parent_mobile: '',
+        parent_mobile: fullData?.student_detail?.demographic_details?.alternate_mobile || fullData?.student_detail?.demographic_details?.father_mobile || fullData?.student_detail?.alternate_mobile || '',
         course_name: s.course_name || '—',
         course_fee: s.course_fee,
         amount_paid: 0, cumulative_paid: 0, balance: s.course_fee,
@@ -245,7 +250,7 @@ export function PaymentsModule() {
             <button
               onClick={(e) => { e.stopPropagation(); setUpgradeModal(r); setUpgradeForm({ payment_mode: 'Cash', reference_no: '' }); setUpgradeError(''); setUpgradeResult(null) }}
               className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition-colors"
-              title="Upgrade to Both (JoSAA + CET)"
+              title={r.counselling_type?.toLowerCase().includes('maharashtra') || r.counselling_type?.toLowerCase().includes('other state') ? 'Upgrade to Two States (Combo)' : 'Upgrade to Both (JoSAA + CET)'}
             >
               <ArrowUpCircle size={12} /> Upgrade
             </button>
@@ -498,7 +503,10 @@ export function PaymentsModule() {
                 Current counselling type: <strong>{upgradeModal.counselling_type}</strong>
               </p>
               <p className="text-[11px] text-amber-700 mt-1">
-                Upgrading to <strong>Both (JoSAA + MHT-CET)</strong>. The system will calculate the fee difference automatically and record it as a new payment.
+                {upgradeModal.counselling_type?.toLowerCase().includes('maharashtra') || upgradeModal.counselling_type?.toLowerCase().includes('other state')
+                  ? <>Upgrading to <strong>Two State Medical Counseling (Combo)</strong>. The system will calculate the fee difference automatically and record it as a new payment.</>
+                  : <>Upgrading to <strong>Both (JoSAA + MHT-CET)</strong>. The system will calculate the fee difference automatically and record it as a new payment.</>
+                }
               </p>
             </div>
 
@@ -543,7 +551,10 @@ export function PaymentsModule() {
                   className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
                 >
                   {upgradeLoading ? <Loader2 size={16} className="animate-spin" /> : <ArrowUpCircle size={16} />}
-                  Upgrade to Both (JoSAA + MHT-CET)
+                  {upgradeModal.counselling_type?.toLowerCase().includes('maharashtra') || upgradeModal.counselling_type?.toLowerCase().includes('other state')
+                    ? 'Upgrade to Two States (Combo)'
+                    : 'Upgrade to Both (JoSAA + MHT-CET)'
+                  }
                 </button>
               )}
             </div>

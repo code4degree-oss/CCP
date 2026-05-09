@@ -6,7 +6,7 @@ import { Card, Button, Table } from '@/components/ui'
 import { enquiriesApi, branchesApi } from '@/lib/api'
 
 interface EnqRow {
-  id: number; full_name: string; mobile: string; parent_mobile: string; branch: number; counselor: number; counselor_name: string | null; course_interest: string; source: string; category: string; neet_expected_marks: number | null; created_at: string
+  id: number; full_name: string; mobile: string; parent_mobile: string; branch: number; counselor: number; counselor_name: string | null; course_interest: string; course_type: string | null; source: string; category: string; neet_expected_marks: number | null; jee_expected_marks: number | null; mht_cet_pcm_expected_marks: number | null; mht_cet_pcb_expected_marks: number | null; created_at: string
 }
 
 export function EnquiriesModule() {
@@ -17,7 +17,8 @@ export function EnquiriesModule() {
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({ full_name: '', mobile: '', parent_mobile: '', mother_name: '', gender: '', dob: '', branch: '', category: '', candidate_type: '', hsc_percentage: '', neet_application_no: '', neet_roll_no: '', neet_expected_marks: '', course_interest: '', tuition_name: '', reference_name: '', source: '' })
+  const initialFormState = { full_name: '', mobile: '', parent_mobile: '', mother_name: '', gender: '', dob: '', branch: '', category: '', candidate_type: '', hsc_percentage: '', course_type: '', jee_application_no: '', jee_expected_marks: '', mht_cet_pcm_application_no: '', mht_cet_pcm_expected_marks: '', mht_cet_pcb_application_no: '', mht_cet_pcb_expected_marks: '', neet_application_no: '', neet_roll_no: '', neet_expected_marks: '', course_interest: '', tuition_name: '', reference_name: '', source: '' }
+  const [form, setForm] = useState(initialFormState)
 
   const currentUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('ams_user') || '{}') : {}
   const isSuper = currentUser.is_superuser || currentUser.role === 'Super Admin'
@@ -39,14 +40,26 @@ export function EnquiriesModule() {
     if (!form.full_name || !form.mobile || !form.branch) { setError('Name, Mobile, and Branch are required'); return }
     setSaving(true); setError('')
     try {
-      await enquiriesApi.create({
+      const payload: any = {
         ...form,
         branch: Number(form.branch),
         hsc_percentage: form.hsc_percentage ? Number(form.hsc_percentage) : null,
-        neet_expected_marks: form.neet_expected_marks ? Number(form.neet_expected_marks) : null,
-      })
+      }
+      
+      // Clean up fields based on course type
+      if (form.course_type === 'Engineering') {
+        payload.jee_expected_marks = form.jee_expected_marks ? Number(form.jee_expected_marks) : null
+        payload.mht_cet_pcm_expected_marks = form.mht_cet_pcm_expected_marks ? Number(form.mht_cet_pcm_expected_marks) : null
+        payload.neet_application_no = null; payload.neet_expected_marks = null; payload.mht_cet_pcb_application_no = null; payload.mht_cet_pcb_expected_marks = null
+      } else if (form.course_type === 'Medical') {
+        payload.neet_expected_marks = form.neet_expected_marks ? Number(form.neet_expected_marks) : null
+        payload.mht_cet_pcb_expected_marks = form.mht_cet_pcb_expected_marks ? Number(form.mht_cet_pcb_expected_marks) : null
+        payload.jee_application_no = null; payload.jee_expected_marks = null; payload.mht_cet_pcm_application_no = null; payload.mht_cet_pcm_expected_marks = null
+      }
+
+      await enquiriesApi.create(payload)
       setShowForm(false)
-      setForm({ full_name: '', mobile: '', parent_mobile: '', mother_name: '', gender: '', dob: '', branch: !isSuper && currentUser.branch_id ? currentUser.branch_id.toString() : '', category: '', candidate_type: '', hsc_percentage: '', neet_application_no: '', neet_roll_no: '', neet_expected_marks: '', course_interest: '', tuition_name: '', reference_name: '', source: '' })
+      setForm({ ...initialFormState, branch: !isSuper && currentUser.branch_id ? currentUser.branch_id.toString() : '' })
       await load()
     } catch (e: any) { setError(e.message || 'Save failed') }
     setSaving(false)
@@ -144,8 +157,30 @@ export function EnquiriesModule() {
                 </select>
               </div>
               <div><label className="text-[11px] text-txt-muted block mb-1">HSC %</label><input value={form.hsc_percentage} onChange={e => set('hsc_percentage', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
-              <div><label className="text-[11px] text-txt-muted block mb-1">Expected NEET Marks</label><input value={form.neet_expected_marks} onChange={e => set('neet_expected_marks', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
-              <div><label className="text-[11px] text-txt-muted block mb-1">NEET Application No</label><input value={form.neet_application_no} onChange={e => set('neet_application_no', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
+              <div>
+                <label className="text-[11px] text-txt-muted block mb-1">Course Type</label>
+                <select value={form.course_type} onChange={e => set('course_type', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40">
+                  <option value="">Select Type</option><option value="Engineering">Engineering</option><option value="Medical">Medical</option>
+                </select>
+              </div>
+              
+              {form.course_type === 'Engineering' && (
+                <>
+                  <div><label className="text-[11px] text-txt-muted block mb-1">JEE Application No</label><input value={form.jee_application_no} onChange={e => set('jee_application_no', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
+                  <div><label className="text-[11px] text-txt-muted block mb-1">Expected JEE Marks</label><input value={form.jee_expected_marks} onChange={e => set('jee_expected_marks', e.target.value)} type="number" className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
+                  <div><label className="text-[11px] text-txt-muted block mb-1">MHT CET (PCM) App No</label><input value={form.mht_cet_pcm_application_no} onChange={e => set('mht_cet_pcm_application_no', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
+                  <div><label className="text-[11px] text-txt-muted block mb-1">Expected MHT CET (PCM)</label><input value={form.mht_cet_pcm_expected_marks} onChange={e => set('mht_cet_pcm_expected_marks', e.target.value)} type="number" className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
+                </>
+              )}
+
+              {form.course_type === 'Medical' && (
+                <>
+                  <div><label className="text-[11px] text-txt-muted block mb-1">NEET Application No</label><input value={form.neet_application_no} onChange={e => set('neet_application_no', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
+                  <div><label className="text-[11px] text-txt-muted block mb-1">Expected NEET Marks</label><input value={form.neet_expected_marks} onChange={e => set('neet_expected_marks', e.target.value)} type="number" className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
+                  <div><label className="text-[11px] text-txt-muted block mb-1">MHT CET (PCB) App No</label><input value={form.mht_cet_pcb_application_no} onChange={e => set('mht_cet_pcb_application_no', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
+                  <div><label className="text-[11px] text-txt-muted block mb-1">Expected MHT CET (PCB)</label><input value={form.mht_cet_pcb_expected_marks} onChange={e => set('mht_cet_pcb_expected_marks', e.target.value)} type="number" className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
+                </>
+              )}
               <div><label className="text-[11px] text-txt-muted block mb-1">Reference Name</label><input value={form.reference_name} onChange={e => set('reference_name', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
               <div><label className="text-[11px] text-txt-muted block mb-1">Tuition Name</label><input value={form.tuition_name} onChange={e => set('tuition_name', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" /></div>
               <div>

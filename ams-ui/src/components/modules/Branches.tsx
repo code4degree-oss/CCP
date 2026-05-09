@@ -29,6 +29,8 @@ interface CourseRow {
   course_id: string; fee_amount: string
   // Counselling fees for Engineering Admission Guidance
   josaa_fee: string; cet_fee: string; both_fee: string
+  // Counselling fees for Medical Admission Guidance
+  mh_medical_fee: string; other_medical_fee: string; combo_medical_fee: string
 }
 
 /* ── helpers ─────────────────────────────────────────── */
@@ -37,6 +39,17 @@ function isEngAdmissionCourse(courseId: string, courses: Course[]): boolean {
   const c = courses.find(co => co.id.toString() === courseId)
   if (!c) return false
   return c.name.toLowerCase().includes('engineering') && c.name.toLowerCase().includes('admission')
+}
+
+function isMedAdmissionCourse(courseId: string, courses: Course[]): boolean {
+  const c = courses.find(co => co.id.toString() === courseId)
+  if (!c) return false
+  return c.name.toLowerCase().includes('medical') && c.name.toLowerCase().includes('admission')
+}
+
+// Check if course has counselling-type fees (either engineering or medical)
+function hasCounsellingFees(courseId: string, courses: Course[]): boolean {
+  return isEngAdmissionCourse(courseId, courses) || isMedAdmissionCourse(courseId, courses)
 }
 
 /* ── component ───────────────────────────────────────── */
@@ -76,7 +89,7 @@ export function BranchesModule() {
 
   /* ── form handlers ── */
 
-  const emptyRow = (): CourseRow => ({ course_id: '', fee_amount: '', josaa_fee: '', cet_fee: '', both_fee: '' })
+  const emptyRow = (): CourseRow => ({ course_id: '', fee_amount: '', josaa_fee: '', cet_fee: '', both_fee: '', mh_medical_fee: '', other_medical_fee: '', combo_medical_fee: '' })
 
   const openNew = () => {
     setEditId(null)
@@ -100,6 +113,9 @@ export function BranchesModule() {
               josaa_fee: cfMap['JoSAA'] || '',
               cet_fee: cfMap['CET'] || '',
               both_fee: cfMap['Both'] || '',
+              mh_medical_fee: cfMap['MH_Medical'] || '',
+              other_medical_fee: cfMap['Other_Medical'] || '',
+              combo_medical_fee: cfMap['Combo_Medical'] || '',
             }
           })
         : [emptyRow()]
@@ -123,6 +139,10 @@ export function BranchesModule() {
       if (isEngAdmissionCourse(r.course_id, courses)) {
         return r.josaa_fee || r.cet_fee || r.both_fee
       }
+      // Medical Admission Guidance: valid if any counselling fee is set
+      if (isMedAdmissionCourse(r.course_id, courses)) {
+        return r.mh_medical_fee || r.other_medical_fee || r.combo_medical_fee
+      }
       return !!r.fee_amount
     })
     if (!editId && validCourses.length === 0) {
@@ -136,9 +156,10 @@ export function BranchesModule() {
       if (!editId) {
         payload.courses = validCourses.map(r => {
           const isEng = isEngAdmissionCourse(r.course_id, courses)
+          const isMed = isMedAdmissionCourse(r.course_id, courses)
           const courseEntry: any = {
             course_id: Number(r.course_id),
-            fee_amount: isEng ? 0 : r.fee_amount,
+            fee_amount: (isEng || isMed) ? 0 : r.fee_amount,
           }
           // Add counselling fees for Engineering Admission Guidance courses
           if (isEng) {
@@ -146,6 +167,14 @@ export function BranchesModule() {
             if (r.josaa_fee) cFees.push({ counselling_type: 'JoSAA', fee_amount: r.josaa_fee })
             if (r.cet_fee) cFees.push({ counselling_type: 'CET', fee_amount: r.cet_fee })
             if (r.both_fee) cFees.push({ counselling_type: 'Both', fee_amount: r.both_fee })
+            if (cFees.length > 0) courseEntry.counselling_fees = cFees
+          }
+          // Add counselling fees for Medical Admission Guidance courses
+          if (isMed) {
+            const cFees: any[] = []
+            if (r.mh_medical_fee) cFees.push({ counselling_type: 'MH_Medical', fee_amount: r.mh_medical_fee })
+            if (r.other_medical_fee) cFees.push({ counselling_type: 'Other_Medical', fee_amount: r.other_medical_fee })
+            if (r.combo_medical_fee) cFees.push({ counselling_type: 'Combo_Medical', fee_amount: r.combo_medical_fee })
             if (cFees.length > 0) courseEntry.counselling_fees = cFees
           }
           return courseEntry
@@ -165,8 +194,8 @@ export function BranchesModule() {
               // Update existing branch course fee
               await branchCoursesApi.update(existingBC.id, { fee_amount: row.fee_amount })
 
-              // Sync counselling fees for engineering courses
-              if (isEngAdmissionCourse(row.course_id, courses)) {
+              // Sync counselling fees for engineering/medical courses
+              if (hasCounsellingFees(row.course_id, courses)) {
                 const { apiFetch } = await import('@/lib/api')
                 // Delete old counselling fees and recreate
                 const existingCFs = existingBC.counselling_fees || []
@@ -178,6 +207,9 @@ export function BranchesModule() {
                 if (row.josaa_fee) newCFs.push({ branch_course: existingBC.id, counselling_type: 'JoSAA', fee_amount: row.josaa_fee })
                 if (row.cet_fee) newCFs.push({ branch_course: existingBC.id, counselling_type: 'CET', fee_amount: row.cet_fee })
                 if (row.both_fee) newCFs.push({ branch_course: existingBC.id, counselling_type: 'Both', fee_amount: row.both_fee })
+                if (row.mh_medical_fee) newCFs.push({ branch_course: existingBC.id, counselling_type: 'MH_Medical', fee_amount: row.mh_medical_fee })
+                if (row.other_medical_fee) newCFs.push({ branch_course: existingBC.id, counselling_type: 'Other_Medical', fee_amount: row.other_medical_fee })
+                if (row.combo_medical_fee) newCFs.push({ branch_course: existingBC.id, counselling_type: 'Combo_Medical', fee_amount: row.combo_medical_fee })
                 for (const cf of newCFs) {
                   await apiFetch('branch-course-counselling-fees', { method: 'POST', body: JSON.stringify(cf) }).catch(() => {})
                 }
@@ -190,12 +222,15 @@ export function BranchesModule() {
                 fee_amount: row.fee_amount,
               })
               // Create counselling fees
-              if (isEngAdmissionCourse(row.course_id, courses) && newBC?.id) {
+              if (hasCounsellingFees(row.course_id, courses) && newBC?.id) {
                 const { apiFetch } = await import('@/lib/api')
                 const cFees = []
                 if (row.josaa_fee) cFees.push({ branch_course: newBC.id, counselling_type: 'JoSAA', fee_amount: row.josaa_fee })
                 if (row.cet_fee) cFees.push({ branch_course: newBC.id, counselling_type: 'CET', fee_amount: row.cet_fee })
                 if (row.both_fee) cFees.push({ branch_course: newBC.id, counselling_type: 'Both', fee_amount: row.both_fee })
+                if (row.mh_medical_fee) cFees.push({ branch_course: newBC.id, counselling_type: 'MH_Medical', fee_amount: row.mh_medical_fee })
+                if (row.other_medical_fee) cFees.push({ branch_course: newBC.id, counselling_type: 'Other_Medical', fee_amount: row.other_medical_fee })
+                if (row.combo_medical_fee) cFees.push({ branch_course: newBC.id, counselling_type: 'Combo_Medical', fee_amount: row.combo_medical_fee })
                 for (const cf of cFees) {
                   await apiFetch('branch-course-counselling-fees', { method: 'POST', body: JSON.stringify(cf) }).catch(() => {})
                 }
@@ -327,7 +362,7 @@ export function BranchesModule() {
                                     <div key={cf.counselling_type} className="flex items-center justify-between py-1 px-3 rounded bg-bg-base border border-bg-border/50">
                                       <span className="text-[10px] text-txt-muted font-medium flex items-center gap-1.5">
                                         <span className="w-1 h-1 rounded-full bg-accent-blue/50"></span>
-                                        {cf.counselling_type === 'JoSAA' ? 'JoSAA' : cf.counselling_type === 'CET' ? 'MHT-CET' : 'Both (JoSAA + CET)'}
+                                        {cf.counselling_type === 'JoSAA' ? 'JoSAA' : cf.counselling_type === 'CET' ? 'MHT-CET' : cf.counselling_type === 'Both' ? 'Both (JoSAA + CET)' : cf.counselling_type === 'MH_Medical' ? 'Maharashtra State' : cf.counselling_type === 'Other_Medical' ? 'Other State' : cf.counselling_type === 'Combo_Medical' ? 'Two States (Combo)' : cf.counselling_type}
                                       </span>
                                       <span className="text-[11px] font-semibold text-emerald-400 font-mono flex items-center gap-0.5">
                                         <IndianRupee size={9} />
@@ -390,6 +425,7 @@ export function BranchesModule() {
               <div className="space-y-3">
                 {courseRows.map((row, i) => {
                   const isEng = isEngAdmissionCourse(row.course_id, courses)
+                  const isMed = isMedAdmissionCourse(row.course_id, courses)
                   return (
                     <div key={i}>
                       <div className="flex items-end gap-2 p-1">
@@ -401,7 +437,7 @@ export function BranchesModule() {
                             onChange={e => {
                               updateCourseRow(i, 'course_id', e.target.value)
                               // Reset counselling fees when course changes
-                              setCourseRows(r => r.map((ro, idx) => idx === i ? { ...ro, course_id: e.target.value, josaa_fee: '', cet_fee: '', both_fee: '' } : ro))
+                              setCourseRows(r => r.map((ro, idx) => idx === i ? { ...ro, course_id: e.target.value, josaa_fee: '', cet_fee: '', both_fee: '', mh_medical_fee: '', other_medical_fee: '', combo_medical_fee: '' } : ro))
                             }}
                             className={inputCls}
                           >
@@ -417,8 +453,8 @@ export function BranchesModule() {
                             ))}
                           </select>
                         </div>
-                        {/* Fee input — only for non-engineering courses */}
-                        {!isEng && (
+                        {/* Fee input — only for non-engineering/medical courses */}
+                        {!isEng && !isMed && (
                           <div className="w-[140px]">
                             {i === 0 && <label className={labelCls}>Fee Amount (₹)</label>}
                             <input
@@ -482,6 +518,52 @@ export function BranchesModule() {
                           {row.josaa_fee && row.cet_fee && row.both_fee && Number(row.both_fee) < (Number(row.josaa_fee) + Number(row.cet_fee)) && (
                             <div className="mt-1.5 text-[9px] text-emerald-600 font-medium">
                               💰 Bundle saves ₹{((Number(row.josaa_fee) + Number(row.cet_fee)) - Number(row.both_fee)).toLocaleString('en-IN')} vs individual
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Counselling-type fees for Medical Admission Guidance */}
+                      {isMed && (
+                        <div className="px-2 pb-2 pt-1">
+                          <div className="text-[9px] font-semibold text-teal-700 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                            🏥 Counselling-Type Fees
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <label className="text-[10px] text-txt-muted block mb-0.5 font-medium">Maharashtra State (₹)</label>
+                              <input
+                                type="number" min="0"
+                                value={row.mh_medical_fee}
+                                onChange={e => updateCourseRow(i, 'mh_medical_fee', e.target.value)}
+                                className={inputCls}
+                                placeholder="8000"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-txt-muted block mb-0.5 font-medium">Other State (₹)</label>
+                              <input
+                                type="number" min="0"
+                                value={row.other_medical_fee}
+                                onChange={e => updateCourseRow(i, 'other_medical_fee', e.target.value)}
+                                className={inputCls}
+                                placeholder="8000"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-txt-muted block mb-0.5 font-medium">Two States Combo (₹)</label>
+                              <input
+                                type="number" min="0"
+                                value={row.combo_medical_fee}
+                                onChange={e => updateCourseRow(i, 'combo_medical_fee', e.target.value)}
+                                className={inputCls}
+                                placeholder="10000"
+                              />
+                            </div>
+                          </div>
+                          {row.mh_medical_fee && row.other_medical_fee && row.combo_medical_fee && Number(row.combo_medical_fee) < (Number(row.mh_medical_fee) + Number(row.other_medical_fee)) && (
+                            <div className="mt-1.5 text-[9px] text-emerald-600 font-medium">
+                              💰 Combo saves ₹{((Number(row.mh_medical_fee) + Number(row.other_medical_fee)) - Number(row.combo_medical_fee)).toLocaleString('en-IN')} vs individual
                             </div>
                           )}
                         </div>

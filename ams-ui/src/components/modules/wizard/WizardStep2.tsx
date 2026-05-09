@@ -111,7 +111,6 @@ export function WizardStep2({ p2, setP2, courseName, admissionNumber, saving, er
           <Field label="District" half>{p2.ssc_state === 'Other' ? <input value={p2.ssc_district} onChange={e => { s('ssc_district', e.target.value); s('ssc_taluka', '') }} className={inputClass} /> : <SearchSelect value={p2.ssc_district} onChange={v => { s('ssc_district', v); s('ssc_taluka', '') }} options={getDistricts(p2.ssc_state)} placeholder="Select District" disabled={!p2.ssc_state} />}</Field>
           <Field label="Taluka" half>{p2.ssc_state === 'Other' ? <input value={p2.ssc_taluka} onChange={e => s('ssc_taluka', e.target.value)} className={inputClass} /> : <SearchSelect value={p2.ssc_taluka} onChange={v => s('ssc_taluka', v)} options={getTalukas(p2.ssc_state, p2.ssc_district)} placeholder="Select Taluka" disabled={!p2.ssc_district} />}</Field>
           <Field label="School Name" half><input value={p2.ssc_school_name} onChange={e => s('ssc_school_name', e.target.value)} className={inputClass} /></Field>
-          <Field label="SSC Roll / Seat No." half><input value={p2.ssc_roll_no} onChange={e => s('ssc_roll_no', e.target.value)} className={inputClass} /></Field>
         </div>
       </div>
 
