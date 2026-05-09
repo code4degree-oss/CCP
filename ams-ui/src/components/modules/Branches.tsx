@@ -200,7 +200,7 @@ export function BranchesModule() {
                 // Delete old counselling fees and recreate
                 const existingCFs = existingBC.counselling_fees || []
                 for (const cf of existingCFs) {
-                  if (cf.id) await apiFetch(`branch-course-counselling-fees/${cf.id}`, { method: 'DELETE' }).catch(() => {})
+                  if (cf.id) await apiFetch(`branch-course-counselling-fees/${cf.id}`, { method: 'DELETE' })
                 }
                 // Create new ones
                 const newCFs = []
@@ -211,7 +211,7 @@ export function BranchesModule() {
                 if (row.other_medical_fee) newCFs.push({ branch_course: existingBC.id, counselling_type: 'Other_Medical', fee_amount: row.other_medical_fee })
                 if (row.combo_medical_fee) newCFs.push({ branch_course: existingBC.id, counselling_type: 'Combo_Medical', fee_amount: row.combo_medical_fee })
                 for (const cf of newCFs) {
-                  await apiFetch('branch-course-counselling-fees', { method: 'POST', body: JSON.stringify(cf) }).catch(() => {})
+                  await apiFetch('branch-course-counselling-fees', { method: 'POST', body: JSON.stringify(cf) })
                 }
               }
             } else {
@@ -232,7 +232,7 @@ export function BranchesModule() {
                 if (row.other_medical_fee) cFees.push({ branch_course: newBC.id, counselling_type: 'Other_Medical', fee_amount: row.other_medical_fee })
                 if (row.combo_medical_fee) cFees.push({ branch_course: newBC.id, counselling_type: 'Combo_Medical', fee_amount: row.combo_medical_fee })
                 for (const cf of cFees) {
-                  await apiFetch('branch-course-counselling-fees', { method: 'POST', body: JSON.stringify(cf) }).catch(() => {})
+                  await apiFetch('branch-course-counselling-fees', { method: 'POST', body: JSON.stringify(cf) })
                 }
               }
             }

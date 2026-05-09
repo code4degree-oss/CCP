@@ -51,15 +51,25 @@ export function ReportsModule() {
       if (filterDateFrom) qs += `date_from=${filterDateFrom}&`
       if (filterDateTo) qs += `date_to=${filterDateTo}&`
       
-      const list = await admissionsApi.list(qs !== '?' ? qs : undefined)
+      let list = await admissionsApi.list(qs !== '?' ? qs : undefined)
       if (!list || list.length === 0) {
         setError('No admissions found for the selected filters.')
         setLoading(false)
         return
       }
 
-      // The list endpoint already returns full student details via AdmissionSerializer
-      // No need for individual fetches (which cause 429 rate-limit errors)
+      // Client-side filtering as safety net (in case backend doesn't support query params yet)
+      if (filterBranch) list = list.filter((a: any) => String(a.branch) === filterBranch || String(a.student_detail?.branch) === filterBranch)
+      if (filterCourse) list = list.filter((a: any) => String(a.course) === filterCourse)
+      if (filterDateFrom) list = list.filter((a: any) => a.created_at && a.created_at.slice(0, 10) >= filterDateFrom)
+      if (filterDateTo) list = list.filter((a: any) => a.created_at && a.created_at.slice(0, 10) <= filterDateTo)
+
+      if (list.length === 0) {
+        setError('No admissions found for the selected filters.')
+        setLoading(false)
+        return
+      }
+
       const fullData = list
 
       // Flatten data for Excel
@@ -182,8 +192,20 @@ export function ReportsModule() {
       if (filterEnqDateFrom) qs += `date_from=${filterEnqDateFrom}&`
       if (filterEnqDateTo) qs += `date_to=${filterEnqDateTo}&`
       
-      const list = await enquiriesApi.list(qs !== '?' ? qs : undefined)
+      let list = await enquiriesApi.list(qs !== '?' ? qs : undefined)
       if (!list || list.length === 0) {
+        setEnqError('No enquiries found for the selected filters.')
+        setEnqLoading(false)
+        return
+      }
+
+      // Client-side filtering as safety net
+      if (filterEnqBranch) list = list.filter((e: any) => String(e.branch) === filterEnqBranch)
+      if (filterEnqCourseType) list = list.filter((e: any) => e.course_type && e.course_type.toLowerCase() === filterEnqCourseType.toLowerCase())
+      if (filterEnqDateFrom) list = list.filter((e: any) => e.created_at && e.created_at.slice(0, 10) >= filterEnqDateFrom)
+      if (filterEnqDateTo) list = list.filter((e: any) => e.created_at && e.created_at.slice(0, 10) <= filterEnqDateTo)
+
+      if (list.length === 0) {
         setEnqError('No enquiries found for the selected filters.')
         setEnqLoading(false)
         return
@@ -245,8 +267,20 @@ export function ReportsModule() {
       if (filterPayDateFrom) qs += `date_from=${filterPayDateFrom}&`
       if (filterPayDateTo) qs += `date_to=${filterPayDateTo}&`
       
-      const list = await paymentsApi.list(qs !== '?' ? qs : undefined)
+      let list = await paymentsApi.list(qs !== '?' ? qs : undefined)
       if (!list || list.length === 0) {
+        setPayError('No payments found for the selected filters.')
+        setPayLoading(false)
+        return
+      }
+
+      // Client-side filtering as safety net
+      if (filterPayBranch) list = list.filter((p: any) => String(p.branch_id) === filterPayBranch)
+      if (filterPayCourse) list = list.filter((p: any) => String(p.admission?.course) === filterPayCourse)
+      if (filterPayDateFrom) list = list.filter((p: any) => p.paid_at && p.paid_at.slice(0, 10) >= filterPayDateFrom)
+      if (filterPayDateTo) list = list.filter((p: any) => p.paid_at && p.paid_at.slice(0, 10) <= filterPayDateTo)
+
+      if (list.length === 0) {
         setPayError('No payments found for the selected filters.')
         setPayLoading(false)
         return
