@@ -187,3 +187,8 @@ export const paymentsApi = {
   export: (qs?: string) => apiFetch(`payments/export${qs || ''}`),
 }
 
+// ---------- SYSTEM ----------
+export const systemApi = {
+  stats: () => apiFetch('system-stats'),
+}
+

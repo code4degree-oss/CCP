@@ -8,7 +8,7 @@ from .views import (
     StudentViewSet, StreamViewSet, CourseViewSet, CollegeViewSet, AdmissionViewSet, AdmissionPreferenceViewSet, AdmissionDocumentViewSet, StatusHistoryViewSet,
     BranchFeeConfigViewSet, PaymentViewSet, ReceiptViewSet,
     WhatsappConfigViewSet, NotificationTemplateViewSet, NotificationLogViewSet,
-    login_view, me_view, logout_view, change_password_view, seed_courses_view
+    login_view, me_view, logout_view, change_password_view, seed_courses_view, system_stats_view
 )
 
 router = DefaultRouter()
@@ -43,6 +43,7 @@ urlpatterns = [
     path('logout/', logout_view, name='logout'),
     path('change-password/', change_password_view, name='change-password'),
     path('seed-courses/', seed_courses_view, name='seed-courses'),
+    path('system-stats/', system_stats_view, name='system-stats'),
     path('', include(router.urls)),
 ]
 

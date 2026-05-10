@@ -15,6 +15,7 @@ import { UsersModule } from '@/components/modules/Users'
 import { ReportsModule } from '@/components/modules/Reports'
 import { PaymentsModule } from '@/components/modules/Payments'
 import { PlaceholderModule } from '@/components/modules/Placeholder'
+import { SettingsModule } from '@/components/modules/Settings'
 
 const PAGE_META: Record<string, { title: string; subtitle?: string }> = {
   dashboard: { title: 'Dashboard', subtitle: 'Overview of your admission pipeline' },
@@ -95,6 +96,8 @@ export default function Home() {
 
   const isEmployee = userContext.role && userContext.role.toLowerCase().includes('employee')
 
+  const isSuperAdmin = userContext.is_superuser || (userContext.role && userContext.role.toLowerCase().includes('super'))
+
   function renderModule() {
     if (isEmployee && ['branches', 'users', 'settings'].includes(active)) {
       return (
@@ -102,6 +105,16 @@ export default function Home() {
           <Shield size={48} className="text-red-400 mb-4" />
           <h2 className="text-xl font-bold text-gray-800">Access Denied</h2>
           <p className="text-sm text-gray-500 mt-2">You do not have permission to view this module.</p>
+        </div>
+      )
+    }
+
+    if (!isSuperAdmin && active === 'settings') {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+          <Shield size={48} className="text-red-400 mb-4" />
+          <h2 className="text-xl font-bold text-gray-800">Access Denied</h2>
+          <p className="text-sm text-gray-500 mt-2">Only Super Admin can access Settings.</p>
         </div>
       )
     }
@@ -115,6 +128,7 @@ export default function Home() {
       case 'users': return <UsersModule />
       case 'reports': return <ReportsModule />
       case 'payments': return <PaymentsModule />
+      case 'settings': return <SettingsModule />
       default: {
         const p = PLACEHOLDER_META[active]
         return p ? <PlaceholderModule title={p.title} description={p.description} /> : null

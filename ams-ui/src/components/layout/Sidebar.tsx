@@ -30,6 +30,10 @@ const ADMIN_NAV: NavItem[] = [
   ...BASE_NAV,
   { label: 'Branches',    icon: Building2,        id: 'branches' },
   { label: 'Users / Employees', icon: UserCheck, id: 'users' },
+]
+
+const SUPER_ADMIN_NAV: NavItem[] = [
+  ...ADMIN_NAV,
   { label: 'Settings',    icon: Settings,         id: 'settings' },
 ]
 
@@ -83,7 +87,8 @@ export function Sidebar({ active, onChange }: SidebarProps) {
              const userStr = typeof window !== 'undefined' ? localStorage.getItem('ams_user') : null
              const user = userStr ? JSON.parse(userStr) : {}
              const isEmployee = user.role && user.role.toLowerCase().includes('employee')
-             const navItems = isEmployee ? BASE_NAV : ADMIN_NAV
+             const isSuperAdmin = user.is_superuser || (user.role && user.role.toLowerCase().includes('super'))
+             const navItems = isEmployee ? BASE_NAV : (isSuperAdmin ? SUPER_ADMIN_NAV : ADMIN_NAV)
              return navItems.map(item => {
             const Icon = item.icon
             const isActive = active === item.id

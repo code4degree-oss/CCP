@@ -1196,3 +1196,60 @@ def seed_courses_view(request):
         'detail': f'Seeded {len(created)} new courses.',
         'created': created,
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def system_stats_view(request):
+    """Return live server system stats (CPU, Memory, Disk, OS info). Super Admin only."""
+    import platform
+    import sys
+
+    stats = {
+        'os': platform.system() + ' ' + platform.release(),
+        'python': platform.python_version(),
+        'service_status': 'Operational',
+    }
+
+    try:
+        import psutil
+        # CPU
+        stats['cpu_percent'] = psutil.cpu_percent(interval=0.5)
+        stats['cpu_count'] = psutil.cpu_count(logical=True)
+
+        # Memory
+        mem = psutil.virtual_memory()
+        stats['memory_total_gb'] = round(mem.total / (1024 ** 3), 2)
+        stats['memory_used_gb'] = round(mem.used / (1024 ** 3), 2)
+        stats['memory_percent'] = mem.percent
+
+        # Disk
+        disk = psutil.disk_usage('/')
+        stats['disk_total_gb'] = round(disk.total / (1024 ** 3), 2)
+        stats['disk_used_gb'] = round(disk.used / (1024 ** 3), 2)
+        stats['disk_percent'] = disk.percent
+
+        # Network Bandwidth
+        net = psutil.net_io_counters()
+        stats['net_sent_gb'] = round(net.bytes_sent / (1024 ** 3), 2)
+        stats['net_recv_gb'] = round(net.bytes_recv / (1024 ** 3), 2)
+
+    except ImportError:
+        # psutil not installed — return basic info only
+        stats['cpu_percent'] = None
+        stats['cpu_count'] = None
+        stats['memory_total_gb'] = None
+        stats['memory_used_gb'] = None
+        stats['memory_percent'] = None
+        stats['disk_total_gb'] = None
+        stats['disk_used_gb'] = None
+        stats['disk_percent'] = None
+        stats['note'] = 'Install psutil for live system metrics'
+
+    # DB stats
+    stats['total_admissions'] = Admission.objects.count()
+    stats['total_students'] = Student.objects.count()
+    stats['total_payments'] = Payment.objects.count()
+    stats['total_enquiries'] = Enquiry.objects.count()
+
+    return Response(stats)
