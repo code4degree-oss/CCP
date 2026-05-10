@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Download, Loader2, FileSpreadsheet, Calendar, BookOpen } from 'lucide-react'
 import { Card, Button } from '@/components/ui'
-import { admissionsApi, branchesApi, branchCoursesApi, coursesApi, enquiriesApi, paymentsApi } from '@/lib/api'
+import { admissionsApi, branchesApi, coursesApi, enquiriesApi, paymentsApi } from '@/lib/api'
 import * as XLSX from 'xlsx-js-style'
 
 export function ReportsModule() {
@@ -267,16 +267,15 @@ export function ReportsModule() {
       if (filterPayDateFrom) qs += `date_from=${filterPayDateFrom}&`
       if (filterPayDateTo) qs += `date_to=${filterPayDateTo}&`
       
-      let list = await paymentsApi.list(qs !== '?' ? qs : undefined)
+      // Use the export endpoint which returns total_course_fee computed by the backend
+      let list = await paymentsApi.export(qs !== '?' ? qs : undefined)
       if (!list || list.length === 0) {
         setPayError('No payments found for the selected filters.')
         setPayLoading(false)
         return
       }
 
-      // Client-side filtering as safety net
-      if (filterPayBranch) list = list.filter((p: any) => String(p.branch_id) === filterPayBranch)
-      if (filterPayCourse) list = list.filter((p: any) => String(p.admission?.course) === filterPayCourse)
+      // Client-side date filtering as safety net
       if (filterPayDateFrom) list = list.filter((p: any) => p.paid_at && p.paid_at.slice(0, 10) >= filterPayDateFrom)
       if (filterPayDateTo) list = list.filter((p: any) => p.paid_at && p.paid_at.slice(0, 10) <= filterPayDateTo)
 
@@ -286,49 +285,32 @@ export function ReportsModule() {
         return
       }
 
-      // Fetch branch-course fees to compute total course fee per payment
-      let bcList: any[] = []
-      try {
-        bcList = await branchCoursesApi.list()
-      } catch { /* ignore */ }
-
-      // Build a lookup: (branch_id, course_name) -> fee info
-      const bcLookup: Record<string, any> = {}
-      for (const bc of bcList) {
-        bcLookup[`${bc.branch}_${bc.course_name}`] = bc
-        bcLookup[`${bc.branch}_${bc.course}`] = bc
-      }
-
       // Group payments by admission to calculate per-admission totals correctly
       // This avoids double-counting fees when a student has multiple payments
       const admissionGroups: Record<string, { payments: any[], courseFee: number, totalPaid: number }> = {}
       for (const p of list) {
-        // Use admission_id from backend or fallback to payment id
         const admId = p.admission_id?.toString() || p.admission_number || p.id.toString()
         if (!admissionGroups[admId]) {
           admissionGroups[admId] = { payments: [], courseFee: Number(p.total_course_fee || 0), totalPaid: 0 }
         }
         admissionGroups[admId].payments.push(p)
-        admissionGroups[admId].totalPaid += Number(p.amount_paid || p.amount || 0)
+        admissionGroups[admId].totalPaid += Number(p.amount_paid || 0)
       }
 
       let totalAmountPaid = 0
       let totalCourseFee = 0
       let totalDuePayment = 0
-      // Track unique admissions for Total Fees (count each admission's fee only once)
       const seenAdmissions = new Set<string>()
 
       const excelData = list.map((p: any) => {
         const admId = p.admission_id?.toString() || p.admission_number || p.id.toString()
         const group = admissionGroups[admId]
         const courseFee = group?.courseFee || 0
-        const paidAmount = Number(p.amount_paid || p.amount || 0)
-        // Due is per-admission: total course fee minus ALL payments for this admission
+        const paidAmount = Number(p.amount_paid || 0)
         const admissionDue = Math.max(0, courseFee - (group?.totalPaid || 0))
 
         totalAmountPaid += paidAmount
 
-        // Only count course fee and due once per admission (avoid double-counting)
         if (!seenAdmissions.has(admId)) {
           seenAdmissions.add(admId)
           totalCourseFee += courseFee
@@ -337,6 +319,7 @@ export function ReportsModule() {
 
         return {
           'Payment ID': p.id,
+          'Admission No': p.admission_number || '-',
           'Student Name': p.student_name || '-',
           'Course Name': p.course_name || '-',
           'Branch': p.branch_name || '-',
@@ -347,7 +330,8 @@ export function ReportsModule() {
           'Due Payment': admissionDue,
           'Status': p.status || '-',
           'Student Contact': p.student_mobile || '-',
-          'Collected By': p.collected_by_name || p.collected_by || '-',
+          'Parent Contact': p.parent_mobile || '-',
+          'Collected By': p.collected_by || '-',
           'Reference No': p.reference_no || '-',
           'Notes': p.notes || '-'
         }
@@ -356,6 +340,7 @@ export function ReportsModule() {
       // Add total row
       excelData.push({
         'Payment ID': 'TOTAL',
+        'Admission No': '',
         'Student Name': '',
         'Course Name': '',
         'Branch': '',
@@ -366,6 +351,7 @@ export function ReportsModule() {
         'Due Payment': totalDuePayment,
         'Status': '',
         'Student Contact': '',
+        'Parent Contact': '',
         'Collected By': '',
         'Reference No': '',
         'Notes': ''
