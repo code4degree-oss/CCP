@@ -293,45 +293,78 @@ export function ReportsModule() {
       } catch { /* ignore */ }
 
       // Build a lookup: (branch_id, course_name) -> fee info
-      // PaymentSerializer exposes branch_id and course_name (not course_id),
-      // so we key by branch + course_name for reliable matching
       const bcLookup: Record<string, any> = {}
       for (const bc of bcList) {
-        // Key by branch_id + course_name for matching with payment data
         bcLookup[`${bc.branch}_${bc.course_name}`] = bc
-        // Also key by branch_id + course_id as fallback
         bcLookup[`${bc.branch}_${bc.course}`] = bc
+      }
+
+      // Helper: resolve the correct course fee based on counselling_type
+      // Mirrors the backend payment_summary logic exactly
+      const resolveCourseFee = (branchId: any, courseName: string, courseId: any, counsellingType: string): number => {
+        let bc = bcLookup[`${branchId}_${courseName}`]
+        if (!bc) bc = bcLookup[`${branchId}_${courseId || ''}`]
+        if (!bc) return 0
+
+        const ct = (counsellingType || '').trim().toLowerCase()
+        if (bc.counselling_fees && bc.counselling_fees.length > 0 && ct) {
+          // Map counselling_type to the correct key (same logic as backend)
+          let ctKey: string | null = null
+          if (ct.includes('both')) ctKey = 'Both'
+          else if (ct.includes('combo')) ctKey = 'Combo_Medical'
+          else if (ct.includes('josaa')) ctKey = 'JoSAA'
+          else if (ct.includes('cet') && !ct.includes('combo')) ctKey = 'CET'
+          else if (ct.includes('maharashtra')) ctKey = 'MH_Medical'
+          else if (ct.includes('other state')) ctKey = 'Other_Medical'
+
+          if (ctKey) {
+            const cf = bc.counselling_fees.find((f: any) => f.counselling_type === ctKey)
+            if (cf) return Number(cf.fee_amount)
+          }
+        }
+        return Number(bc.fee_amount || 0)
+      }
+
+      // Group payments by admission to calculate per-admission totals correctly
+      // This avoids double-counting fees when a student has multiple payments
+      const admissionGroups: Record<string, { payments: any[], courseFee: number, totalPaid: number }> = {}
+      for (const p of list) {
+        const admId = p.admission_number || p.admission?.id || p.id
+        if (!admissionGroups[admId]) {
+          const courseFee = resolveCourseFee(
+            p.branch_id,
+            p.course_name || '',
+            p.admission?.course || '',
+            p.counselling_type || p.admission?.counselling_type || ''
+          )
+          admissionGroups[admId] = { payments: [], courseFee, totalPaid: 0 }
+        }
+        admissionGroups[admId].payments.push(p)
+        admissionGroups[admId].totalPaid += Number(p.amount || 0)
       }
 
       let totalAmountPaid = 0
       let totalCourseFee = 0
       let totalDuePayment = 0
+      // Track unique admissions for Total Fees (count each admission's fee only once)
+      const seenAdmissions = new Set<string>()
 
       const excelData = list.map((p: any) => {
-        // Calculate the course fee from branch-course data
-        let courseFee = 0
-        // Try matching by branch_id + course_name first (most reliable)
-        let bc = bcLookup[`${p.branch_id}_${p.course_name}`]
-        // Fallback: try branch_id + course_id from admission FK
-        if (!bc) bc = bcLookup[`${p.branch_id}_${p.admission?.course || ''}`]
-
-        if (bc) {
-          // Check counselling fees first
-          if (bc.counselling_fees && bc.counselling_fees.length > 0) {
-            // Use the first counselling fee as default
-            const cf = bc.counselling_fees[0]
-            courseFee = Number(cf?.fee_amount || bc.fee_amount || 0)
-          } else {
-            courseFee = Number(bc.fee_amount || 0)
-          }
-        }
-
+        const admId = p.admission_number || p.admission?.id || p.id
+        const group = admissionGroups[admId]
+        const courseFee = group?.courseFee || 0
         const paidAmount = Number(p.amount || 0)
-        const duePayment = Math.max(0, courseFee - paidAmount)
+        // Due is per-admission: total course fee minus ALL payments for this admission
+        const admissionDue = Math.max(0, courseFee - (group?.totalPaid || 0))
 
         totalAmountPaid += paidAmount
-        totalCourseFee += courseFee
-        totalDuePayment += duePayment
+
+        // Only count course fee and due once per admission (avoid double-counting)
+        if (!seenAdmissions.has(admId)) {
+          seenAdmissions.add(admId)
+          totalCourseFee += courseFee
+          totalDuePayment += admissionDue
+        }
 
         return {
           'Payment ID': p.id,
@@ -342,7 +375,7 @@ export function ReportsModule() {
           'Payment Mode': p.payment_mode || '-',
           'Paid Fees': paidAmount,
           'Total Fees': courseFee,
-          'Due Payment': duePayment,
+          'Due Payment': admissionDue,
           'Status': p.status || '-',
           'Student Contact': p.student_mobile || '-',
           'Collected By': p.collected_by_name || '-',

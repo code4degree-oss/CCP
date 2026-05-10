@@ -302,7 +302,7 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
       )}
 
       {/* Step 1 */}
-      {step === 1 && <WizardStep1 onSubmit={handleStep1} branches={branches} user={user} saving={saving} error={error} />}
+      {step === 1 && <WizardStep1 onSubmit={handleStep1} onNext={() => setStep(2)} branches={branches} user={user} saving={saving} error={error} admissionData={admissionData || editAdmission} />}
 
       {/* Step 2 */}
       {step === 2 && (

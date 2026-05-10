@@ -1,11 +1,13 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { CreditCard, Check, Loader2 } from 'lucide-react'
+import { CreditCard, Check, Loader2, ArrowRight } from 'lucide-react'
 import { Field, inputClass, selectClass } from './FormComponents'
 
-export function WizardStep1({ onSubmit, branches, user, saving, error }: {
+export function WizardStep1({ onSubmit, onNext, branches, user, saving, error, admissionData }: {
   onSubmit: (data: any, branchCourses: any[]) => void
+  onNext?: () => void
   branches: any[]; user: any; saving: boolean; error: string
+  admissionData?: any
 }) {
   const isSuper = user.is_superuser || (user.role && user.role.toLowerCase().includes('super'))
   const [p1, setP1] = useState({
@@ -52,6 +54,50 @@ export function WizardStep1({ onSubmit, branches, user, saving, error }: {
   const handle = () => {
     if (!p1.student_name || !p1.student_mobile || !p1.course_id || !p1.amount) return
     onSubmit(p1, branchCourses)
+  }
+
+  if (admissionData) {
+    return (
+      <div className="max-w-2xl mx-auto animate-fade-in">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <Check size={20} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Initial Admission Completed</h2>
+                <p className="text-emerald-100 text-xs mt-0.5">Step 1 is locked for existing admissions</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6 space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[11px] font-semibold text-gray-500 uppercase">Admission Number</p>
+                <p className="text-sm font-bold text-gray-900 mt-1">{admissionData.admission_number || '—'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-500 uppercase">Student Name</p>
+                <p className="text-sm font-bold text-gray-900 mt-1">{admissionData.student_name || '—'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-500 uppercase">Mobile Number</p>
+                <p className="text-sm font-bold text-gray-900 mt-1">{admissionData.student_mobile || '—'}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-500 uppercase">Course</p>
+                <p className="text-sm font-bold text-gray-900 mt-1">{admissionData.course_name || '—'}</p>
+              </div>
+            </div>
+
+            <button onClick={onNext} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-4">
+              Continue to Step 2 <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -204,6 +204,7 @@ class PaymentSerializer(serializers.ModelSerializer):
     branch_name = serializers.CharField(source='admission.branch.name', read_only=True, default=None)
     branch_id = serializers.IntegerField(source='admission.branch.id', read_only=True, default=None)
     collected_by_name = serializers.CharField(source='collected_by.full_name', read_only=True, default=None)
+    counselling_type = serializers.CharField(source='admission.counselling_type', read_only=True, default=None)
 
     class Meta:
         model = Payment
@@ -268,6 +269,7 @@ class AdmissionSerializer(serializers.ModelSerializer):
 class AdmissionInitiateSerializer(serializers.Serializer):
     student_name = serializers.CharField(max_length=150)
     student_mobile = serializers.CharField(max_length=15)
+    parent_mobile = serializers.CharField(max_length=15, required=False, allow_blank=True)
     branch_id = serializers.IntegerField(required=False, allow_null=True)
     course_id = serializers.IntegerField()
     amount = serializers.DecimalField(max_digits=10, decimal_places=2)
