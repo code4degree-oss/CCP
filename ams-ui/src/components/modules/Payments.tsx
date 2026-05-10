@@ -75,6 +75,7 @@ export function PaymentsModule() {
   const paidCount = summaries.filter(s => s.payment_status === 'Fully Paid').length
   const totalRevenue = summaries.reduce((s, p) => s + p.total_paid, 0)
   const totalPending = summaries.filter(s => s.payment_status === 'Pending').reduce((s, p) => s + p.balance, 0)
+  const totalCourseFees = summaries.reduce((s, p) => s + p.course_fee, 0)
 
   const openRecordModal = (s: PaymentSummary) => {
     setRecordModal(s)
@@ -275,16 +276,20 @@ export function PaymentsModule() {
         <div>
           <h2 className="text-sm font-semibold text-txt-primary">Payments</h2>
           <p className="text-[11px] text-txt-muted mt-0.5">
-            {summaries.length} admissions · ₹{totalRevenue.toLocaleString('en-IN')} collected · ₹{totalPending.toLocaleString('en-IN')} pending
+            {summaries.length} admissions · Total ₹{totalCourseFees.toLocaleString('en-IN')} · Collected ₹{totalRevenue.toLocaleString('en-IN')} · Pending ₹{totalPending.toLocaleString('en-IN')}
           </p>
         </div>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Total Revenue</p>
-          <p className="text-lg font-bold text-gray-900 mt-1">₹{totalRevenue.toLocaleString('en-IN')}</p>
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Total Fees</p>
+          <p className="text-lg font-bold text-gray-900 mt-1">₹{totalCourseFees.toLocaleString('en-IN')}</p>
+        </div>
+        <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Total Collected</p>
+          <p className="text-lg font-bold text-emerald-700 mt-1">₹{totalRevenue.toLocaleString('en-IN')}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
           <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Pending Amount</p>
