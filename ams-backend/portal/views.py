@@ -1007,6 +1007,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
             results.append({
                 'id': p.id,
+                'admission_id': p.admission.id if p.admission else None,
+                'admission_number': p.admission.admission_number if p.admission else None,
                 'student_name': p.admission.student.full_name if p.admission and p.admission.student else None,
                 'student_mobile': p.admission.student.mobile if p.admission and p.admission.student else None,
                 'parent_mobile': parent_mobile,

@@ -302,7 +302,37 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
       )}
 
       {/* Step 1 */}
-      {step === 1 && <WizardStep1 onSubmit={handleStep1} onNext={() => setStep(2)} branches={branches} user={user} saving={saving} error={error} admissionData={admissionData || editAdmission} />}
+      {step === 1 && (
+        <WizardStep1 
+          onSubmit={handleStep1} 
+          onNext={() => setStep(2)} 
+          onUpdateContacts={async (studentMobile, parentMobile) => {
+            const id = admissionData?.id || editAdmission?.id
+            if (!id) return
+            await admissionsApi.completeProfile(id, { mobile: studentMobile, alternate_mobile: parentMobile })
+            setP2(prev => ({ ...prev, mobile: studentMobile, alternate_mobile: parentMobile }))
+            if (admissionData) {
+              setAdmissionData((prev: any) => ({
+                ...prev,
+                student_mobile: studentMobile,
+                student_detail: {
+                  ...(prev.student_detail || {}),
+                  mobile: studentMobile,
+                  demographic_details: {
+                    ...(prev.student_detail?.demographic_details || {}),
+                    alternate_mobile: parentMobile
+                  }
+                }
+              }))
+            }
+          }}
+          branches={branches} 
+          user={user} 
+          saving={saving} 
+          error={error} 
+          admissionData={admissionData || editAdmission} 
+        />
+      )}
 
       {/* Step 2 */}
       {step === 2 && (

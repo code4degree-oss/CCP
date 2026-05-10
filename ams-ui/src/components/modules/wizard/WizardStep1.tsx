@@ -1,11 +1,12 @@
 'use client'
-import { useState, useMemo } from 'react'
-import { CreditCard, Check, Loader2, ArrowRight } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { CreditCard, Check, Loader2, ArrowRight, Save } from 'lucide-react'
 import { Field, inputClass, selectClass } from './FormComponents'
 
-export function WizardStep1({ onSubmit, onNext, branches, user, saving, error, admissionData }: {
+export function WizardStep1({ onSubmit, onNext, onUpdateContacts, branches, user, saving, error, admissionData }: {
   onSubmit: (data: any, branchCourses: any[]) => void
   onNext?: () => void
+  onUpdateContacts?: (studentMobile: string, parentMobile: string) => Promise<void>
   branches: any[]; user: any; saving: boolean; error: string
   admissionData?: any
 }) {
@@ -17,6 +18,33 @@ export function WizardStep1({ onSubmit, onNext, branches, user, saving, error, a
     counselling_type: ''
   })
   const s = (k: string, v: any) => setP1(f => ({ ...f, [k]: v }))
+
+  // State for editing contacts in locked view
+  const [editStudentMobile, setEditStudentMobile] = useState('')
+  const [editParentMobile, setEditParentMobile] = useState('')
+  const [isSavingContacts, setIsSavingContacts] = useState(false)
+  const [contactMessage, setContactMessage] = useState({ type: '', text: '' })
+
+  useEffect(() => {
+    if (admissionData) {
+      setEditStudentMobile(admissionData.student_mobile || admissionData.student_detail?.mobile || '')
+      setEditParentMobile(admissionData.student_detail?.demographic_details?.alternate_mobile || admissionData.student_detail?.alternate_mobile || '')
+    }
+  }, [admissionData])
+
+  const handleSaveContacts = async () => {
+    if (!onUpdateContacts) return
+    setIsSavingContacts(true)
+    setContactMessage({ type: '', text: '' })
+    try {
+      await onUpdateContacts(editStudentMobile, editParentMobile)
+      setContactMessage({ type: 'success', text: 'Contacts updated successfully' })
+      setTimeout(() => setContactMessage({ type: '', text: '' }), 3000)
+    } catch (err: any) {
+      setContactMessage({ type: 'error', text: err.message || 'Failed to update contacts' })
+    }
+    setIsSavingContacts(false)
+  }
 
   const branchCourses = useMemo(() => {
     const bid = p1.branch || user.branch_id?.toString()
@@ -72,26 +100,61 @@ export function WizardStep1({ onSubmit, onNext, branches, user, saving, error, a
             </div>
           </div>
           <div className="p-6 space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
               <div>
                 <p className="text-[11px] font-semibold text-gray-500 uppercase">Admission Number</p>
                 <p className="text-sm font-bold text-gray-900 mt-1">{admissionData.admission_number || '—'}</p>
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-gray-500 uppercase">Student Name</p>
-                <p className="text-sm font-bold text-gray-900 mt-1">{admissionData.student_name || '—'}</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold text-gray-500 uppercase">Mobile Number</p>
-                <p className="text-sm font-bold text-gray-900 mt-1">{admissionData.student_mobile || '—'}</p>
-              </div>
-              <div>
                 <p className="text-[11px] font-semibold text-gray-500 uppercase">Course</p>
                 <p className="text-sm font-bold text-gray-900 mt-1">{admissionData.course_name || '—'}</p>
               </div>
+              <div className="col-span-2">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase">Student Name</p>
+                <p className="text-sm font-bold text-gray-900 mt-1">{admissionData.student_name || '—'}</p>
+              </div>
             </div>
 
-            <button onClick={onNext} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-4">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Contact Information</h4>
+                {contactMessage.text && (
+                  <span className={`text-xs font-medium ${contactMessage.type === 'error' ? 'text-red-500' : 'text-emerald-600'}`}>
+                    {contactMessage.text}
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="Student Mobile No.">
+                  <input 
+                    value={editStudentMobile} 
+                    onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) setEditStudentMobile(v); }} 
+                    placeholder="10-digit number" 
+                    className={inputClass} 
+                  />
+                </Field>
+                <Field label="Parent's Mobile No.">
+                  <input 
+                    value={editParentMobile} 
+                    onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) setEditParentMobile(v); }} 
+                    placeholder="Parent / Guardian mobile" 
+                    className={inputClass} 
+                  />
+                </Field>
+              </div>
+              <div className="flex justify-end mt-3">
+                <button 
+                  onClick={handleSaveContacts} 
+                  disabled={isSavingContacts}
+                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm border border-emerald-200 disabled:opacity-50"
+                >
+                  {isSavingContacts ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  Save Contacts
+                </button>
+              </div>
+            </div>
+
+            <button onClick={onNext} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2">
               Continue to Step 2 <ArrowRight size={16} />
             </button>
           </div>

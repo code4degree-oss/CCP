@@ -299,48 +299,17 @@ export function ReportsModule() {
         bcLookup[`${bc.branch}_${bc.course}`] = bc
       }
 
-      // Helper: resolve the correct course fee based on counselling_type
-      // Mirrors the backend payment_summary logic exactly
-      const resolveCourseFee = (branchId: any, courseName: string, courseId: any, counsellingType: string): number => {
-        let bc = bcLookup[`${branchId}_${courseName}`]
-        if (!bc) bc = bcLookup[`${branchId}_${courseId || ''}`]
-        if (!bc) return 0
-
-        const ct = (counsellingType || '').trim().toLowerCase()
-        if (bc.counselling_fees && bc.counselling_fees.length > 0 && ct) {
-          // Map counselling_type to the correct key (same logic as backend)
-          let ctKey: string | null = null
-          if (ct.includes('both')) ctKey = 'Both'
-          else if (ct.includes('combo')) ctKey = 'Combo_Medical'
-          else if (ct.includes('josaa')) ctKey = 'JoSAA'
-          else if (ct.includes('cet') && !ct.includes('combo')) ctKey = 'CET'
-          else if (ct.includes('maharashtra')) ctKey = 'MH_Medical'
-          else if (ct.includes('other state')) ctKey = 'Other_Medical'
-
-          if (ctKey) {
-            const cf = bc.counselling_fees.find((f: any) => f.counselling_type === ctKey)
-            if (cf) return Number(cf.fee_amount)
-          }
-        }
-        return Number(bc.fee_amount || 0)
-      }
-
       // Group payments by admission to calculate per-admission totals correctly
       // This avoids double-counting fees when a student has multiple payments
       const admissionGroups: Record<string, { payments: any[], courseFee: number, totalPaid: number }> = {}
       for (const p of list) {
-        const admId = p.admission_number || p.admission?.id || p.id
+        // Use admission_id from backend or fallback to payment id
+        const admId = p.admission_id?.toString() || p.admission_number || p.id.toString()
         if (!admissionGroups[admId]) {
-          const courseFee = resolveCourseFee(
-            p.branch_id,
-            p.course_name || '',
-            p.admission?.course || '',
-            p.counselling_type || p.admission?.counselling_type || ''
-          )
-          admissionGroups[admId] = { payments: [], courseFee, totalPaid: 0 }
+          admissionGroups[admId] = { payments: [], courseFee: Number(p.total_course_fee || 0), totalPaid: 0 }
         }
         admissionGroups[admId].payments.push(p)
-        admissionGroups[admId].totalPaid += Number(p.amount || 0)
+        admissionGroups[admId].totalPaid += Number(p.amount_paid || p.amount || 0)
       }
 
       let totalAmountPaid = 0
@@ -350,10 +319,10 @@ export function ReportsModule() {
       const seenAdmissions = new Set<string>()
 
       const excelData = list.map((p: any) => {
-        const admId = p.admission_number || p.admission?.id || p.id
+        const admId = p.admission_id?.toString() || p.admission_number || p.id.toString()
         const group = admissionGroups[admId]
         const courseFee = group?.courseFee || 0
-        const paidAmount = Number(p.amount || 0)
+        const paidAmount = Number(p.amount_paid || p.amount || 0)
         // Due is per-admission: total course fee minus ALL payments for this admission
         const admissionDue = Math.max(0, courseFee - (group?.totalPaid || 0))
 
@@ -378,7 +347,7 @@ export function ReportsModule() {
           'Due Payment': admissionDue,
           'Status': p.status || '-',
           'Student Contact': p.student_mobile || '-',
-          'Collected By': p.collected_by_name || '-',
+          'Collected By': p.collected_by_name || p.collected_by || '-',
           'Reference No': p.reference_no || '-',
           'Notes': p.notes || '-'
         }
