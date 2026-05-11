@@ -142,7 +142,7 @@ export default function Home() {
       <div className="flex-1 flex flex-col min-w-0 lg:ml-[220px] transition-all duration-300">
         <Topbar title={meta.title} subtitle={meta.subtitle} />
         <main className="flex-1 overflow-y-auto p-5 lg:p-6">
-          <div className="max-w-[1400px] mx-auto">{renderModule()}</div>
+          <div className="max-w-[1400px] mx-auto" key={active}>{renderModule()}</div>
         </main>
       </div>
     </div>
