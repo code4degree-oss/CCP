@@ -261,23 +261,30 @@ export function ReportsModule() {
     setPayLoading(true)
     setPayError('')
     try {
-      let qs = '?'
-      if (filterPayBranch) qs += `branch=${filterPayBranch}&`
-      if (filterPayCourse) qs += `course=${filterPayCourse}&`
-      if (filterPayDateFrom) qs += `date_from=${filterPayDateFrom}&`
-      if (filterPayDateTo) qs += `date_to=${filterPayDateTo}&`
-      
-      // Use the export endpoint which returns total_course_fee and total_paid_for_admission
-      let list = await paymentsApi.export(qs !== '?' ? qs : undefined)
+      // Use the SAME API the Payment Dashboard uses — guarantees matching numbers
+      let list: any[] = await admissionsApi.paymentSummary()
       if (!list || list.length === 0) {
-        setPayError('No payments found for the selected filters.')
+        setPayError('No payments found.')
         setPayLoading(false)
         return
       }
 
-      // Client-side date filtering as safety net
-      if (filterPayDateFrom) list = list.filter((p: any) => p.paid_at && p.paid_at.slice(0, 10) >= filterPayDateFrom)
-      if (filterPayDateTo) list = list.filter((p: any) => p.paid_at && p.paid_at.slice(0, 10) <= filterPayDateTo)
+      // Apply filters client-side (payment-summary returns all admissions)
+      if (filterPayBranch) {
+        list = list.filter((s: any) => String(s.branch_id) === filterPayBranch)
+      }
+      if (filterPayCourse) {
+        const selectedCourse = courses.find((c: any) => String(c.id) === filterPayCourse)
+        if (selectedCourse) {
+          list = list.filter((s: any) => s.course_name === selectedCourse.name)
+        }
+      }
+      if (filterPayDateFrom) {
+        list = list.filter((s: any) => s.created_at && s.created_at.slice(0, 10) >= filterPayDateFrom)
+      }
+      if (filterPayDateTo) {
+        list = list.filter((s: any) => s.created_at && s.created_at.slice(0, 10) <= filterPayDateTo)
+      }
 
       if (list.length === 0) {
         setPayError('No payments found for the selected filters.')
@@ -285,77 +292,62 @@ export function ReportsModule() {
         return
       }
 
-      let totalAmountPaid = 0
+      // Calculate totals — these will exactly match the Payment Dashboard
       let totalCourseFee = 0
-      let totalDuePayment = 0
-      const seenAdmissions = new Set<string>()
+      let totalPaid = 0
+      let totalDue = 0
 
-      const excelData = list.map((p: any) => {
-        const admId = p.admission_id?.toString() || p.admission_number || p.id.toString()
-        const courseFee = Number(p.total_course_fee || 0)
-        const paidAmount = Number(p.amount_paid || 0)
-        // Use total_paid_for_admission from backend (includes ALL payments for this admission,
-        // not just filtered ones) — so "Due" is always correct regardless of date filters
-        const totalPaidForAdm = Number(p.total_paid_for_admission || 0)
-        const admissionDue = Math.max(0, courseFee - totalPaidForAdm)
+      const excelData = list.map((s: any) => {
+        const courseFee = Number(s.course_fee || 0)
+        const paid = Number(s.total_paid || 0)
+        const due = Number(s.balance || 0)
 
-        totalAmountPaid += paidAmount
-
-        // Only count course fee and due once per admission to avoid duplicates in TOTAL row
-        if (!seenAdmissions.has(admId)) {
-          seenAdmissions.add(admId)
-          totalCourseFee += courseFee
-          totalDuePayment += admissionDue
-        }
+        totalCourseFee += courseFee
+        totalPaid += paid
+        totalDue += due
 
         return {
-          'Payment ID': p.id,
-          'Admission No': p.admission_number || '-',
-          'Student Name': p.student_name || '-',
-          'Course Name': p.course_name || '-',
-          'Branch': p.branch_name || '-',
-          'Payment Date': p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '-',
-          'Payment Mode': p.payment_mode || '-',
-          'Paid Fees': paidAmount,
-          'Total Fees': courseFee,
-          'Due Payment': admissionDue,
-          'Status': p.status || '-',
-          'Student Contact': p.student_mobile || '-',
-          'Parent Contact': p.parent_mobile || '-',
-          'Collected By': p.collected_by || '-',
-          'Reference No': p.reference_no || '-',
-          'Notes': p.notes || '-'
+          'Admission No': s.admission_number || '-',
+          'Student Name': s.student_name || '-',
+          'Student Mobile': s.student_mobile || '-',
+          'Course': s.course_name || '-',
+          'Branch': s.branch_name || '-',
+          'Counselling Type': s.counselling_type || '-',
+          'Total Fee': courseFee,
+          'Paid': paid,
+          'Due': due,
+          'Payment Status': s.payment_status || '-',
+          'Admission Status': s.admission_status || '-',
+          'Admission Date': s.created_at ? new Date(s.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-',
+          'Filled By': s.manager_name || '-',
         }
       })
 
       // Add total row
       excelData.push({
-        'Payment ID': 'TOTAL',
-        'Admission No': '',
-        'Student Name': '',
-        'Course Name': '',
+        'Admission No': 'TOTAL',
+        'Student Name': `${list.length} admissions`,
+        'Student Mobile': '',
+        'Course': '',
         'Branch': '',
-        'Payment Date': '',
-        'Payment Mode': '',
-        'Paid Fees': totalAmountPaid,
-        'Total Fees': totalCourseFee,
-        'Due Payment': totalDuePayment,
-        'Status': '',
-        'Student Contact': '',
-        'Parent Contact': '',
-        'Collected By': '',
-        'Reference No': '',
-        'Notes': ''
+        'Counselling Type': '',
+        'Total Fee': totalCourseFee,
+        'Paid': totalPaid,
+        'Due': totalDue,
+        'Payment Status': '',
+        'Admission Status': '',
+        'Admission Date': '',
+        'Filled By': '',
       })
 
       const worksheet = XLSX.utils.json_to_sheet(excelData)
-      
-      // Add styles
+
+      // Style the TOTAL row and highlight pending
       for (const cellAddress in worksheet) {
         if (cellAddress[0] === '!') continue
         const cell = worksheet[cellAddress]
         if (cell.v === 'Pending') {
-          cell.s = { font: { color: { rgb: 'FF0000' }, bold: true } }
+          cell.s = { font: { color: { rgb: 'FF6600' }, bold: true } }
         } else if (cell.v === 'TOTAL') {
           cell.s = { font: { bold: true } }
         }
