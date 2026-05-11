@@ -267,7 +267,7 @@ export function ReportsModule() {
       if (filterPayDateFrom) qs += `date_from=${filterPayDateFrom}&`
       if (filterPayDateTo) qs += `date_to=${filterPayDateTo}&`
       
-      // Use the export endpoint which returns total_course_fee computed by the backend
+      // Use the export endpoint which returns total_course_fee and total_paid_for_admission
       let list = await paymentsApi.export(qs !== '?' ? qs : undefined)
       if (!list || list.length === 0) {
         setPayError('No payments found for the selected filters.')
@@ -285,18 +285,6 @@ export function ReportsModule() {
         return
       }
 
-      // Group payments by admission to calculate per-admission totals correctly
-      // This avoids double-counting fees when a student has multiple payments
-      const admissionGroups: Record<string, { payments: any[], courseFee: number, totalPaid: number }> = {}
-      for (const p of list) {
-        const admId = p.admission_id?.toString() || p.admission_number || p.id.toString()
-        if (!admissionGroups[admId]) {
-          admissionGroups[admId] = { payments: [], courseFee: Number(p.total_course_fee || 0), totalPaid: 0 }
-        }
-        admissionGroups[admId].payments.push(p)
-        admissionGroups[admId].totalPaid += Number(p.amount_paid || 0)
-      }
-
       let totalAmountPaid = 0
       let totalCourseFee = 0
       let totalDuePayment = 0
@@ -304,13 +292,16 @@ export function ReportsModule() {
 
       const excelData = list.map((p: any) => {
         const admId = p.admission_id?.toString() || p.admission_number || p.id.toString()
-        const group = admissionGroups[admId]
-        const courseFee = group?.courseFee || 0
+        const courseFee = Number(p.total_course_fee || 0)
         const paidAmount = Number(p.amount_paid || 0)
-        const admissionDue = Math.max(0, courseFee - (group?.totalPaid || 0))
+        // Use total_paid_for_admission from backend (includes ALL payments for this admission,
+        // not just filtered ones) — so "Due" is always correct regardless of date filters
+        const totalPaidForAdm = Number(p.total_paid_for_admission || 0)
+        const admissionDue = Math.max(0, courseFee - totalPaidForAdm)
 
         totalAmountPaid += paidAmount
 
+        // Only count course fee and due once per admission to avoid duplicates in TOTAL row
         if (!seenAdmissions.has(admId)) {
           seenAdmissions.add(admId)
           totalCourseFee += courseFee

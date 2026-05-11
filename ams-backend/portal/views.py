@@ -773,9 +773,10 @@ class AdmissionViewSet(viewsets.ModelViewSet):
         )
         bc_lookup = {}
         if branch_course_pairs:
-            bcs = BranchCourse.objects.prefetch_related('counselling_fees').filter(
-                *[Q(branch_id=bp[0], course_id=bp[1]) for bp in branch_course_pairs]
-            ) if len(branch_course_pairs) == 1 else BranchCourse.objects.prefetch_related('counselling_fees').all()
+            q_filter = Q()
+            for bp in branch_course_pairs:
+                q_filter |= Q(branch_id=bp[0], course_id=bp[1])
+            bcs = BranchCourse.objects.prefetch_related('counselling_fees').filter(q_filter)
             for bc in bcs:
                 bc_lookup[(bc.branch_id, bc.course_id)] = bc
 
@@ -940,28 +941,33 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='export')
     def export_payments(self, request):
-        from django.db.models import Q
+        from django.db.models import Q, Sum
+        from django.db.models.functions import Coalesce
+        from decimal import Decimal
+
+        # get_queryset() already applies branch filtering for non-superusers
+        # and branch/course/date filters from query params
         qs = self.get_queryset()
-        
-        branch_id = request.query_params.get('branch')
-        user = request.user
-        if branch_id and (user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'Super Admin')):
-            qs = qs.filter(admission__branch_id=branch_id)
-            
-        course_id = request.query_params.get('course')
-        if course_id:
-            qs = qs.filter(admission__course_id=course_id)
-            
-        date_from = request.query_params.get('date_from')
-        if date_from:
-            qs = qs.filter(paid_at__gte=f"{date_from}T00:00:00Z")
-            
-        date_to = request.query_params.get('date_to')
-        if date_to:
-            qs = qs.filter(paid_at__lte=f"{date_to}T23:59:59Z")
 
         payments = list(qs)
-        
+
+        # Collect all unique admission IDs to compute total_paid across ALL payments
+        # (not just filtered ones) — this ensures "Due" is always correct
+        admission_ids = set(
+            p.admission_id for p in payments if p.admission_id
+        )
+        admission_total_paid = {}
+        if admission_ids:
+            from django.db.models import Sum
+            paid_agg = Payment.objects.filter(
+                admission_id__in=admission_ids,
+                status='Paid'
+            ).values('admission_id').annotate(
+                total=Coalesce(Sum('amount'), Decimal('0'))
+            )
+            for row in paid_agg:
+                admission_total_paid[row['admission_id']] = float(row['total'])
+
         # Calculate total fee per admission (same approach as payment_summary)
         branch_course_pairs = set(
             (p.admission.branch_id, p.admission.course_id) for p in payments
@@ -969,9 +975,11 @@ class PaymentViewSet(viewsets.ModelViewSet):
         )
         bc_lookup = {}
         if branch_course_pairs:
-            bcs = BranchCourse.objects.prefetch_related('counselling_fees').filter(
-                *[Q(branch_id=bp[0], course_id=bp[1]) for bp in branch_course_pairs]
-            ) if len(branch_course_pairs) == 1 else BranchCourse.objects.prefetch_related('counselling_fees').all()
+            # Build proper OR query for multiple pairs
+            q_filter = Q()
+            for bp in branch_course_pairs:
+                q_filter |= Q(branch_id=bp[0], course_id=bp[1])
+            bcs = BranchCourse.objects.prefetch_related('counselling_fees').filter(q_filter)
             for bc in bcs:
                 bc_lookup[(bc.branch_id, bc.course_id)] = bc
 
@@ -998,7 +1006,10 @@ class PaymentViewSet(viewsets.ModelViewSet):
                             course_fee = float(bc.fee_amount)
                     else:
                         course_fee = float(bc.fee_amount)
-            
+
+            # Total paid across ALL payments for this admission (not just filtered ones)
+            total_paid_for_admission = admission_total_paid.get(p.admission_id, 0)
+
             parent_mobile = None
             if p.admission and p.admission.student and p.admission.student.demographic_details:
                 parent_mobile = p.admission.student.demographic_details.get('alternate_mobile', None)
@@ -1019,11 +1030,12 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 'status': p.status,
                 'amount_paid': float(p.amount),
                 'total_course_fee': course_fee,
+                'total_paid_for_admission': total_paid_for_admission,
                 'collected_by': p.collected_by.full_name if p.collected_by else None,
                 'reference_no': p.reference_no,
                 'notes': p.notes,
             })
-            
+
         return Response(results, status=status.HTTP_200_OK)
 
 class ReceiptViewSet(viewsets.ModelViewSet):

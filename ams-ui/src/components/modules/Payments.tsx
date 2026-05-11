@@ -67,30 +67,7 @@ export function PaymentsModule() {
     setLoading(false)
   }
 
-  // Re-fetch data on mount AND when the browser tab regains focus
-  useEffect(() => {
-    load()
-
-    // Re-fetch when user returns to browser tab (covers alt-tab, phone unlock, etc.)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        load()
-      }
-    }
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    // Auto-refresh every 30 seconds while visible
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        load()
-      }
-    }, 30000)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      clearInterval(interval)
-    }
-  }, [])
+  useEffect(() => { load() }, [])
 
   const filtered = summaries.filter(s => s.payment_status === tab)
 
