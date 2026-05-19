@@ -36,15 +36,15 @@ const DOCUMENT_DEFINITIONS: DocumentDef[] = [
 
   // ── Conditional: Category-based ──────────────────────────────
   { type: 'caste_cert', label: 'Caste Certificate', tier: 'conditional', stream: 'both',
-    condition: (f) => !!f.category_of_candidate && f.category_of_candidate !== 'General / Open' && f.category_of_candidate !== 'EWS' },
+    condition: (f) => !!f.category_of_candidate && f.category_of_candidate !== 'OPEN' && f.category_of_candidate !== 'EWS' },
   { type: 'caste_validity', label: 'Caste / Tribe Validity Certificate', tier: 'conditional', stream: 'both',
-    condition: (f) => !!f.category_of_candidate && f.category_of_candidate !== 'General / Open' && f.category_of_candidate !== 'EWS' },
+    condition: (f) => !!f.category_of_candidate && f.category_of_candidate !== 'OPEN' && f.category_of_candidate !== 'EWS' },
   { type: 'ncl_cert', label: 'Non-Creamy Layer Certificate (valid up to 31/03/2028)', tier: 'conditional', stream: 'both',
-    condition: (f) => ['OBC', 'VJ-A', 'NT-B', 'NT-C', 'NT-D', 'SBC'].includes(f.category_of_candidate) },
+    condition: (f) => ['OBC', 'SEBC', 'SBC', 'NT1', 'NT2', 'NT3', 'VJDT'].includes(f.category_of_candidate) },
   { type: 'ews_cert', label: 'EWS Certificate', tier: 'conditional', stream: 'both',
     condition: (f) => f.category_of_candidate === 'EWS' },
   { type: 'income_cert', label: 'Income Certificate (Annual Income ≤ ₹8 Lakh)', tier: 'conditional', stream: 'both',
-    condition: (f) => f.category_of_candidate === 'EWS' || ['OBC', 'VJ-A', 'NT-B', 'NT-C', 'NT-D', 'SBC'].includes(f.category_of_candidate) },
+    condition: (f) => f.category_of_candidate === 'EWS' || ['OBC', 'SEBC', 'SBC', 'NT1', 'NT2', 'NT3', 'VJDT'].includes(f.category_of_candidate) },
 
   // ── Conditional: Flag-based ──────────────────────────────────
   { type: 'minority_cert', label: 'Minority Certificate', tier: 'conditional', stream: 'both',

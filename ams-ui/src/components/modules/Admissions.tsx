@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Download, Inbox, Loader2, Pencil, FileText, Printer, FolderOpen, X, ExternalLink, Search } from 'lucide-react'
+import { Plus, Download, Inbox, Loader2, Pencil, FileText, Printer, FolderOpen, X, ExternalLink, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { Card, Button, Table } from '@/components/ui'
 import { admissionsApi, studentsApi, branchesApi, streamsApi, branchCoursesApi } from '@/lib/api'
 import { AdmissionWizard } from './AdmissionWizard'
@@ -31,6 +31,8 @@ export function AdmissionsModule() {
   const [branchFilter, setBranchFilter] = useState('all')
   const [courseFilter, setCourseFilter] = useState('all')
   const [error, setError] = useState('')
+  const [sortKey, setSortKey] = useState<string>('created_at')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   // View management: 'list' | 'new' | 'edit' | 'print' | 'receipt'
   const [view, setView] = useState<'list' | 'new' | 'edit' | 'print' | 'receipt'>('list')
@@ -45,6 +47,7 @@ export function AdmissionsModule() {
   const userStr = typeof window !== 'undefined' ? localStorage.getItem('ams_user') : null
   const user = userStr ? JSON.parse(userStr) : {}
   const isEmployee = user.role && user.role.toLowerCase().includes('employee')
+  const isBranchAdmin = user.role && user.role.toLowerCase().includes('branch admin')
   const isSuper = user.is_superuser || (user.role && user.role.toLowerCase().includes('super'))
 
   const load = async () => {
@@ -77,6 +80,16 @@ export function AdmissionsModule() {
 
   const getName = (list: any[], id: number, key = 'name') => list.find(i => i.id === id)?.[key] || '—'
 
+  const toggleSort = (key: string) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortKey !== col) return <ArrowUpDown size={10} className="ml-1 opacity-30" />
+    return sortDir === 'asc' ? <ArrowUp size={10} className="ml-1 text-blue-500" /> : <ArrowDown size={10} className="ml-1 text-blue-500" />
+  }
+
   const filtered = admissions.filter(a => {
     const matchStatus = statusFilter === 'all' || a.admission_status === statusFilter
     const matchBranch = branchFilter === 'all' || a.branch?.toString() === branchFilter
@@ -85,6 +98,18 @@ export function AdmissionsModule() {
       a.student_name?.toLowerCase().includes(search.toLowerCase()) || 
       a.admission_number?.toLowerCase().includes(search.toLowerCase())
     return matchStatus && matchBranch && matchCourse && matchSearch
+  }).sort((a, b) => {
+    let valA: any = '', valB: any = ''
+    if (sortKey === 'admission_number') { valA = a.admission_number || ''; valB = b.admission_number || '' }
+    else if (sortKey === 'student') { valA = (a.student_name || '').toLowerCase(); valB = (b.student_name || '').toLowerCase() }
+    else if (sortKey === 'branch') { valA = getName(branches, a.branch); valB = getName(branches, b.branch) }
+    else if (sortKey === 'course') { valA = a.course_name || ''; valB = b.course_name || '' }
+    else if (sortKey === 'filled_by') { valA = (a as any).manager_name || ''; valB = (b as any).manager_name || '' }
+    else if (sortKey === 'status') { valA = a.admission_status; valB = b.admission_status }
+    else if (sortKey === 'created_at') { valA = a.created_at || ''; valB = b.created_at || '' }
+    if (valA < valB) return sortDir === 'asc' ? -1 : 1
+    if (valA > valB) return sortDir === 'asc' ? 1 : -1
+    return 0
   })
   
   const uniqueCourses = Array.from(new Set(admissions.map(a => a.course_name).filter(Boolean)))
@@ -174,6 +199,8 @@ export function AdmissionsModule() {
       const receipts = payments.map((p: any, idx: number) => {
         const cumulativePaid = payments.slice(0, idx + 1).reduce((s: number, pp: any) => s + Number(pp.amount || 0), 0)
         return {
+          admission_id: a.id,
+          payment_id: p.id,
           admission_number: fullData.admission_number,
           receipt_label: payments.length > 1 ? `${fullData.admission_number}-${idx + 1}` : fullData.admission_number,
           student_name: fullData.student_name || a.student_name,
@@ -199,6 +226,7 @@ export function AdmissionsModule() {
       if (receipts.length === 0) {
         // No payments — still show a stub
         receipts.push({
+          admission_id: a.id,
           admission_number: fullData.admission_number,
           receipt_label: fullData.admission_number,
           student_name: fullData.student_name || a.student_name,
@@ -255,15 +283,24 @@ export function AdmissionsModule() {
     return 'text-accent-blue bg-accent-blue/10 border-accent-blue/20'
   }
 
+  const sortableColumns = [
+    { key: 'admission_number', label: 'Admission #' },
+    { key: 'student', label: 'Student' },
+    { key: 'branch', label: 'Branch' },
+    { key: 'course', label: 'Course' },
+    { key: 'filled_by', label: 'Filled By' },
+    { key: 'status', label: 'Status' },
+  ]
+
   const columns = [
-    { key: 'admission_number', label: 'Admission #', render: (r: AdmRow) => <span className="font-mono text-[11px] font-semibold text-blue-600">{r.admission_number || `#${r.id}`}</span> },
-    { key: 'student', label: 'Student', render: (r: AdmRow) => <span className="text-xs font-medium text-txt-primary">{r.student_name || getName(students, r.student, 'full_name')}</span> },
-    { key: 'branch', label: 'Branch', render: (r: AdmRow) => <span className="text-xs text-txt-secondary">{getName(branches, r.branch)}</span> },
-    { key: 'course', label: 'Course', render: (r: AdmRow) => <span className="text-[11px] text-txt-secondary">{r.course_name || '—'}</span> },
-    { key: 'filled_by', label: 'Filled By', render: (r: AdmRow) => (
+    { key: 'admission_number', label: <button onClick={() => toggleSort('admission_number')} className="flex items-center uppercase tracking-widest">Admission #<SortIcon col="admission_number" /></button>, render: (r: AdmRow) => <span className="font-mono text-[11px] font-semibold text-blue-600">{r.admission_number || `#${r.id}`}</span> },
+    { key: 'student', label: <button onClick={() => toggleSort('student')} className="flex items-center uppercase tracking-widest">Student<SortIcon col="student" /></button>, render: (r: AdmRow) => <span className="text-xs font-medium text-txt-primary">{r.student_name || getName(students, r.student, 'full_name')}</span> },
+    { key: 'branch', label: <button onClick={() => toggleSort('branch')} className="flex items-center uppercase tracking-widest">Branch<SortIcon col="branch" /></button>, render: (r: AdmRow) => <span className="text-xs text-txt-secondary">{getName(branches, r.branch)}</span> },
+    { key: 'course', label: <button onClick={() => toggleSort('course')} className="flex items-center uppercase tracking-widest">Course<SortIcon col="course" /></button>, render: (r: AdmRow) => <span className="text-[11px] text-txt-secondary">{r.course_name || '—'}</span> },
+    { key: 'filled_by', label: <button onClick={() => toggleSort('filled_by')} className="flex items-center uppercase tracking-widest">Filled By<SortIcon col="filled_by" /></button>, render: (r: AdmRow) => (
       <span className="text-[11px] text-txt-secondary">{r.manager_name || '—'}</span>
     )},
-    { key: 'status', label: 'Status', render: (r: AdmRow) => {
+    { key: 'status', label: <button onClick={() => toggleSort('status')} className="flex items-center uppercase tracking-widest">Status<SortIcon col="status" /></button>, render: (r: AdmRow) => {
       return <span className={clsx('text-[11px] px-2 py-0.5 rounded border font-medium', statusColor(r.admission_status))}>{r.admission_status}</span>
     }},
     { key: 'actions', label: '', render: (r: AdmRow) => {

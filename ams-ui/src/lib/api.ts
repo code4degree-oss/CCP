@@ -142,6 +142,13 @@ export const admissionsApi = {
   recordPayment: (id: number, data: any) => apiFetch(`admissions/${id}/record-payment`, { method: 'POST', body: JSON.stringify(data) }),
   paymentSummary: () => apiFetch('admissions/payment-summary'),
   upgradeCounselling: (id: number, data?: any) => apiFetch(`admissions/${id}/upgrade-counselling`, { method: 'POST', body: JSON.stringify(data || {}) }),
+  sendReceiptWhatsapp: (id: number, receiptHtml: string, paymentId?: number) =>
+    apiFetch(`admissions/${id}/send-receipt-whatsapp`, {
+      method: 'POST',
+      body: JSON.stringify({ receipt_html: receiptHtml, payment_id: paymentId || null }),
+    }),
+  whatsappStatus: () => apiFetch('admissions/whatsapp-status'),
+
 }
 
 // ---------- STREAMS / COURSES / COLLEGES ----------

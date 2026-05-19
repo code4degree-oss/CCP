@@ -59,6 +59,17 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
     pcb_percentage_obtained: '', pcm_percentage_obtained: '', pcbe_percentage_obtained: '', pcme_percentage_obtained: '',
     claim_exception: '', specified_reservation: '',
     quota_apply_for: '', documents_received: '',
+    apaar_id: '',
+    village: '', present_village: '', mother_tongue: '',
+    cet_roll_no: '', cet_application_no: '', cet_dob: '', cet_score: '',
+    ssc_maths: '', ssc_science: '', ssc_english: '',
+    hsc_mother_name: '', highest_marks_subject: '',
+    addresses_different: false, present_address_line1: '', present_address_line2: '', present_address_line3: '', present_city: '', present_state: '', present_district: '', present_taluka: '', present_pincode: '',
+    hsc_exam_status: '',
+    caste_cert_status: '', caste_cert_doc_no: '', caste_cert_issue_date: '', caste_cert_district: '', caste_cert_receipt_no: '', caste_cert_applied_date: '', caste_cert_app_district: '',
+    caste_validity_status: '', caste_validity_doc_no: '', caste_validity_issue_date: '', caste_validity_district: '', caste_validity_receipt_no: '', caste_validity_applied_date: '', caste_validity_app_district: '',
+    ncl_cert_status: '', ncl_cert_doc_no: '', ncl_cert_issue_date: '', ncl_cert_district: '', ncl_cert_receipt_no: '', ncl_cert_applied_date: '', ncl_cert_app_district: '',
+    ews_cert_status: '', ews_cert_doc_no: '', ews_cert_issue_date: '', ews_cert_district: '', ews_cert_receipt_no: '', ews_cert_applied_date: '', ews_cert_app_district: '',
   })
 
   useEffect(() => { branchesApi.list().then(setBranches).catch(() => {}) }, [])
@@ -101,11 +112,13 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
           neet_marks: s.neet_marks || acad.neet_marks || '',
           jee_roll_no: acad.jee_roll_no || '', jee_application_no: acad.jee_application_no || '',
           jee_rank: acad.jee_rank || '', jee_percentile: acad.jee_percentile || '',
+          cet_roll_no: acad.cet_roll_no || '', cet_application_no: acad.cet_application_no || '',
+          cet_dob: acad.cet_dob || '', cet_score: acad.cet_score || '',
           // Demographic
           name_changed: demo.name_changed || '', mother_name: demo.mother_name || '',
-          religion: demo.religion || '',
+          religion: demo.religion || '', mother_tongue: demo.mother_tongue || '',
           address_line1: demo.address_line1 || '', address_line2: demo.address_line2 || '',
-          address_line3: demo.address_line3 || '', city: demo.city || '',
+          address_line3: demo.address_line3 || '', city: demo.city || '', village: demo.village || '',
           state: demo.state || '', district: demo.district || '',
           taluka: demo.taluka || '', pincode: demo.pincode || '',
           apply_nri: demo.apply_nri || '', oci_pio: demo.oci_pio || '',
@@ -120,12 +133,14 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
           ssc_state: acad.ssc_state || '', ssc_district: acad.ssc_district || '',
           ssc_taluka: acad.ssc_taluka || '', ssc_school_name: acad.ssc_school_name || '',
           ssc_roll_no: acad.ssc_roll_no || '',
+          ssc_maths: acad.ssc_maths || '', ssc_science: acad.ssc_science || '', ssc_english: acad.ssc_english || '',
           // HSC
-          hsc_name: acad.hsc_name || '', hsc_exam: acad.hsc_exam || '',
+          hsc_name: acad.hsc_name || '', hsc_mother_name: acad.hsc_mother_name || '', hsc_exam: acad.hsc_exam || '',
           hsc_passing_year: acad.hsc_passing_year || '', hsc_roll_no: acad.hsc_roll_no || '',
           hsc_state: acad.hsc_state || '', hsc_district: acad.hsc_district || '',
-          hsc_taluka: acad.hsc_taluka || '', hsc_exam_session: acad.hsc_exam_session || '',
+          hsc_taluka: acad.hsc_taluka || '', hsc_exam_session: acad.hsc_exam_session || '', hsc_exam_status: acad.hsc_exam_status || '',
           // Marks
+          highest_marks_subject: acad.highest_marks_subject || '',
           physics_obtained: acad.physics_obtained || '', chemistry_obtained: acad.chemistry_obtained || '',
           maths_obtained: acad.maths_obtained || '', biology_obtained: acad.biology_obtained || '',
           english_obtained: acad.english_obtained || '',
@@ -136,6 +151,12 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
           // Reservation / Application
           claim_exception: demo.claim_exception || '', specified_reservation: demo.specified_reservation || '',
           quota_apply_for: demo.quota_apply_for || '', documents_received: demo.documents_received || '',
+          apaar_id: demo.apaar_id || '',
+          addresses_different: demo.addresses_different || false, present_address_line1: demo.present_address_line1 || '', present_address_line2: demo.present_address_line2 || '', present_address_line3: demo.present_address_line3 || '', present_city: demo.present_city || '', present_village: demo.present_village || '', present_state: demo.present_state || '', present_district: demo.present_district || '', present_taluka: demo.present_taluka || '', present_pincode: demo.present_pincode || '',
+          caste_cert_status: demo.caste_cert_status || '', caste_cert_doc_no: demo.caste_cert_doc_no || '', caste_cert_issue_date: demo.caste_cert_issue_date || '', caste_cert_district: demo.caste_cert_district || '', caste_cert_receipt_no: demo.caste_cert_receipt_no || '', caste_cert_applied_date: demo.caste_cert_applied_date || '', caste_cert_app_district: demo.caste_cert_app_district || '',
+          caste_validity_status: demo.caste_validity_status || '', caste_validity_doc_no: demo.caste_validity_doc_no || '', caste_validity_issue_date: demo.caste_validity_issue_date || '', caste_validity_district: demo.caste_validity_district || '', caste_validity_receipt_no: demo.caste_validity_receipt_no || '', caste_validity_applied_date: demo.caste_validity_applied_date || '', caste_validity_app_district: demo.caste_validity_app_district || '',
+          ncl_cert_status: demo.ncl_cert_status || '', ncl_cert_doc_no: demo.ncl_cert_doc_no || '', ncl_cert_issue_date: demo.ncl_cert_issue_date || '', ncl_cert_district: demo.ncl_cert_district || '', ncl_cert_receipt_no: demo.ncl_cert_receipt_no || '', ncl_cert_applied_date: demo.ncl_cert_applied_date || '', ncl_cert_app_district: demo.ncl_cert_app_district || '',
+          ews_cert_status: demo.ews_cert_status || '', ews_cert_doc_no: demo.ews_cert_doc_no || '', ews_cert_issue_date: demo.ews_cert_issue_date || '', ews_cert_district: demo.ews_cert_district || '', ews_cert_receipt_no: demo.ews_cert_receipt_no || '', ews_cert_applied_date: demo.ews_cert_applied_date || '', ews_cert_app_district: demo.ews_cert_app_district || '',
         }))
       } catch {
         // Fallback: minimal pre-fill
@@ -184,6 +205,7 @@ export function AdmissionWizard({ onBack, editAdmission }: { onBack: () => void;
       }
 
       setReceiptData({
+        admission_id: res.id,
         admission_number: res.admission_number, student_name: p1.student_name,
         student_mobile: p1.student_mobile, parent_mobile: p1.parent_mobile,
         course_name: cName || '—', course_fee: courseFee,

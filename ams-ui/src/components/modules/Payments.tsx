@@ -151,6 +151,8 @@ export function PaymentsModule() {
       const receipts = payments.map((p: any, idx: number) => {
         const cumulativePaid = payments.slice(0, idx + 1).reduce((sum: number, pp: any) => sum + Number(pp.amount || 0), 0)
         return {
+          admission_id: s.admission_id,
+          payment_id: p.id,
           admission_number: s.admission_number,
           receipt_label: payments.length > 1 ? `${s.admission_number}-${idx + 1}` : s.admission_number,
           student_name: s.student_name,
@@ -173,6 +175,7 @@ export function PaymentsModule() {
       })
 
       setReceiptView(receipts.length > 0 ? receipts : [{
+        admission_id: s.admission_id,
         admission_number: s.admission_number,
         receipt_label: s.admission_number,
         student_name: s.student_name,

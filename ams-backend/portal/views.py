@@ -400,6 +400,15 @@ class AdmissionViewSet(viewsets.ModelViewSet):
                 branch = branch_mapping.first()
                 if branch:
                     qs = qs.filter(branch_id=branch.branch_id)
+            
+            # Employee isolation: if user is a regular employee (not Branch Admin),
+            # only show admissions they created (manager = current user)
+            is_branch_admin = (
+                hasattr(user, 'role') and user.role and 
+                user.role.name and 'branch admin' in user.role.name.lower()
+            )
+            if not is_branch_admin:
+                qs = qs.filter(manager=user)
                     
         branch_id = self.request.query_params.get('branch')
         if branch_id and (user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'Super Admin')):
@@ -606,13 +615,16 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             'neet_air', 'neet_category_rank',
             # JEE fields
             'jee_roll_no', 'jee_application_no', 'jee_rank', 'jee_percentile',
+            # MHT-CET fields
+            'cet_roll_no', 'cet_application_no', 'cet_dob', 'cet_score',
             # SSC
             'ssc_board', 'ssc_year', 'ssc_language', 'ssc_state', 'ssc_district', 'ssc_taluka',
-            'ssc_school_name', 'ssc_roll_no',
+            'ssc_school_name', 'ssc_roll_no', 'ssc_maths', 'ssc_science', 'ssc_english',
             # HSC
-            'hsc_name', 'hsc_exam', 'hsc_passing_year', 'hsc_roll_no',
-            'hsc_state', 'hsc_district', 'hsc_taluka', 'hsc_exam_session',
+            'hsc_name', 'hsc_mother_name', 'hsc_exam', 'hsc_passing_year', 'hsc_roll_no',
+            'hsc_state', 'hsc_district', 'hsc_taluka', 'hsc_exam_session', 'hsc_exam_status',
             # Subject marks
+            'highest_marks_subject',
             'physics_obtained', 'physics_out_of',
             'chemistry_obtained', 'chemistry_out_of',
             'maths_obtained', 'maths_out_of',
@@ -636,8 +648,8 @@ class AdmissionViewSet(viewsets.ModelViewSet):
 
         # Pack demographic_details JSON
         demo_keys = [
-            'mother_name', 'name_changed', 'religion', 'alternate_mobile',
-            'address_line1', 'address_line2', 'address_line3', 'city',
+            'mother_name', 'name_changed', 'religion', 'alternate_mobile', 'mother_tongue',
+            'address_line1', 'address_line2', 'address_line3', 'city', 'village',
             'state', 'district', 'taluka', 'pincode',
             'apply_nri', 'oci_pio', 'nationality', 'domicile_maharashtra',
             'is_orphan', 'annual_income', 'region_of_residence', 'is_pwd',
@@ -646,6 +658,17 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             'selected_minority', 'selected_linguistic_minority',
             'claim_exception', 'specified_reservation',
             'quota_apply_for', 'documents_received',
+            'apaar_id',
+            'addresses_different', 'present_address_line1', 'present_address_line2', 'present_address_line3',
+            'present_city', 'present_village', 'present_state', 'present_district', 'present_taluka', 'present_pincode',
+            'caste_cert_status', 'caste_cert_doc_no', 'caste_cert_issue_date', 'caste_cert_district',
+            'caste_cert_receipt_no', 'caste_cert_applied_date', 'caste_cert_app_district',
+            'caste_validity_status', 'caste_validity_doc_no', 'caste_validity_issue_date', 'caste_validity_district',
+            'caste_validity_receipt_no', 'caste_validity_applied_date', 'caste_validity_app_district',
+            'ncl_cert_status', 'ncl_cert_doc_no', 'ncl_cert_issue_date', 'ncl_cert_district',
+            'ncl_cert_receipt_no', 'ncl_cert_applied_date', 'ncl_cert_app_district',
+            'ews_cert_status', 'ews_cert_doc_no', 'ews_cert_issue_date', 'ews_cert_district',
+            'ews_cert_receipt_no', 'ews_cert_applied_date', 'ews_cert_app_district',
         ]
         demo = student.demographic_details or {}
         for k in demo_keys:
@@ -739,6 +762,130 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             collected_by=request.user if request.user.is_authenticated else None,
         )
         return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='send-receipt-whatsapp')
+    def send_receipt_whatsapp(self, request, pk=None):
+        """Send fee receipt PDF to parent/student via WhatsApp Cloud API."""
+        from . import whatsapp_service
+        import logging
+        logger = logging.getLogger(__name__)
+
+        admission = self.get_object()
+        receipt_html = request.data.get('receipt_html', '')
+        payment_id = request.data.get('payment_id')
+
+        if not receipt_html:
+            return Response({'detail': 'receipt_html is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if WhatsApp is configured
+        if not whatsapp_service.is_configured():
+            return Response({
+                'detail': 'WhatsApp API is not configured. Please set WHATSAPP_ACCESS_TOKEN in your .env file.',
+                'configured': False,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Determine phone number: parent mobile → student mobile
+        phone = None
+        student = admission.student
+        if student:
+            demo = student.demographic_details or {}
+            phone = demo.get('alternate_mobile') or demo.get('father_mobile')
+            if not phone:
+                phone = student.mobile
+        if not phone:
+            return Response({'detail': 'No phone number found for this student/parent.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Build template params
+        student_name = student.full_name if student else 'Student'
+        course_name = admission.course.name if admission.course else 'Course'
+
+        # Calculate amount from payment or all payments
+        amount_str = '0'
+        target_payment = None
+        if payment_id:
+            target_payment = Payment.objects.filter(id=payment_id, admission=admission).first()
+            if target_payment:
+                amount_str = f"{target_payment.amount:,.0f}"
+        if not target_payment:
+            from django.db.models import Sum
+            total = admission.payments.filter(status='Paid').aggregate(s=Sum('amount'))['s'] or 0
+            amount_str = f"{total:,.0f}"
+
+        try:
+            # Send via WhatsApp
+            result = whatsapp_service.send_receipt_pdf(
+                phone_number=phone,
+                receipt_html=receipt_html,
+                student_name=student_name,
+                course_name=course_name,
+                amount=amount_str,
+                filename=f"Receipt_{admission.admission_number or admission.id}.pdf",
+            )
+
+            # Extract message ID from WhatsApp response
+            wa_message_id = ''
+            messages = result.get('messages', [])
+            if messages:
+                wa_message_id = messages[0].get('id', '')
+
+            # Log the notification
+            NotificationLog.objects.create(
+                payment=target_payment,
+                sent_by=request.user if request.user.is_authenticated else None,
+                channel='whatsapp',
+                template_name=whatsapp_service.TEMPLATE_NAME,
+                payload={
+                    'phone': phone,
+                    'student_name': student_name,
+                    'course_name': course_name,
+                    'amount': amount_str,
+                    'admission_id': admission.id,
+                },
+                delivery_status='sent',
+                external_message_id=wa_message_id,
+            )
+
+            # Mark receipt as WhatsApp-sent (if a matching Receipt exists)
+            if target_payment:
+                Receipt.objects.filter(payment=target_payment).update(whatsapp_sent=True)
+
+            return Response({
+                'detail': f'Receipt sent to {phone} via WhatsApp.',
+                'phone': phone,
+                'message_id': wa_message_id,
+                'success': True,
+            })
+
+        except Exception as e:
+            logger.exception(f"WhatsApp send failed for admission {admission.id}")
+
+            # Log the failure too
+            NotificationLog.objects.create(
+                payment=target_payment,
+                sent_by=request.user if request.user.is_authenticated else None,
+                channel='whatsapp',
+                template_name=whatsapp_service.TEMPLATE_NAME,
+                payload={
+                    'phone': phone,
+                    'error': str(e),
+                    'admission_id': admission.id,
+                },
+                delivery_status='failed',
+            )
+
+            return Response({
+                'detail': f'Failed to send WhatsApp message: {str(e)}',
+                'success': False,
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='whatsapp-status')
+    def whatsapp_status(self, request):
+        """Check if WhatsApp API is configured and ready."""
+        from . import whatsapp_service
+        return Response({
+            'configured': whatsapp_service.is_configured(),
+            'phone_number_id': whatsapp_service.PHONE_NUMBER_ID or None,
+        })
 
     @action(detail=False, methods=['get'], url_path='payment-summary')
     def payment_summary(self, request):

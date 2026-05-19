@@ -167,7 +167,7 @@ export function AnimatedNumber({ value, suffix = '' }: { value: number; suffix?:
 
 interface Column<T> {
   key: string
-  label: string
+  label: string | React.ReactNode
   render?: (row: T) => React.ReactNode
   align?: 'left' | 'right' | 'center'
   width?: string

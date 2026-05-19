@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Printer, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Printer, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { printHTML } from '@/lib/printUtils'
+import { admissionsApi } from '@/lib/api'
 
 interface ReceiptItem {
   admission_number: string
@@ -24,6 +25,8 @@ interface ReceiptItem {
   isEntranceOnly?: boolean
   payment_index?: number
   total_payments?: number
+  admission_id?: number
+  payment_id?: number
 }
 
 interface PrintFeeReceiptProps {
@@ -141,18 +144,33 @@ export function buildSingleReceiptHTML(r: ReceiptItem): string {
 
 export function PrintFeeReceipt({ receipts, onPrint, onBack, wizardActions }: PrintFeeReceiptProps) {
   const [currentPage, setCurrentPage] = useState(0)
+  const [waSending, setWaSending] = useState(false)
+  const [waStatus, setWaStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
   const total = receipts.length
   const data = receipts[currentPage]
 
   if (!data) return null
 
   const handlePrint = () => {
-    // Build all receipts with page breaks between them
     const allHTML = receipts.map((r, i) => {
       const pageClass = i < receipts.length - 1 ? 'page-break' : ''
       return `<div class="${pageClass}">${buildSingleReceiptHTML(r)}</div>`
     }).join('')
     printHTML(allHTML)
+  }
+
+  const handleWhatsAppSend = async () => {
+    const r = receipts[currentPage]
+    if (!r.admission_id) { setWaStatus({ type: 'error', msg: 'Admission ID not available. Try reopening the receipt.' }); return }
+    setWaSending(true); setWaStatus(null)
+    try {
+      const html = buildSingleReceiptHTML(r)
+      const res = await admissionsApi.sendReceiptWhatsapp(r.admission_id, html, r.payment_id)
+      setWaStatus({ type: 'success', msg: res.detail || `Sent to ${res.phone}` })
+    } catch (e: any) {
+      setWaStatus({ type: 'error', msg: e.message || 'Failed to send' })
+    }
+    setWaSending(false)
   }
 
   const balance = data.balance != null ? data.balance : Math.max(0, (data.course_fee || 0) - (data.cumulative_paid || data.amount_paid || 0))
@@ -167,6 +185,9 @@ export function PrintFeeReceipt({ receipts, onPrint, onBack, wizardActions }: Pr
           </button>
           <button onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             <Printer size={14} /> {total > 1 ? `Print All ${total} Receipts` : 'Print Receipt'}
+          </button>
+          <button onClick={handleWhatsAppSend} disabled={waSending} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 8, border: 'none', background: waSending ? '#9ca3af' : '#059669', color: '#fff', fontSize: 13, fontWeight: 600, cursor: waSending ? 'not-allowed' : 'pointer', opacity: waSending ? 0.7 : 1 }}>
+            {waSending ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <span>📱</span>} {waSending ? 'Sending...' : 'Send on WhatsApp'}
           </button>
           {total > 1 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8, padding: '4px 12px', background: '#f3f4f6', borderRadius: 8, border: '1px solid #e5e7eb' }}>
@@ -183,6 +204,11 @@ export function PrintFeeReceipt({ receipts, onPrint, onBack, wizardActions }: Pr
           )}
           {wizardActions}
         </div>
+        {waStatus && (
+          <div style={{ marginTop: 6, padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, background: waStatus.type === 'success' ? '#ecfdf5' : '#fef2f2', color: waStatus.type === 'success' ? '#059669' : '#dc2626', border: `1px solid ${waStatus.type === 'success' ? '#a7f3d0' : '#fecaca'}` }}>
+            {waStatus.type === 'success' ? '✓' : '✕'} {waStatus.msg}
+          </div>
+        )}
         <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
           {total > 1 ? `This admission has ${total} payment receipts. Use arrows to preview. Print will output all receipts on separate pages.` : 'Print the receipt for the student.'}
         </p>
