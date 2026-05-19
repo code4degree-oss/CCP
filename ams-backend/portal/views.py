@@ -763,7 +763,8 @@ class AdmissionViewSet(viewsets.ModelViewSet):
         )
         return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['post'], url_path='send-receipt-whatsapp')
+    @action(detail=True, methods=['post'], url_path='send-receipt-whatsapp',
+            permission_classes=[IsAuthenticated])
     def send_receipt_whatsapp(self, request, pk=None):
         """Send fee receipt PDF to parent/student via WhatsApp Cloud API."""
         from . import whatsapp_service
@@ -878,13 +879,14 @@ class AdmissionViewSet(viewsets.ModelViewSet):
                 'success': False,
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=False, methods=['get'], url_path='whatsapp-status')
+    @action(detail=False, methods=['get'], url_path='whatsapp-status',
+            permission_classes=[IsAuthenticated])
     def whatsapp_status(self, request):
         """Check if WhatsApp API is configured and ready."""
         from . import whatsapp_service
         return Response({
             'configured': whatsapp_service.is_configured(),
-            'phone_number_id': whatsapp_service.PHONE_NUMBER_ID or None,
+            'integrated_number': whatsapp_service.INTEGRATED_NUMBER or None,
         })
 
     @action(detail=False, methods=['get'], url_path='payment-summary')
