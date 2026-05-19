@@ -33,6 +33,11 @@ EOF
 fi
 
 source venv/bin/activate
+
+# Install system dependencies for xhtml2pdf (pycairo needs cairo C library)
+echo "Installing system dependencies..."
+apt-get update -qq && apt-get install -y -qq pkg-config libcairo2-dev > /dev/null 2>&1 || true
+
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py collectstatic --noinput
