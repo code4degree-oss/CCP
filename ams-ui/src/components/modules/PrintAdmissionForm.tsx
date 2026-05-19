@@ -49,18 +49,69 @@ function buildHTML(admission: any): string {
     <div style="text-align:right"><span style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em">Date</span><p style="margin:2px 0 0;font-size:11px;font-weight:600;color:#374151">${date}</p></div>
   </div>`
 
-  // Sections
-  html += tbl(section('NEET-UG Details', '#1d4ed8') + row('NEET Roll No.', academic.neet_roll_no) + row('NEET Application No.', academic.neet_application_no) + row('Date of Birth', student.dob) + row('NEET Rank', student.neet_rank) + row('NEET Marks', student.neet_marks))
+  // Detect Engineering vs Medical
+  const courseName = admission?.course_name || ''
+  const cn = courseName.toLowerCase()
+  const isEng = cn.includes('engineering') && cn.includes('admission')
 
-  html += tbl(section('Personal Information', '#7c3aed') + row('Full Name (as per NEET Score Card)', student.full_name) + row('Name Changed after 10th?', demo.name_changed) + row("Father's Name", student.father_name) + row("Mother's Name", demo.mother_name) + row('Gender', student.gender) + row('Date of Birth', student.dob) + row('Mobile', student.mobile) + row('Email ID', student.email) + row('Alternate Contact No.', demo.alternate_mobile) + row('Aadhaar Card No.', student.aadhaar_no) + row('Religion', demo.religion))
+  // Exam Details — conditional
+  if (isEng) {
+    html += tbl(section('MHT-CET Details', '#1d4ed8') + row('MHT-CET Roll Number', academic.cet_roll_no) + row('MHT-CET Application Number', academic.cet_application_no) + row('PCM Marks/Score', academic.cet_score) + row('Date of Birth (Exam Verification)', academic.cet_dob))
+    html += tbl(section('JEE Details', '#1d4ed8') + row('JEE Roll No.', academic.jee_roll_no) + row('JEE Application No.', academic.jee_application_no) + row('Date of Birth', student.dob) + row('JEE Rank', academic.jee_rank) + row('JEE Percentile', academic.jee_percentile))
+  } else {
+    html += tbl(section('NEET-UG Details', '#1d4ed8') + row('NEET Roll No.', academic.neet_roll_no) + row('NEET Application No.', academic.neet_application_no) + row('Date of Birth', student.dob) + row('NEET Rank', student.neet_rank) + row('NEET Marks', student.neet_marks))
+  }
 
-  html += tbl(section('Permanent Address', '#059669') + row('Address Line 1', demo.address_line1) + row('Address Line 2', demo.address_line2) + row('Address Line 3', demo.address_line3) + row('City', demo.city) + row('State', demo.state) + row('District', demo.district) + row('Taluka', demo.taluka) + row('Pin Code', demo.pincode))
+  // Personal Information
+  html += tbl(section('Personal Information', '#7c3aed') + row('Full Name (as per HSC Marksheet)', student.full_name) + row('Name Changed after 10th?', demo.name_changed) + row("Father's Name", student.father_name) + row("Mother's Name", demo.mother_name) + row('Gender', student.gender) + row('Date of Birth', student.dob) + row('Mobile', student.mobile) + row('Email ID', student.email) + row('Alternate Contact No.', demo.alternate_mobile) + row('Aadhaar Card No.', student.aadhaar_no) + (!isEng ? row('APAAR ID', demo.apaar_id) : '') + row('Religion', demo.religion) + row('Mother Tongue', demo.mother_tongue) + row('Nationality', demo.nationality) + row('Region Classification', demo.region_of_residence))
 
-  html += tbl(section('Reservation Details', '#e11d48') + row('Apply for NRI?', demo.apply_nri) + row('OCI/PIO Card Holder?', demo.oci_pio) + row('Nationality', demo.nationality) + row('Domicile of Maharashtra?', demo.domicile_maharashtra) + row('Is the Candidate an Orphan?', demo.is_orphan) + row('Annual Family Income', demo.annual_income) + row('Region of Residence', demo.region_of_residence) + row('Person With Disability (PWD)?', demo.is_pwd) + row('Category of Candidate', demo.category_of_candidate) + row('Sub Category', demo.sub_category) + row('Claim Minority Quota?', demo.claim_minority_quota) + (demo.selected_minority ? row('Selected Minority', demo.selected_minority) : '') + row('Claim Linguistic Minority?', demo.claim_linguistic_minority) + (demo.selected_linguistic_minority ? row('Selected Linguistic Minority', demo.selected_linguistic_minority) : ''))
+  // Permanent Address
+  html += tbl(section('Permanent Address', '#059669') + row('Address Line 1', demo.address_line1) + row('Address Line 2', demo.address_line2) + row('Address Line 3', demo.address_line3) + row('Village', demo.village) + row('City', demo.city) + row('State', demo.state) + row('District', demo.district) + row('Taluka', demo.taluka) + row('Pin Code', demo.pincode))
 
-  html += tbl(section('SSC / 10th Qualification', '#d97706') + row('SSC Board', academic.ssc_board) + row('Year of Passing', academic.ssc_year) + row('Language / Medium', academic.ssc_language) + row('State of SSC Passing', academic.ssc_state) + row('District of SSC Passing', academic.ssc_district) + row('Taluka of SSC Passing', academic.ssc_taluka) + row('School Name', academic.ssc_school_name))
+  // Present Address (if different)
+  if (demo.addresses_different) {
+    html += tbl(section('Present Address', '#059669') + row('Address Line 1', demo.present_address_line1) + row('Address Line 2', demo.present_address_line2) + row('Address Line 3', demo.present_address_line3) + row('Village', demo.present_village) + row('City', demo.present_city) + row('State', demo.present_state) + row('District', demo.present_district) + row('Taluka', demo.present_taluka) + row('Pin Code', demo.present_pincode))
+  }
 
-  html += tbl(section('HSC / 12th Qualification', '#d97706') + row('Name as per HSC Marksheet', academic.hsc_name) + row('HSC Equivalent Examination', academic.hsc_exam) + row('Passing Year', academic.hsc_passing_year) + row('Roll No. / Seat No.', academic.hsc_roll_no) + row('State of HSC Passing', academic.hsc_state) + row('District of HSC Passing', academic.hsc_district) + row('Taluka of HSC Passing', academic.hsc_taluka) + row('Exam Session', academic.hsc_exam_session))
+  // Reservation Details
+  let reservationRows = row('Apply for NRI?', demo.apply_nri) + row('OCI/PIO Card Holder?', demo.oci_pio) + row('Domicile of Maharashtra?', demo.domicile_maharashtra) + row('Category of Candidate', demo.category_of_candidate) + row('Sub Category', demo.sub_category) + row('Annual Family Income', demo.annual_income)
+
+  // Category Certificate Details
+  const cat = demo.category_of_candidate || ''
+  if (cat && cat !== 'OPEN') {
+    // EWS Certificate
+    if (cat === 'EWS') {
+      reservationRows += row('EWS Certificate Status', demo.ews_cert_status)
+      if (demo.ews_cert_status === 'AVAILABLE') reservationRows += row('EWS Certificate Number', demo.ews_cert_doc_no) + row('EWS Certificate Issuing Date', demo.ews_cert_issue_date) + row('EWS Certificate Issuing District', demo.ews_cert_district)
+      if (demo.ews_cert_status === 'APPLIED') reservationRows += row('EWS Receipt Number', demo.ews_cert_receipt_no) + row('EWS Applied Date', demo.ews_cert_applied_date) + row('EWS Application District', demo.ews_cert_app_district)
+    }
+    // Caste Cert + Caste Validity (SC, ST, OBC, SEBC, SBC, NT1-3, VJDT)
+    if (['SC', 'ST', 'OBC', 'SEBC', 'SBC', 'NT1', 'NT2', 'NT3', 'VJDT'].includes(cat)) {
+      reservationRows += row('Caste Certificate Status', demo.caste_cert_status)
+      if (demo.caste_cert_status === 'AVAILABLE') reservationRows += row('Caste Certificate Number', demo.caste_cert_doc_no) + row('Caste Certificate Issuing Date', demo.caste_cert_issue_date) + row('Caste Certificate Issuing District', demo.caste_cert_district)
+      if (demo.caste_cert_status === 'APPLIED') reservationRows += row('Caste Certificate Receipt No.', demo.caste_cert_receipt_no) + row('Caste Certificate Applied Date', demo.caste_cert_applied_date) + row('Caste Certificate Application District', demo.caste_cert_app_district)
+
+      reservationRows += row('Caste Validity Status', demo.caste_validity_status)
+      if (demo.caste_validity_status === 'AVAILABLE') reservationRows += row('Caste Validity Number', demo.caste_validity_doc_no) + row('Caste Validity Issuing Date', demo.caste_validity_issue_date) + row('Caste Validity Issuing District', demo.caste_validity_district)
+      if (demo.caste_validity_status === 'APPLIED') reservationRows += row('Caste Validity Receipt No.', demo.caste_validity_receipt_no) + row('Caste Validity Applied Date', demo.caste_validity_applied_date) + row('Caste Validity Application District', demo.caste_validity_app_district)
+    }
+    // NCL (OBC, SEBC, SBC, NT1-3, VJDT — not SC/ST)
+    if (['OBC', 'SEBC', 'SBC', 'NT1', 'NT2', 'NT3', 'VJDT'].includes(cat)) {
+      reservationRows += row('NCL Certificate Status', demo.ncl_cert_status)
+      if (demo.ncl_cert_status === 'AVAILABLE') reservationRows += row('NCL Certificate Number', demo.ncl_cert_doc_no) + row('NCL Certificate Issuing Date', demo.ncl_cert_issue_date) + row('NCL Certificate Issuing District', demo.ncl_cert_district)
+      if (demo.ncl_cert_status === 'APPLIED') reservationRows += row('NCL Certificate Receipt No.', demo.ncl_cert_receipt_no) + row('NCL Certificate Applied Date', demo.ncl_cert_applied_date) + row('NCL Certificate Application District', demo.ncl_cert_app_district)
+    }
+  }
+
+  reservationRows += row('Person With Disability (PWD)?', demo.is_pwd) + row('Is the Candidate an Orphan?', demo.is_orphan) + row('Claim Minority Quota?', demo.claim_minority_quota) + (demo.selected_minority ? row('Selected Minority', demo.selected_minority) : '') + row('Claim Linguistic Minority?', demo.claim_linguistic_minority) + (demo.selected_linguistic_minority ? row('Selected Linguistic Minority', demo.selected_linguistic_minority) : '')
+
+  html += tbl(section('Reservation Details', '#e11d48') + reservationRows)
+
+  // SSC
+  html += tbl(section('SSC / 10th Qualification', '#d97706') + row('SSC Board', academic.ssc_board) + row('Year of Passing', academic.ssc_year) + row('SSC Seat Number', academic.ssc_roll_no) + row('Language / Medium', academic.ssc_language) + row('State of SSC Passing', academic.ssc_state) + row('District of SSC Passing', academic.ssc_district) + row('Taluka of SSC Passing', academic.ssc_taluka) + row('School Name', academic.ssc_school_name) + row('Maths Marks', academic.ssc_maths) + row('Science Marks', academic.ssc_science) + row('English Marks', academic.ssc_english))
+
+  // HSC
+  html += tbl(section('HSC / 12th Qualification', '#d97706') + row('Name as per HSC Marksheet', academic.hsc_name) + row("Mother's Name as per HSC Marksheet", academic.hsc_mother_name) + row('Examination Status', academic.hsc_exam_status) + row('Board / Examination', academic.hsc_exam) + row('Passing Year', academic.hsc_passing_year) + row('Roll No. / Seat No.', academic.hsc_roll_no) + row('State of HSC Passing', academic.hsc_state) + row('District of HSC Passing', academic.hsc_district) + row('Taluka of HSC Passing', academic.hsc_taluka) + row('Exam Session', academic.hsc_exam_session))
 
   // Marks table
   const marksHeader = `<tr><td colspan="3" style="padding:10px 10px 6px;font-weight:800;font-size:12px;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #1d4ed8;background:#fff">Subject Details (12th Marks)</td></tr><tr style="background:#f3f4f6"><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db">Subject</td><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db;text-align:center">Marks Obtained</td><td style="padding:6px 10px;font-weight:700;font-size:10px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #d1d5db;text-align:center">Out of</td></tr>`
@@ -70,6 +121,7 @@ function buildHTML(admission: any): string {
   if (academic.biology_obtained || academic.pcb_obtained) marksHtml += marksRow('Biology', academic.biology_obtained, 100)
   if (academic.maths_obtained || academic.pcm_obtained) marksHtml += marksRow('Mathematics', academic.maths_obtained, 100)
   marksHtml += marksRow('English', academic.english_obtained, 100)
+  marksHtml += marksRow('Highest Marks in Subject', academic.highest_marks_subject, 100)
   if (academic.pcm_obtained) {
     marksHtml += marksRow('PCM Total', academic.pcm_obtained, 300)
     marksHtml += marksRow('PCME Total', academic.pcme_obtained, 400)
@@ -102,7 +154,6 @@ function buildHTML(admission: any): string {
   }
 
   // ═══ DOCUMENT VERIFICATION CHECKLIST PAGE ═══
-  const courseName = admission?.course_name || ''
   const applicableDocs = getApplicableDocuments(courseName, demo)
   const grouped = groupByTier(applicableDocs)
 
