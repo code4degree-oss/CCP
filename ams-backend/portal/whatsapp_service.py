@@ -237,7 +237,13 @@ def send_receipt_pdf(
         result = send_template_message(
             phone_number=phone,
             document_url=document_url,
-            template_params=[student_name, course_name, amount],
+            # Fixing the sentence structure for the specific MSG91 template:
+            # "Thank you for your purchase of {{1}} from {{2}}. Your {{3}} PDF is attached."
+            template_params=[
+                course_name, 
+                "Chanakya Career Point", 
+                f"₹{amount} fee receipt"
+            ],
             filename=filename
         )
     except Exception as e:
