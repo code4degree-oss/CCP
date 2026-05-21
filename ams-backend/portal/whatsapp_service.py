@@ -711,9 +711,7 @@ def send_form_pdf(
     logger.info(f"Generated form PDF: {len(pdf_bytes)} bytes")
 
     # Step 2: Save PDF locally and get public URL (auto-deleted after 5 min)
-    _ = save_temp_pdf_and_get_url(pdf_bytes, filename)
-    # TEMPORARY TEST: hardcode public PDF so MSG91 doesn't 404 during your local test
-    document_url = "https://file-example.s3-accelerate.amazonaws.com/documents/cv.pdf"
+    document_url = save_temp_pdf_and_get_url(pdf_bytes, filename)
 
     # Step 3: Build course detail string
     course_detail = course_name or "Admission Guidance"
