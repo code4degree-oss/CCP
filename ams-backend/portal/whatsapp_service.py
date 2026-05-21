@@ -313,11 +313,6 @@ def build_receipt_html(
     </td>
     </tr></table>'''
 
-    # ── Branch address bar ──
-    if branch_address:
-        html += f'''<div style="border-top:1px solid #d1d5db;border-bottom:1px solid #d1d5db;padding:6px 0;margin-bottom:4px;text-align:center">
-        <p style="margin:0;font-size:11px;font-weight:700;color:#1e3a5f"><span style="font-weight:800">{branch_name or "CCP"} Branch : </span>{branch_address}</p>
-        </div>'''
 
     # ── Receipt info ──
     html += '<div style="border-top:2px solid #1e3a5f;padding-top:12px;margin-bottom:8px">'

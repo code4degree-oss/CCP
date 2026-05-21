@@ -65,12 +65,6 @@ export function buildSingleReceiptHTML(r: ReceiptItem): string {
     </td>
   </tr></table>`
 
-  // ── Branch address bar ──
-  if (r.branch_address) {
-    html += `<div style="border-top:1px solid #d1d5db;border-bottom:1px solid #d1d5db;padding:6px 0;margin-bottom:4px;text-align:center">
-      <p style="margin:0;font-size:11px;font-weight:700;color:#1e3a5f"><span style="font-weight:800">${r.branch_name || 'CCP'} Branch : </span>${r.branch_address}</p>
-    </div>`
-  }
 
   // ── Receipt info section ──
   html += `<div style="border-top:2px solid #1e3a5f;padding-top:12px;margin-bottom:8px">`
