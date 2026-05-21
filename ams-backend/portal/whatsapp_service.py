@@ -306,7 +306,7 @@ def build_receipt_html(
     # ── Header: Logo + Title (centered) ──
     html += '''<div style="text-align:center;margin-bottom:6px">
     <h1 style="margin:0;font-size:22px;font-weight:900;color:#1e3a5f;font-style:italic;font-family:Georgia,serif">Chanakya Career Point | Fees Receipt</h1>
-    <p style="margin:2px 0 0;font-size:8px;font-weight:700;color:#374151;letter-spacing:1px;text-transform:uppercase">CHANAKYA CAREER POINT LLP</p>
+    <p style="margin:2px 0 0;font-size:8px;font-weight:700;color:#374151;letter-spacing:1px;text-transform:uppercase">CHAANAKYA CAREER POINT LLP</p>
     </div>'''
 
     # ── Branch name bar ──
