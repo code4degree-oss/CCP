@@ -420,3 +420,319 @@ def build_receipt_html(
 
     html += '</div>'
     return html
+
+
+# ── Server-side Admission Form HTML Builder ──────────────
+# Generates the full admission application form PDF (matching WizardStep5)
+# Does NOT include uploaded-document checkboxes.
+
+def build_admission_form_html(
+    admission_number: str,
+    student_name: str,
+    father_name: str,
+    mother_name: str,
+    student_mobile: str,
+    student_email: str,
+    student_dob: str,
+    student_gender: str,
+    student_aadhaar: str,
+    course_name: str,
+    counselling_type: str,
+    branch_name: str,
+    manager_name: str,
+    created_at_str: str,
+    academic_details: dict,
+    demographic_details: dict,
+    payments: list,
+    neet_rank: str = "",
+    neet_marks: str = "",
+) -> str:
+    """
+    Build admission application form HTML server-side (xhtml2pdf compatible).
+    Matches the WizardStep5 print layout but EXCLUDES uploaded-document checkboxes.
+    """
+    from datetime import datetime as _dt
+
+    def _v(val):
+        """Return the value as string or '—' if empty."""
+        if val and str(val).strip():
+            return str(val)
+        return '—'
+
+    # ── Section helper ──
+    def _section_title(title, color="#1d4ed8"):
+        return f'<tr><td colspan="2" style="padding:10px 10px 6px;font-weight:800;font-size:12px;color:{color};text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid {color};background:#fff">{title}</td></tr>'
+
+    def _row(label, value):
+        return f'''<tr>
+        <td style="padding:6px 10px;font-weight:600;font-size:11px;color:#374151;white-space:nowrap;border-bottom:1px solid #e5e7eb;background:#f9fafb;width:40%">{label}</td>
+        <td style="padding:6px 10px;font-size:11px;color:#111827;border-bottom:1px solid #e5e7eb;width:60%">{_v(value)}</td>
+        </tr>'''
+
+    academic = academic_details or {}
+    demo = demographic_details or {}
+
+    html = ''
+
+    # ── Header ──
+    html += '''<div style="text-align:center;border-bottom:3px double #1e40af;padding-bottom:12px;margin-bottom:14px">
+    <h1 style="margin:0;font-size:18px;font-weight:800;color:#1e3a5f;letter-spacing:0.02em">ADMISSION APPLICATION FORM</h1>
+    <p style="margin:4px 0 0;font-size:11px;color:#6b7280">Chanakya Career Point (CCP)</p>
+    </div>'''
+
+    # ── Admission Info Bar ──
+    html += f'''<table style="width:100%;border:none;margin-bottom:14px;padding:8px 12px;background:#eff6ff;border:1px solid #bfdbfe">
+    <tr>
+    <td style="padding:0;text-align:left">
+        <span style="font-size:10px;font-weight:700;color:#3b82f6;text-transform:uppercase">Admission Number</span><br/>
+        <span style="font-size:16px;font-weight:800;font-family:monospace;color:#1e40af">{_v(admission_number)}</span>
+    </td>
+    <td style="padding:0;text-align:center">
+        <span style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase">Status</span><br/>
+        <span style="font-size:12px;font-weight:700;color:#059669">✓ Finalized</span>
+    </td>
+    <td style="padding:0;text-align:right">
+        <span style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase">Date</span><br/>
+        <span style="font-size:11px;font-weight:600;color:#374151">{_v(created_at_str)}</span>
+    </td>
+    </tr></table>'''
+
+    # ── Course & Counselling Info ──
+    html += '<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px"><tbody>'
+    html += _section_title("Course Information", "#2563eb")
+    html += _row("Course", course_name)
+    if counselling_type:
+        html += _row("Counselling Type", counselling_type)
+    html += _row("Branch", branch_name)
+    html += '</tbody></table>'
+
+    # ── Exam Details ──
+    html += '<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px"><tbody>'
+    html += _section_title("Exam Details", "#1d4ed8")
+    html += _row("NEET Roll No.", academic.get('neet_roll_no'))
+    html += _row("NEET Application No.", academic.get('neet_application_no'))
+    html += _row("Date of Birth", student_dob)
+    html += _row("NEET Rank", neet_rank)
+    html += _row("NEET Marks", neet_marks)
+    html += _row("JEE Roll No.", academic.get('jee_roll_no'))
+    html += _row("JEE Application No.", academic.get('jee_application_no'))
+    html += _row("JEE Rank", academic.get('jee_rank'))
+    html += _row("JEE Percentile", academic.get('jee_percentile'))
+    html += _row("CET Roll No.", academic.get('cet_roll_no'))
+    html += _row("CET Application No.", academic.get('cet_application_no'))
+    html += _row("CET Score", academic.get('cet_score'))
+    html += '</tbody></table>'
+
+    # ── Personal Information ──
+    html += '<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px"><tbody>'
+    html += _section_title("Personal Information", "#7c3aed")
+    html += _row("Full Name", student_name)
+    html += _row("Father's Name", father_name)
+    html += _row("Mother's Name", mother_name)
+    html += _row("Gender", student_gender)
+    html += _row("Mobile", student_mobile)
+    html += _row("Email", student_email)
+    html += _row("Aadhaar No.", student_aadhaar)
+    html += _row("Religion", demo.get('religion'))
+    html += '</tbody></table>'
+
+    # ── Permanent Address ──
+    address_parts = [demo.get('address_line1'), demo.get('address_line2'), demo.get('address_line3')]
+    address_str = ', '.join([p for p in address_parts if p])
+
+    html += '<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px"><tbody>'
+    html += _section_title("Permanent Address", "#059669")
+    html += _row("Address", address_str)
+    html += _row("City / Village", demo.get('city') or demo.get('village'))
+    html += _row("State", demo.get('state'))
+    html += _row("District", demo.get('district'))
+    html += _row("Taluka", demo.get('taluka'))
+    html += _row("Pin Code", demo.get('pincode'))
+    html += '</tbody></table>'
+
+    # ── Present Address (if different) ──
+    if demo.get('addresses_different') and demo.get('present_address_line1'):
+        present_parts = [demo.get('present_address_line1'), demo.get('present_address_line2'), demo.get('present_address_line3')]
+        present_str = ', '.join([p for p in present_parts if p])
+        html += '<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px"><tbody>'
+        html += _section_title("Present Address", "#059669")
+        html += _row("Address", present_str)
+        html += _row("City / Village", demo.get('present_city') or demo.get('present_village'))
+        html += _row("State", demo.get('present_state'))
+        html += _row("District", demo.get('present_district'))
+        html += _row("Taluka", demo.get('present_taluka'))
+        html += _row("Pin Code", demo.get('present_pincode'))
+        html += '</tbody></table>'
+
+    # ── Reservation Details ──
+    html += '<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px"><tbody>'
+    html += _section_title("Reservation Details", "#e11d48")
+    html += _row("Category", demo.get('category_of_candidate'))
+    html += _row("Sub Category", demo.get('sub_category'))
+    html += _row("Nationality", demo.get('nationality'))
+    html += _row("Domicile Maharashtra", demo.get('domicile_maharashtra'))
+    html += _row("PWD", demo.get('is_pwd'))
+    html += _row("Claim Minority Quota", demo.get('claim_minority_quota'))
+    if demo.get('selected_minority'):
+        html += _row("Selected Minority", demo.get('selected_minority'))
+    html += _row("Claim Linguistic Minority", demo.get('claim_linguistic_minority'))
+    if demo.get('selected_linguistic_minority'):
+        html += _row("Selected Linguistic Minority", demo.get('selected_linguistic_minority'))
+    html += _row("Quota Applied For", demo.get('quota_apply_for'))
+    html += '</tbody></table>'
+
+    # ── Caste / NCL / EWS Certificates ──
+    has_cert_info = any(demo.get(k) for k in [
+        'caste_cert_status', 'caste_validity_status', 'ncl_cert_status', 'ews_cert_status'
+    ])
+    if has_cert_info:
+        html += '<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px"><tbody>'
+        html += _section_title("Certificate Details", "#7c3aed")
+        if demo.get('caste_cert_status'):
+            html += _row("Caste Cert. Status", demo.get('caste_cert_status'))
+            html += _row("Caste Cert. Doc No.", demo.get('caste_cert_doc_no'))
+            html += _row("Caste Cert. Issue Date", demo.get('caste_cert_issue_date'))
+        if demo.get('caste_validity_status'):
+            html += _row("Caste Validity Status", demo.get('caste_validity_status'))
+            html += _row("Caste Validity Doc No.", demo.get('caste_validity_doc_no'))
+        if demo.get('ncl_cert_status'):
+            html += _row("NCL Cert. Status", demo.get('ncl_cert_status'))
+            html += _row("NCL Cert. Doc No.", demo.get('ncl_cert_doc_no'))
+        if demo.get('ews_cert_status'):
+            html += _row("EWS Cert. Status", demo.get('ews_cert_status'))
+            html += _row("EWS Cert. Doc No.", demo.get('ews_cert_doc_no'))
+        html += '</tbody></table>'
+
+    # ── Subject Marks (12th) ──
+    has_marks = any(academic.get(f'{s}_obtained') for s in ['physics', 'chemistry', 'biology', 'maths', 'english'])
+    if has_marks:
+        html += '<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px"><tbody>'
+        html += _section_title("Subject Marks (12th)", "#1d4ed8")
+        for subj in ['Physics', 'Chemistry', 'Biology', 'Maths', 'English']:
+            key = subj.lower()
+            obtained = academic.get(f'{key}_obtained')
+            out_of = academic.get(f'{key}_out_of', '100')
+            if obtained:
+                html += _row(subj, f"{obtained} / {out_of}")
+        if academic.get('pcb_obtained'):
+            html += _row("PCB Total", f"{academic['pcb_obtained']} / {academic.get('pcb_out_of', '300')}")
+        if academic.get('pcm_obtained'):
+            html += _row("PCM Total", f"{academic['pcm_obtained']} / {academic.get('pcm_out_of', '300')}")
+        html += '</tbody></table>'
+
+    # ── SSC / HSC ──
+    html += '<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px"><tbody>'
+    html += _section_title("SSC / HSC Qualification", "#d97706")
+    html += _row("SSC Board", academic.get('ssc_board'))
+    html += _row("SSC Year", academic.get('ssc_year'))
+    html += _row("SSC School", academic.get('ssc_school_name'))
+    html += _row("SSC State", academic.get('ssc_state'))
+    html += _row("SSC District", academic.get('ssc_district'))
+    html += _row("HSC Name", academic.get('hsc_name'))
+    html += _row("HSC Exam", academic.get('hsc_exam'))
+    html += _row("HSC Year", academic.get('hsc_passing_year'))
+    html += _row("HSC Roll No.", academic.get('hsc_roll_no'))
+    html += _row("HSC State", academic.get('hsc_state'))
+    html += '</tbody></table>'
+
+    # ── Payment Information ──
+    if payments:
+        html += '<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px"><tbody>'
+        html += _section_title("Payment Information", "#059669")
+        for i, p in enumerate(payments, 1):
+            amount = p.get('amount', 0)
+            mode = p.get('payment_mode', '')
+            p_status = p.get('status', '')
+            try:
+                amount_str = f"Rs.{int(float(amount)):,}"
+            except Exception:
+                amount_str = f"Rs.{amount}"
+            html += _row(f"Payment {i}", f"{amount_str} — {mode} ({p_status})")
+        html += '</tbody></table>'
+
+    # ── Signatures ──
+    html += f'''<table style="width:100%;border:none;margin-top:40px;padding-top:16px">
+    <tr>
+    <td style="text-align:center;width:45%;padding:0 10px;vertical-align:bottom">
+        <div style="border-top:1px solid #374151;padding-top:6px">
+            <p style="margin:0;font-size:10px;font-weight:600;color:#374151">Student's Signature</p>
+        </div>
+    </td>
+    <td style="text-align:center;width:45%;padding:0 10px;vertical-align:bottom">
+        <div style="border-top:1px solid #374151;padding-top:6px">
+            <p style="margin:0;font-size:10px;font-weight:600;color:#374151">Authorized Signature &amp; Stamp</p>
+        </div>
+    </td>
+    </tr></table>'''
+
+    # ── Footer ──
+    now = _dt.now()
+    gen_str = now.strftime("%d %b %Y, %I:%M %p")
+    html += f'''<div style="text-align:center;margin-top:20px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:9px;color:#9ca3af">
+    Filled by: {_v(manager_name)} &nbsp;|&nbsp; Generated on: {gen_str}
+    </div>'''
+
+    return html
+
+
+def send_form_pdf(
+    phone_number: str,
+    form_html: str,
+    student_name: str = "",
+    course_name: str = "",
+    counselling_type: str = "",
+    filename: str = "Admission_Form.pdf",
+) -> dict:
+    """
+    Complete flow: HTML → PDF → Save Local (Temp) → Send via MSG91 using 'form_pdf' template.
+
+    Template body params:
+      body_1 = Student Name
+      body_2 = Course details (course + counselling type)
+      body_3 = "For any query, contact Chanakya Career Point"
+
+    Returns the MSG91 API response.
+    """
+    if not is_configured():
+        raise ValueError(
+            "MSG91 API is not configured. Please set WHATSAPP_PHONE_NUMBER_ID (integrated number) "
+            "and MSG91_AUTH_KEY in your .env file."
+        )
+
+    # Normalize phone number
+    phone = phone_number.strip().replace(" ", "").replace("-", "")
+    if phone.startswith("+"):
+        phone = phone[1:]
+    if not phone.startswith("91") and len(phone) == 10:
+        phone = "91" + phone
+
+    # Step 1: Convert HTML to PDF
+    pdf_bytes = html_to_pdf(form_html)
+    logger.info(f"Generated form PDF: {len(pdf_bytes)} bytes")
+
+    # Step 2: Save PDF locally and get public URL (auto-deleted after 5 min)
+    document_url = save_temp_pdf_and_get_url(pdf_bytes, filename)
+
+    # Step 3: Build course detail string
+    course_detail = course_name or "Admission Guidance"
+    if counselling_type:
+        course_detail = f"{course_detail} - {counselling_type}"
+
+    # Step 4: Send via MSG91 template message using 'form_pdf' template
+    try:
+        result = send_template_message(
+            phone_number=phone,
+            document_url=document_url,
+            template_params=[
+                student_name or "Student",
+                course_detail,
+                "For any query, contact Chanakya Career Point",
+            ],
+            template_name="form_pdf",
+            filename=filename,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send form PDF via MSG91: {e}")
+        raise
+
+    return result

@@ -696,7 +696,110 @@ class AdmissionViewSet(viewsets.ModelViewSet):
                 admission.admission_status = 'Documents Pending'
         admission.save()
 
+        # ── Auto-send form PDF via WhatsApp when status is Form Completed ──
+        if admission.admission_status == 'Form Completed':
+            self._send_form_pdf_whatsapp(admission, request.user)
+
         return Response(AdmissionSerializer(admission).data)
+
+    def _send_form_pdf_whatsapp(self, admission, acting_user=None):
+        """Helper: Generate form PDF and send to parent via WhatsApp.
+        Wrapped in try/except so it never blocks the main operation."""
+        try:
+            from . import whatsapp_service
+            import logging
+            _logger = logging.getLogger(__name__)
+
+            if not whatsapp_service.is_configured():
+                _logger.info(f"WhatsApp not configured, skipping form PDF for admission {admission.id}")
+                return
+
+            student = admission.student
+            if not student:
+                return
+
+            # Resolve parent phone: alternate_mobile → student mobile
+            demo = student.demographic_details or {}
+            phone = demo.get('alternate_mobile') or demo.get('father_mobile')
+            if not phone:
+                phone = student.mobile
+            if not phone:
+                _logger.warning(f"No phone number for admission {admission.id}, skipping form PDF")
+                return
+
+            academic = student.academic_details or {}
+
+            # Build payments list for the form
+            payments_data = []
+            for p in admission.payments.filter(status='Paid').order_by('id'):
+                payments_data.append({
+                    'amount': float(p.amount),
+                    'payment_mode': p.payment_mode,
+                    'status': p.status,
+                })
+
+            # Format created_at date
+            created_at_str = ''
+            if admission.created_at:
+                created_at_str = admission.created_at.strftime('%d %b %Y')
+
+            # Build the form HTML (no document checkboxes)
+            form_html = whatsapp_service.build_admission_form_html(
+                admission_number=admission.admission_number or '',
+                student_name=student.full_name or '',
+                father_name=student.father_name or '',
+                mother_name=demo.get('mother_name', ''),
+                student_mobile=student.mobile or '',
+                student_email=student.email or '',
+                student_dob=str(student.dob) if student.dob else '',
+                student_gender=student.gender or '',
+                student_aadhaar=student.aadhaar_no or '',
+                course_name=admission.course.name if admission.course else '',
+                counselling_type=admission.counselling_type or '',
+                branch_name=admission.branch.name if admission.branch else 'CCP',
+                manager_name=acting_user.full_name if acting_user and hasattr(acting_user, 'full_name') else 'Coordinator',
+                created_at_str=created_at_str,
+                academic_details=academic,
+                demographic_details=demo,
+                payments=payments_data,
+                neet_rank=str(student.neet_rank) if student.neet_rank else '',
+                neet_marks=str(student.neet_marks) if student.neet_marks else '',
+            )
+
+            # Send via WhatsApp
+            result = whatsapp_service.send_form_pdf(
+                phone_number=phone,
+                form_html=form_html,
+                student_name=student.full_name or 'Student',
+                course_name=admission.course.name if admission.course else 'Admission Guidance',
+                counselling_type=admission.counselling_type or '',
+                filename=f"Admission_Form_{admission.admission_number or admission.id}.pdf",
+            )
+
+            # Log the notification
+            NotificationLog.objects.create(
+                sent_by=acting_user if acting_user and acting_user.is_authenticated else None,
+                channel='whatsapp',
+                template_name='form_pdf',
+                payload={
+                    'phone': phone,
+                    'student_name': student.full_name,
+                    'course_name': admission.course.name if admission.course else '',
+                    'counselling_type': admission.counselling_type or '',
+                    'admission_id': admission.id,
+                    'type': 'form_pdf',
+                },
+                delivery_status='sent',
+                external_message_id=str(result.get('request_id', '')),
+            )
+
+            _logger.info(f"Auto-sent form PDF for admission {admission.id} to {phone}")
+
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"Auto-send form PDF failed for admission {admission.id}: {e}"
+            )
 
     @action(detail=True, methods=['post'], url_path='upload-document')
     def upload_document(self, request, pk=None):
@@ -735,6 +838,10 @@ class AdmissionViewSet(viewsets.ModelViewSet):
         if admission.is_finalized and admission.admission_status == 'Documents Pending':
             admission.admission_status = 'Form Completed'
             admission.save(update_fields=['admission_status', 'updated_at'])
+
+            # ── Auto-send form PDF via WhatsApp on transition to Form Completed ──
+            self._send_form_pdf_whatsapp(admission, request.user)
+
         return Response(AdmissionDocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['get'])
