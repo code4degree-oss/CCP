@@ -41,6 +41,9 @@ def _headers():
 
 def html_to_pdf(html_content: str) -> bytes:
     """Convert HTML string to PDF bytes using xhtml2pdf."""
+    # Replace ₹ with Rs. — xhtml2pdf's default fonts don't support the rupee symbol
+    html_content = html_content.replace('₹', 'Rs.')
+    
     # Wrap in a full HTML document with proper encoding
     full_html = f"""<!DOCTYPE html>
 <html>
