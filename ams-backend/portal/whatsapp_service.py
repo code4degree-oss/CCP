@@ -726,9 +726,9 @@ def send_form_pdf(
             phone_number=phone,
             document_url=document_url,
             template_params=[
-                student_name or "Student",
                 course_detail,
-                "If there is any query contact Chankya carrer point",
+                "Chanakya Career Point",
+                f"Admission Form for {student_name or 'Student'}",
             ],
             template_name="form_pdf",
             filename=filename,
