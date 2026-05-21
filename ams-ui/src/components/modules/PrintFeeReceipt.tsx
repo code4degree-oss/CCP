@@ -43,41 +43,64 @@ export function buildSingleReceiptHTML(r: ReceiptItem): string {
   const receiptNo = r.receipt_label || r.admission_number
   const hasMultiple = (r.total_payments || 0) > 1
   const showCumulative = hasMultiple && (r.cumulative_paid || 0) !== (r.amount_paid || 0)
+  const now = new Date()
+  const dateTimeStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ', ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+  const pageLabel = hasMultiple ? `${r.payment_index}/${r.total_payments}` : '1/1'
 
   let html = `<div style="font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#111827">`
 
-  // Header
-  html += `<div style="text-align:center;padding-bottom:10px;margin-bottom:4px">
-    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:6px">
-      <img src="/LOGO CCP.png" alt="CCP" style="width:56px;height:56px;object-fit:contain" />
-      <div><h1 style="margin:0;font-size:22px;font-weight:900;color:#1e3a5f;font-style:italic;font-family:Georgia,serif">Chanakya Career Point | Fees Receipt</h1></div>
-    </div>`
+  // ── Top meta bar: date/time left, system name right ──
+  html += `<table style="width:100%;border:none;margin-bottom:10px"><tr>
+    <td style="text-align:left;font-size:9px;color:#6b7280;padding:0">${dateTimeStr}</td>
+    <td style="text-align:right;font-size:9px;color:#6b7280;padding:0">CCP — Admission Management System</td>
+  </tr></table>`
+
+  // ── Header: Logo + Title (centered via table) ──
+  html += `<table style="width:100%;border:none;margin-bottom:6px"><tr>
+    <td style="text-align:center;padding:0">
+      <table style="margin:0 auto;border:none"><tr>
+        <td style="padding:0 10px 0 0;vertical-align:middle"><img src="/LOGO CCP.png" alt="CCP" style="width:50px;height:50px;object-fit:contain" /></td>
+        <td style="padding:0;vertical-align:middle"><h1 style="margin:0;font-size:22px;font-weight:900;color:#1e3a5f;font-style:italic;font-family:Georgia,serif">Chanakya Career Point | Fees Receipt</h1></td>
+      </tr></table>
+    </td>
+  </tr></table>`
+
+  // ── Branch address bar ──
   if (r.branch_address) {
-    html += `<div style="border-top:1px solid #d1d5db;border-bottom:1px solid #d1d5db;padding:6px 0;margin-top:4px">
+    html += `<div style="border-top:1px solid #d1d5db;border-bottom:1px solid #d1d5db;padding:6px 0;margin-bottom:4px;text-align:center">
       <p style="margin:0;font-size:11px;font-weight:700;color:#1e3a5f"><span style="font-weight:800">${r.branch_name || 'CCP'} Branch : </span>${r.branch_address}</p>
     </div>`
   }
-  html += `</div>`
 
-  // Receipt info
+  // ── Receipt info section ──
   html += `<div style="border-top:2px solid #1e3a5f;padding-top:12px;margin-bottom:8px">`
-  html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <p style="margin:0;font-size:13px;color:#111827"><span style="font-weight:800">Receipt No : </span><span style="font-family:monospace;font-weight:700;color:#1e40af">${receiptNo}</span></p>`
-  if (hasMultiple) {
-    html += `<span style="font-size:10px;font-weight:700;color:#6b7280;background:#f3f4f6;padding:2px 8px;border-radius:4px;border:1px solid #e5e7eb">Payment ${r.payment_index} of ${r.total_payments}</span>`
-  }
-  html += `</div>`
-  html += `<p style="margin:0 0 8px;font-size:13px;color:#111827"><span style="font-weight:800">Name : </span><span style="text-transform:uppercase;font-weight:600">${r.student_name}</span></p>`
-  html += `<div style="display:flex;justify-content:space-between;margin-bottom:8px">
-    <p style="margin:0;font-size:13px;color:#111827"><span style="font-weight:800">Course: </span><span style="font-weight:600">${r.course_name}</span></p>
-    <p style="margin:0;font-size:13px;color:#111827"><span style="font-weight:800">Student Mo: </span><span style="font-weight:600">${r.student_mobile}</span></p>
-  </div>`
-  html += `<div style="display:flex;justify-content:space-between;margin-bottom:4px">
-    <p style="margin:0;font-size:13px;color:#111827"><span style="font-weight:800">Parent's Mo: </span><span style="font-weight:600">${v(r.parent_mobile)}</span></p>
-    <p style="margin:0;font-size:13px;color:#111827"><span style="font-weight:800">Date : </span><span style="font-weight:600">${r.date}</span></p>
-  </div></div>`
 
-  // Fee table
+  // Receipt No (+ payment badge if multiple)
+  html += `<table style="width:100%;border:none;margin-bottom:8px"><tr>
+    <td style="padding:0;text-align:left"><p style="margin:0;font-size:13px;color:#111827"><span style="font-weight:800">Receipt No : </span><span style="font-family:monospace;font-weight:700;color:#1e40af">${receiptNo}</span></p></td>`
+  if (hasMultiple) {
+    html += `<td style="padding:0;text-align:right"><span style="font-size:10px;font-weight:700;color:#6b7280;background:#f3f4f6;padding:2px 8px;border-radius:4px;border:1px solid #e5e7eb">Payment ${r.payment_index} of ${r.total_payments}</span></td>`
+  }
+  html += `</tr></table>`
+
+  // Name
+  html += `<p style="margin:0 0 8px;font-size:13px;color:#111827"><span style="font-weight:800">Name : </span><span style="text-transform:uppercase;font-weight:600">${r.student_name}</span></p>`
+
+  // Course + Student Mo
+  html += `<table style="width:100%;border:none;margin-bottom:8px"><tr>
+    <td style="padding:0;text-align:left"><p style="margin:0;font-size:13px;color:#111827"><span style="font-weight:800">Course: </span><span style="font-weight:600">${r.course_name}</span></p></td>
+    <td style="padding:0;text-align:right"><p style="margin:0;font-size:13px;color:#111827"><span style="font-weight:800">Student Mo: </span><span style="font-weight:600">${r.student_mobile}</span></p></td>
+  </tr></table>`
+
+  // Parent's Mo + Date
+  html += `<table style="width:100%;border:none;margin-bottom:4px"><tr>
+    <td style="padding:0;text-align:left"><p style="margin:0;font-size:13px;color:#111827"><span style="font-weight:800">Parent's Mo: </span><span style="font-weight:600">${v(r.parent_mobile)}</span></p></td>
+    <td style="padding:0;text-align:right"><p style="margin:0;font-size:13px;color:#111827"><span style="font-weight:800">Date : </span><span style="font-weight:600">${r.date}</span></p></td>
+  </tr></table>`
+
+  html += `</div>`
+
+  // ── Fee table ──
   const cellStyle = 'padding:8px 12px;font-size:12px;border:1px solid #374151;text-align:center'
   const thStyle = `${cellStyle};font-weight:800;color:#111827`
   let srNo = 1
@@ -94,49 +117,63 @@ export function buildSingleReceiptHTML(r: ReceiptItem): string {
   html += `<tr><td style="${cellStyle};color:#374151">${srNo}</td><td style="${cellStyle};color:#374151">Balance Fees</td><td style="${cellStyle};color:${balance > 0 ? '#dc2626' : '#059669'};font-weight:700">₹${Number(balance).toLocaleString('en-IN')}</td></tr>`
   html += `</tbody></table>`
 
-  // Payment mode
+  // ── Payment mode ──
   if (r.payment_mode && r.payment_mode !== '—') {
-    html += `<div style="display:flex;gap:20px;margin-bottom:10px;font-size:12px;color:#374151">
-      <p style="margin:0"><span style="font-weight:800">Payment Mode:</span> ${r.payment_mode}</p>`
-    if (r.transaction_id) html += `<p style="margin:0"><span style="font-weight:800">Ref/TXN:</span> ${r.transaction_id}</p>`
-    html += `</div>`
+    html += `<p style="margin:0 0 10px;font-size:12px;color:#374151"><span style="font-weight:800">Payment Mode:</span> ${r.payment_mode}`
+    if (r.transaction_id) html += `&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-weight:800">Ref/TXN:</span> ${r.transaction_id}`
+    html += `</p>`
   }
 
-  // Terms & Conditions
+  // ── Terms & Conditions ──
   html += `<div style="margin-top:10px;border-top:1.5px solid #1e3a5f;padding-top:6px">
     <h3 style="font-size:9px;font-weight:900;color:#dc2626;text-align:center;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.04em">Terms &amp; Conditions: Chanakya Career Point Counselling Program</h3>
     <p style="font-size:7px;color:#6b7280;text-align:center;margin:0 0 5px">Before participating in the counselling services, it is mandatory to carefully read and fully accept the following terms and conditions.</p>
-    <div style="columns:2;column-gap:14px;font-size:7.5px;line-height:1.35;color:#374151">
-      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">1. Counselling Fee Policy</p>
-      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">The counselling fee must be paid in a single installment and will remain valid for the entire duration of the program.</li><li style="margin:0 0 1px">The counselling process will only commence after the fee has been paid.</li><li style="margin:0 0 1px">The fee covers guidance services only; admission is not guaranteed.</li></ul>
-      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">2. Strict No-Refund Policy</p>
-      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">Counselling fees paid will not be refunded under any circumstances or for any reason.</li><li style="margin:0 0 1px">No refunds if the student/parent leaves midway, remains absent, expresses dissatisfaction, or discontinues for personal reasons.</li><li style="margin:0 0 1px">Fees will not be refunded if the student fails to secure admission, changes college/course, or due to government policy changes.</li><li style="margin:0 0 1px">Fee transfers, credits, or adjustments for future sessions are not permitted.</li></ul>
-      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">3. Schedule and Attendance</p>
-      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">All counselling sessions will be organized according to a fixed schedule.</li><li style="margin:0 0 1px">Students and parents must strictly adhere to the scheduled timings.</li><li style="margin:0 0 1px">The institution assumes no responsibility if a participant arrives late, is absent, or violates the schedule.</li></ul>
-      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">4. Official Communication</p>
-      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">It is mandatory to follow official instructions via WhatsApp groups, email, or official calling channels.</li><li style="margin:0 0 1px">Information from unofficial sources should not be relied upon. The institution&#39;s official directives are final and legally binding.</li></ul>
-      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">5. Office Visit Policy</p>
-      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">Office visits are permitted by prior appointment only. Unnecessary, frequent, or unscheduled visits should be avoided.</li><li style="margin:0 0 1px">Unauthorized interference in the counselling process will not be tolerated.</li></ul>
-      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">6. Discipline and Cooperation</p>
-      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">Students and parents must comply with all institutional rules.</li><li style="margin:0 0 1px">The institution reserves the right to immediately cancel services in cases of misconduct, disputes, or breach of discipline.</li></ul>
-      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">7. Limitation of Liability</p>
-      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">Chanakya Career Point provides guidance services only; it does not provide a legal guarantee of admission.</li><li style="margin:0 0 1px">The institution is not responsible if a student does not secure admission or achieve expected results.</li></ul>
-      <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">8. Right to Final Decision</p>
-      <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">The decision of Chanakya Career Point regarding the counselling process, policies, and related matters shall be final and binding.</li></ul>
-    </div>
+    <table style="width:100%;border:none;font-size:7.5px;line-height:1.35;color:#374151"><tr>
+      <td style="vertical-align:top;width:50%;padding:0 7px 0 0">
+        <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">1. Counselling Fee Policy</p>
+        <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">The counselling fee must be paid in a single installment and will remain valid for the entire duration of the program.</li><li style="margin:0 0 1px">The counselling process will only commence after the fee has been paid.</li><li style="margin:0 0 1px">The fee covers guidance services only; admission is not guaranteed.</li></ul>
+        <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">2. Strict No-Refund Policy</p>
+        <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">Counselling fees paid will not be refunded under any circumstances or for any reason.</li><li style="margin:0 0 1px">No refunds if the student/parent leaves midway, remains absent, expresses dissatisfaction, or discontinues for personal reasons.</li><li style="margin:0 0 1px">Fees will not be refunded if the student fails to secure admission, changes college/course, or due to government policy changes.</li><li style="margin:0 0 1px">Fee transfers, credits, or adjustments for future sessions are not permitted.</li></ul>
+        <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">3. Schedule and Attendance</p>
+        <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">All counselling sessions will be organized according to a fixed schedule.</li><li style="margin:0 0 1px">Students and parents must strictly adhere to the scheduled timings.</li><li style="margin:0 0 1px">The institution assumes no responsibility if a participant arrives late, is absent, or violates the schedule.</li></ul>
+        <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">4. Official Communication</p>
+        <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">It is mandatory to follow official instructions via WhatsApp groups, email, or official calling channels.</li><li style="margin:0 0 1px">Information from unofficial sources should not be relied upon. The institution&#39;s official directives are final and legally binding.</li></ul>
+      </td>
+      <td style="vertical-align:top;width:50%;padding:0 0 0 7px">
+        <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">5. Office Visit Policy</p>
+        <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">Office visits are permitted by prior appointment only. Unnecessary, frequent, or unscheduled visits should be avoided.</li><li style="margin:0 0 1px">Unauthorized interference in the counselling process will not be tolerated.</li></ul>
+        <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">6. Discipline and Cooperation</p>
+        <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">Students and parents must comply with all institutional rules.</li><li style="margin:0 0 1px">The institution reserves the right to immediately cancel services in cases of misconduct, disputes, or breach of discipline.</li></ul>
+        <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">7. Limitation of Liability</p>
+        <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">Chanakya Career Point provides guidance services only; it does not provide a legal guarantee of admission.</li><li style="margin:0 0 1px">The institution is not responsible if a student does not secure admission or achieve expected results.</li></ul>
+        <p style="font-size:8px;font-weight:800;color:#1e3a5f;margin:3px 0 1px">8. Right to Final Decision</p>
+        <ul style="padding-left:12px;margin:0 0 2px"><li style="margin:0 0 1px">The decision of Chanakya Career Point regarding the counselling process, policies, and related matters shall be final and binding.</li></ul>
+      </td>
+    </tr></table>
   </div>`
 
-  // Declaration acceptance + Signature fields
+  // ── Declaration acceptance ──
   html += `<div style="margin-top:6px;border-top:1px solid #374151;padding-top:5px">
     <p style="font-size:8px;font-weight:700;color:#111827;margin:0 0 5px;text-align:center">I have carefully read the above terms and conditions, understood them fully, and accept them without any objection.</p>
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:30px">
-      <div style="text-align:center;width:28%"><div style="border-top:1px solid #374151;padding-top:4px"><p style="margin:0;font-size:9px;font-weight:800;color:#111827">Parent Sign</p></div></div>
-      <div style="text-align:center;width:28%"><div style="border-top:1px solid #374151;padding-top:4px"><p style="margin:0;font-size:9px;font-weight:800;color:#111827">Student Sign</p></div></div>
-      <div style="text-align:center;width:28%"><div style="border-top:1px solid #374151;padding-top:4px"><p style="margin:0 0 1px;font-size:9px;font-weight:800;color:#111827">${r.filled_by || 'Coordinator'}</p><p style="margin:0;font-size:7px;font-weight:600;color:#6b7280">Coordinator Sign</p></div></div>
-    </div>
+    <table style="width:100%;border:none;margin-top:30px"><tr>
+      <td style="width:33%;text-align:center;padding:0 8px;vertical-align:bottom"><div style="border-top:1px solid #374151;padding-top:4px"><p style="margin:0;font-size:9px;font-weight:800;color:#111827">Parent Sign</p></div></td>
+      <td style="width:33%;text-align:center;padding:0 8px;vertical-align:bottom"><div style="border-top:1px solid #374151;padding-top:4px"><p style="margin:0;font-size:9px;font-weight:800;color:#111827">Student Sign</p></div></td>
+      <td style="width:33%;text-align:center;padding:0 8px;vertical-align:bottom"><div style="border-top:1px solid #374151;padding-top:4px"><p style="margin:0 0 1px;font-size:9px;font-weight:800;color:#111827">Test Branch Admin</p><p style="margin:0;font-size:7px;font-weight:600;color:#6b7280">Coordinator Sign</p></div></td>
+    </tr></table>
   </div>`
 
-  html += `<div style="text-align:center;margin-top:5px;padding-top:3px;border-top:1px solid #e5e7eb;font-size:7px;color:#9ca3af">Generated on: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} &nbsp;|&nbsp; This is a computer-generated receipt.</div>`
+  // ── Footer: URL left, page counter right ──
+  html += `<table style="width:100%;border:none;margin-top:5px;padding-top:3px;border-top:1px solid #e5e7eb"><tr>
+    <td style="text-align:left;font-size:7px;color:#9ca3af;padding:3px 0 0">
+      Generated on: ${now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} &nbsp;|&nbsp; This is a computer-generated receipt.
+    </td>
+    <td style="text-align:right;font-size:9px;color:#6b7280;padding:3px 0 0">${pageLabel}</td>
+  </tr></table>`
+
+  // ── Bottom link bar ──
+  html += `<table style="width:100%;border:none;margin-top:4px"><tr>
+    <td style="text-align:left;font-size:8px;color:#2563eb;padding:0"><a href="https://crm.chanakyacp.com/#admissions" style="color:#2563eb;text-decoration:none">https://crm.chanakyacp.com/#admissions</a></td>
+  </tr></table>`
 
   html += `</div>`
   return html

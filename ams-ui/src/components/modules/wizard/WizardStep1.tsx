@@ -133,7 +133,7 @@ export function WizardStep1({ onSubmit, onNext, onUpdateContacts, branches, user
                     className={inputClass} 
                   />
                 </Field>
-                <Field label="Parent's Mobile No.">
+                <Field label="WhatsApp Number (📱 Receipt will be sent here)">
                   <input 
                     value={editParentMobile} 
                     onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) setEditParentMobile(v); }} 
@@ -183,7 +183,7 @@ export function WizardStep1({ onSubmit, onNext, onUpdateContacts, branches, user
             <div className="grid grid-cols-2 gap-4">
               <Field label="Student Name" required half><input value={p1.student_name} onChange={e => s('student_name', e.target.value)} placeholder="Full name" className={inputClass} /></Field>
               <Field label="Student Mobile No." required half><input value={p1.student_mobile} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) s('student_mobile', v); }} placeholder="10-digit number" className={inputClass} /></Field>
-              <Field label="Parent's Mobile No." half><input value={p1.parent_mobile} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) s('parent_mobile', v); }} placeholder="Parent / Guardian mobile" className={inputClass} /></Field>
+              <Field label="WhatsApp Number (📱 Receipt will be sent here)" half><input value={p1.parent_mobile} onChange={e => { const v = e.target.value.replace(/\D/g, ''); if (v.length <= 10) s('parent_mobile', v); }} placeholder="Parent / Guardian WhatsApp number" className={inputClass} /></Field>
             </div>
           </div>
           {isSuper && (

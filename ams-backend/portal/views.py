@@ -761,6 +761,107 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             notes=data.get('notes', ''),
             collected_by=request.user if request.user.is_authenticated else None,
         )
+
+        # ── Auto-send receipt via WhatsApp when balance reaches 0 ──
+        try:
+            from . import whatsapp_service
+            from django.db.models import Sum
+            import logging
+            logger = logging.getLogger(__name__)
+
+            if whatsapp_service.is_configured():
+                # Calculate total paid and course fee
+                total_paid = float(
+                    admission.payments.filter(status='Paid').aggregate(s=Sum('amount'))['s'] or 0
+                )
+
+                # Determine the correct course fee (counselling-type fee if applicable)
+                course_fee = 0
+                bc = BranchCourse.objects.filter(branch=admission.branch, course=admission.course).first()
+                if bc:
+                    course_fee = float(bc.fee_amount or 0)
+                    # Check for counselling-type-specific fee
+                    ct = (admission.counselling_type or '').strip().lower()
+                    if ct:
+                        ct_key = ''
+                        if 'both' in ct: ct_key = 'Both'
+                        elif 'josaa' in ct: ct_key = 'JoSAA'
+                        elif 'mht-cet' in ct or 'state cap' in ct: ct_key = 'CET'
+                        elif 'two state' in ct or 'combo' in ct: ct_key = 'Combo_Medical'
+                        elif 'maharashtra' in ct: ct_key = 'MH_Medical'
+                        elif 'other state' in ct: ct_key = 'Other_Medical'
+                        if ct_key:
+                            ct_fee = BranchCourseCounsellingFee.objects.filter(
+                                branch_course=bc, counselling_type=ct_key
+                            ).first()
+                            if ct_fee:
+                                course_fee = float(ct_fee.fee_amount)
+
+                balance = max(0, course_fee - total_paid)
+
+                if balance <= 0 and course_fee > 0:
+                    # Fully paid — auto-send receipt
+                    student = admission.student
+                    phone = None
+                    if student:
+                        demo = student.demographic_details or {}
+                        phone = demo.get('alternate_mobile') or demo.get('father_mobile')
+                        if not phone:
+                            phone = student.mobile
+
+                    if phone:
+                        # Get all payments for this admission
+                        all_payments = list(admission.payments.filter(status='Paid').order_by('id'))
+                        payment_index = len(all_payments)
+                        total_payments_count = len(all_payments)
+
+                        cumulative_paid = total_paid
+                        from datetime import datetime
+                        date_str = datetime.now().strftime('%d/%m/%Y')
+
+                        receipt_no = f"{admission.admission_number}-{payment_index}" if total_payments_count > 1 else admission.admission_number
+                        branch_address = ''
+                        if admission.branch:
+                            branch_address = admission.branch.address or ''
+
+                        receipt_html = whatsapp_service.build_receipt_html(
+                            receipt_no=receipt_no,
+                            student_name=student.full_name if student else 'Student',
+                            student_mobile=student.mobile if student else '',
+                            parent_mobile=phone,
+                            course_name=admission.course.name if admission.course else 'Course',
+                            course_fee=course_fee,
+                            amount_paid=float(data['amount']),
+                            cumulative_paid=cumulative_paid,
+                            balance=0,
+                            payment_mode=data['payment_mode'],
+                            reference_no=data.get('reference_no', ''),
+                            branch_name=admission.branch.name if admission.branch else 'CCP',
+                            branch_address=branch_address,
+                            date_str=date_str,
+                            filled_by=request.user.full_name if hasattr(request.user, 'full_name') else 'Coordinator',
+                            payment_index=payment_index,
+                            total_payments=total_payments_count,
+                        )
+
+                        whatsapp_service.send_receipt_pdf(
+                            phone_number=phone,
+                            receipt_html=receipt_html,
+                            student_name=student.full_name if student else 'Student',
+                            course_name=admission.course.name if admission.course else 'Course',
+                            amount=f"{data['amount']:,.0f}",
+                            filename=f"Receipt_{admission.admission_number or admission.id}.pdf",
+                        )
+
+                        # Mark receipt as sent
+                        Receipt.objects.filter(payment=payment).update(whatsapp_sent=True)
+
+                        logger.info(f"Auto-sent receipt for admission {admission.id} (balance=0) to {phone}")
+        except Exception as e:
+            # Don't fail the payment recording if WhatsApp auto-send fails
+            import logging
+            logging.getLogger(__name__).warning(f"Auto-send receipt failed for admission {admission.id}: {e}")
+
         return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], url_path='send-receipt-whatsapp',
