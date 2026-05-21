@@ -1097,6 +1097,61 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             'integrated_number': whatsapp_service.INTEGRATED_NUMBER or None,
         })
 
+    @action(detail=True, methods=['post'], url_path='send-form-whatsapp',
+            permission_classes=[IsAuthenticated])
+    def send_form_whatsapp(self, request, pk=None):
+        """Manually send the admission form PDF to parent via WhatsApp.
+        Returns previously_sent=True if the form was already sent before."""
+        from . import whatsapp_service
+        import logging
+        logger = logging.getLogger(__name__)
+
+        admission = self.get_object()
+
+        # Check if WhatsApp is configured
+        if not whatsapp_service.is_configured():
+            return Response({
+                'detail': 'WhatsApp API is not configured.',
+                'configured': False,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if form was already sent for this admission
+        already_sent = NotificationLog.objects.filter(
+            payload__admission_id=admission.id,
+            payload__type='form_pdf',
+            delivery_status='sent',
+        ).exists()
+
+        # Determine phone number
+        student = admission.student
+        if not student:
+            return Response({'detail': 'No student found.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        demo = student.demographic_details or {}
+        phone = demo.get('alternate_mobile') or demo.get('father_mobile')
+        if not phone:
+            phone = student.mobile
+        if not phone:
+            return Response({'detail': 'No phone number found for this student/parent.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Use the shared helper to build + send form PDF
+            self._send_form_pdf_whatsapp(admission, request.user)
+
+            return Response({
+                'detail': f'Admission form sent to {phone} via WhatsApp.',
+                'phone': phone,
+                'previously_sent': already_sent,
+                'success': True,
+            })
+
+        except Exception as e:
+            logger.exception(f"Manual form WhatsApp send failed for admission {admission.id}")
+            return Response({
+                'detail': f'Failed to send: {str(e)}',
+                'success': False,
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(detail=False, methods=['get'], url_path='payment-summary')
     def payment_summary(self, request):
         """Return per-admission payment summary with total_fee, total_paid, balance."""

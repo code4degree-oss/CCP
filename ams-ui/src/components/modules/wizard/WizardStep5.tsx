@@ -1,5 +1,6 @@
-'use client'
-import { ArrowLeft, Printer, Download, CheckCircle } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowLeft, Printer, Download, CheckCircle, Loader2, MessageCircle } from 'lucide-react'
+import { admissionsApi } from '@/lib/api'
 
 const v = (val: any) => (val && val !== '' ? String(val) : '—')
 
@@ -23,15 +24,46 @@ export function WizardStep5({ admission, onBack, onEdit }: { admission: any; onB
   const demo = student?.demographic_details || {}
   const payments = admission?.payments || []
 
+  const [waSending, setWaSending] = useState(false)
+  const [waStatus, setWaStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+
   const handlePrint = () => {
     sessionStorage.setItem('ams_print_admission', JSON.stringify(admission))
     window.dispatchEvent(new Event('ams-print-admission'))
   }
 
+  const handleWhatsAppSend = async () => {
+    if (!admission?.id) return
+    setWaSending(true)
+    setWaStatus(null)
+    try {
+      const res = await admissionsApi.sendFormWhatsapp(admission.id)
+      
+      // If it was already sent, ask for confirmation
+      if (res.previously_sent) {
+        setWaSending(false)
+        const confirmSend = window.confirm("The form PDF was already sent to the parent on WhatsApp.\n\nDo you want to send it again?")
+        if (!confirmSend) {
+          return // User cancelled
+        }
+        setWaSending(true)
+        // Calling it again right away won't hurt, it will just re-trigger the send
+        const res2 = await admissionsApi.sendFormWhatsapp(admission.id)
+        setWaStatus({ type: 'success', msg: res2.detail || `Sent to ${res2.phone}` })
+      } else {
+        setWaStatus({ type: 'success', msg: res.detail || `Sent to ${res.phone}` })
+      }
+    } catch (e: any) {
+      setWaStatus({ type: 'error', msg: e.message || 'Failed to send' })
+    } finally {
+      setWaSending(false)
+    }
+  }
+
   return (
     <div className="animate-fade-in">
       {/* Screen toolbar */}
-      <div className="no-print mb-6 max-w-3xl mx-auto">
+      <div className="no-print mb-6 max-w-4xl mx-auto">
         <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
@@ -43,7 +75,17 @@ export function WizardStep5({ admission, onBack, onEdit }: { admission: any; onB
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3 mt-4">
+        
+        {waStatus && (
+          <div className={`mt-4 p-3 rounded-xl text-sm font-semibold flex items-center gap-2 border ${
+            waStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
+          }`}>
+            {waStatus.type === 'success' ? <CheckCircle size={16} /> : <span className="font-bold">✕</span>}
+            {waStatus.msg}
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3 mt-4">
           <button onClick={onBack} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors">
             <ArrowLeft size={14} /> Back to Admissions
           </button>
@@ -53,6 +95,10 @@ export function WizardStep5({ admission, onBack, onEdit }: { admission: any; onB
             </button>
           )}
           <div className="flex-1" />
+          <button onClick={handleWhatsAppSend} disabled={waSending} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed">
+            {waSending ? <Loader2 size={14} className="animate-spin" /> : <MessageCircle size={14} />} 
+            {waSending ? 'Sending...' : 'Send on WhatsApp'}
+          </button>
           <button onClick={handlePrint} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors">
             <Printer size={14} /> Print Form
           </button>
