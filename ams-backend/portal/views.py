@@ -702,9 +702,9 @@ class AdmissionViewSet(viewsets.ModelViewSet):
 
         return Response(AdmissionSerializer(admission).data)
 
-    def _send_form_pdf_whatsapp(self, admission, acting_user=None):
+    def _send_form_pdf_whatsapp(self, admission, acting_user=None, raise_exceptions=False):
         """Helper: Generate form PDF and send to parent via WhatsApp.
-        Wrapped in try/except so it never blocks the main operation."""
+        Wrapped in try/except so it never blocks the main operation, unless raise_exceptions=True."""
         try:
             from . import whatsapp_service
             import logging
@@ -712,6 +712,8 @@ class AdmissionViewSet(viewsets.ModelViewSet):
 
             if not whatsapp_service.is_configured():
                 _logger.info(f"WhatsApp not configured, skipping form PDF for admission {admission.id}")
+                if raise_exceptions:
+                    raise Exception("WhatsApp API is not configured.")
                 return
 
             student = admission.student
@@ -1135,8 +1137,8 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'No phone number found for this student/parent.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Use the shared helper to build + send form PDF
-            self._send_form_pdf_whatsapp(admission, request.user)
+            # Use the shared helper to build + send form PDF, requesting exceptions to be raised on failure
+            self._send_form_pdf_whatsapp(admission, request.user, raise_exceptions=True)
 
             return Response({
                 'detail': f'Admission form sent to {phone} via WhatsApp.',

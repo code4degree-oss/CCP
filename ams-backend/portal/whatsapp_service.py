@@ -726,7 +726,7 @@ def send_form_pdf(
             template_params=[
                 student_name or "Student",
                 course_detail,
-                "For any query, contact Chanakya Career Point",
+                "If there is any query contact Chankya carrer point",
             ],
             template_name="form_pdf",
             filename=filename,
