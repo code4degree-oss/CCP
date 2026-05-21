@@ -55,15 +55,16 @@ export function buildSingleReceiptHTML(r: ReceiptItem): string {
     <td style="text-align:right;font-size:9px;color:#6b7280;padding:0">CCP — Admission Management System</td>
   </tr></table>`
 
-  // ── Header: Logo + Title (centered via table) ──
-  html += `<table style="width:100%;border:none;margin-bottom:6px"><tr>
-    <td style="text-align:center;padding:0">
-      <table style="margin:0 auto;border:none"><tr>
-        <td style="padding:0 10px 0 0;vertical-align:middle"><img src="/LOGO CCP.png" alt="CCP" style="width:50px;height:50px;object-fit:contain" /></td>
-        <td style="padding:0;vertical-align:middle"><h1 style="margin:0;font-size:22px;font-weight:900;color:#1e3a5f;font-style:italic;font-family:Georgia,serif">Chanakya Career Point | Fees Receipt</h1></td>
-      </tr></table>
-    </td>
-  </tr></table>`
+  // ── Header: Logo + Title (centered) ──
+  html += `<div style="text-align:center;margin-bottom:6px">
+    <h1 style="margin:0;font-size:22px;font-weight:900;color:#1e3a5f;font-style:italic;font-family:Georgia,serif">Chanakya Career Point | Fees Receipt</h1>
+    <p style="margin:2px 0 0;font-size:8px;font-weight:700;color:#374151;letter-spacing:1px;text-transform:uppercase">CHANAKYA CAREER POINT LLP</p>
+  </div>`
+
+  // ── Branch name bar ──
+  html += `<div style="border-top:1px solid #d1d5db;border-bottom:1px solid #d1d5db;padding:6px 0;margin-bottom:4px;text-align:center">
+    <p style="margin:0;font-size:11px;font-weight:800;color:#1e3a5f">${r.branch_name || 'CCP'} Branch</p>
+  </div>`
 
 
   // ── Receipt info section ──
