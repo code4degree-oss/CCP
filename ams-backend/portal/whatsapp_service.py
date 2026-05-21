@@ -21,7 +21,7 @@ INTEGRATED_NUMBER = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "") # We can reus
 TEMPLATE_NAME = os.environ.get("WHATSAPP_TEMPLATE_NAME", "fee_receipt")
 
 # The public domain where the backend is hosted
-APP_PUBLIC_DOMAIN = os.environ.get("APP_PUBLIC_DOMAIN", "https://ccp.dybusinesssolutions.com")
+APP_PUBLIC_DOMAIN = os.environ.get("APP_PUBLIC_DOMAIN", "https://crm.chanakyacp.com")
 
 
 def is_configured() -> bool:
