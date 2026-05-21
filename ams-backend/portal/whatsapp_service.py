@@ -533,7 +533,11 @@ def build_admission_form_html(
     html += _row("Mobile", student_mobile)
     html += _row("Email", student_email)
     html += _row("Aadhaar No.", student_aadhaar)
+    html += _row("APAAR ID", demo.get('apaar_id'))
     html += _row("Religion", demo.get('religion'))
+    html += _row("Region of Residence", demo.get('region_of_residence'))
+    html += _row("Annual Income", demo.get('annual_income'))
+    html += _row("Orphan", demo.get('is_orphan'))
     html += '</tbody></table>'
 
     # ── Permanent Address ──
@@ -578,6 +582,8 @@ def build_admission_form_html(
     html += _row("Claim Linguistic Minority", demo.get('claim_linguistic_minority'))
     if demo.get('selected_linguistic_minority'):
         html += _row("Selected Linguistic Minority", demo.get('selected_linguistic_minority'))
+    html += _row("Claim Exception", demo.get('claim_exception'))
+    html += _row("Specified Reservation", demo.get('specified_reservation'))
     html += _row("Quota Applied For", demo.get('quota_apply_for'))
     html += '</tbody></table>'
 
@@ -601,6 +607,8 @@ def build_admission_form_html(
         if demo.get('ews_cert_status'):
             html += _row("EWS Cert. Status", demo.get('ews_cert_status'))
             html += _row("EWS Cert. Doc No.", demo.get('ews_cert_doc_no'))
+        if demo.get('documents_received'):
+            html += _row("Documents Received", demo.get('documents_received'))
         html += '</tbody></table>'
 
     # ── Subject Marks (12th) ──
@@ -619,6 +627,8 @@ def build_admission_form_html(
         if academic.get('pcm_obtained'):
             html += _row("PCM Total", f"{academic['pcm_obtained']} / {academic.get('pcm_out_of', '300')}")
         html += '</tbody></table>'
+
+
 
     # ── SSC / HSC ──
     html += '<table style="width:100%;border-collapse:collapse;border:1px solid #d1d5db;margin-bottom:12px"><tbody>'

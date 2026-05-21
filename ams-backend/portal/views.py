@@ -696,10 +696,6 @@ class AdmissionViewSet(viewsets.ModelViewSet):
                 admission.admission_status = 'Documents Pending'
         admission.save()
 
-        # ── Auto-send form PDF via WhatsApp when status is Form Completed ──
-        if admission.admission_status == 'Form Completed':
-            self._send_form_pdf_whatsapp(admission, request.user)
-
         return Response(AdmissionSerializer(admission).data)
 
     def _send_form_pdf_whatsapp(self, admission, acting_user=None, raise_exceptions=False):
