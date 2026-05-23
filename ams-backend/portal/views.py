@@ -794,11 +794,17 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             _logger.info(f"Auto-sent form PDF for admission {admission.id} to {phone}")
 
             # ── Auto-send Marathi template via WhatsApp (after Form PDF) ──
-            try:
-                whatsapp_service.send_marathi_template_whatsapp(phone)
-                _logger.info(f"Auto-sent Marathi template for admission {admission.id} to {phone}")
-            except Exception as inner_e:
-                _logger.warning(f"Auto-send Marathi template failed for admission {admission.id}: {inner_e}")
+            import threading
+            import time
+            def send_marathi_delayed():
+                time.sleep(5)  # 5-second delay to ensure PDF arrives first
+                try:
+                    whatsapp_service.send_marathi_template_whatsapp(phone)
+                    _logger.info(f"Auto-sent Marathi template for admission {admission.id} to {phone}")
+                except Exception as inner_e:
+                    _logger.warning(f"Auto-send Marathi template failed for admission {admission.id}: {inner_e}")
+            
+            threading.Thread(target=send_marathi_delayed, daemon=True).start()
 
         except Exception as e:
             import logging
