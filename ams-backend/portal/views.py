@@ -797,7 +797,7 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             import threading
             import time
             def send_marathi_delayed():
-                time.sleep(5)  # 5-second delay to ensure PDF arrives first
+                time.sleep(20)  # 20-second delay to ensure PDF arrives first
                 try:
                     whatsapp_service.send_marathi_template_whatsapp(phone)
                     _logger.info(f"Auto-sent Marathi template for admission {admission.id} to {phone}")
@@ -847,11 +847,14 @@ class AdmissionViewSet(viewsets.ModelViewSet):
         
         # If the admission was finalized but stuck in 'Documents Pending', move it forward
         if admission.is_finalized and admission.admission_status == 'Documents Pending':
-            admission.admission_status = 'Form Completed'
-            admission.save(update_fields=['admission_status', 'updated_at'])
-
-            # ── Auto-send form PDF via WhatsApp on transition to Form Completed ──
-            self._send_form_pdf_whatsapp(admission, request.user)
+            with transaction.atomic():
+                locked_admission = Admission.objects.select_for_update().get(pk=admission.pk)
+                if locked_admission.admission_status == 'Documents Pending':
+                    locked_admission.admission_status = 'Form Completed'
+                    locked_admission.save(update_fields=['admission_status', 'updated_at'])
+                    
+                    # ── Auto-send form PDF via WhatsApp on transition to Form Completed ──
+                    self._send_form_pdf_whatsapp(locked_admission, request.user)
 
         return Response(AdmissionDocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
 
