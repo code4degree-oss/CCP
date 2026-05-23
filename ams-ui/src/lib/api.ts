@@ -147,8 +147,8 @@ export const admissionsApi = {
       method: 'POST',
       body: JSON.stringify({ receipt_html: receiptHtml, payment_id: paymentId || null }),
     }),
-  sendFormWhatsapp: (id: number) =>
-    apiFetch(`admissions/${id}/send-form-whatsapp`, { method: 'POST', body: JSON.stringify({}) }),
+  sendFormWhatsapp: (id: number, force_resend?: boolean) =>
+    apiFetch(`admissions/${id}/send-form-whatsapp`, { method: 'POST', body: JSON.stringify({ force_resend }) }),
   whatsappStatus: () => apiFetch('admissions/whatsapp-status'),
 
 }

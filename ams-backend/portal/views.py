@@ -1147,6 +1147,15 @@ class AdmissionViewSet(viewsets.ModelViewSet):
             phone = student.mobile
         if not phone:
             return Response({'detail': 'No phone number found for this student/parent.'}, status=status.HTTP_400_BAD_REQUEST)
+        force_resend = request.data.get('force_resend', False)
+
+        if already_sent and not force_resend:
+            return Response({
+                'detail': f'Admission form already sent to {phone}.',
+                'phone': phone,
+                'previously_sent': True,
+                'success': True,
+            })
 
         try:
             # Use the shared helper to build + send form PDF, requesting exceptions to be raised on failure

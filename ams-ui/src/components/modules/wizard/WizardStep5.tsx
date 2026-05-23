@@ -48,7 +48,7 @@ export function WizardStep5({ admission, onBack, onEdit }: { admission: any; onB
         }
         setWaSending(true)
         // Calling it again right away won't hurt, it will just re-trigger the send
-        const res2 = await admissionsApi.sendFormWhatsapp(admission.id)
+        const res2 = await admissionsApi.sendFormWhatsapp(admission.id, true)
         setWaStatus({ type: 'success', msg: res2.detail || `Sent to ${res2.phone}` })
       } else {
         setWaStatus({ type: 'success', msg: res.detail || `Sent to ${res.phone}` })
