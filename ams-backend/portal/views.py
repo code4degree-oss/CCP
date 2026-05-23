@@ -793,6 +793,13 @@ class AdmissionViewSet(viewsets.ModelViewSet):
 
             _logger.info(f"Auto-sent form PDF for admission {admission.id} to {phone}")
 
+            # ── Auto-send Marathi template via WhatsApp (after Form PDF) ──
+            try:
+                whatsapp_service.send_marathi_template_whatsapp(phone)
+                _logger.info(f"Auto-sent Marathi template for admission {admission.id} to {phone}")
+            except Exception as inner_e:
+                _logger.warning(f"Auto-send Marathi template failed for admission {admission.id}: {inner_e}")
+
         except Exception as e:
             import logging
             logging.getLogger(__name__).warning(

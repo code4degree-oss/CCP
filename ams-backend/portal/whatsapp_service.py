@@ -746,3 +746,65 @@ def send_form_pdf(
         raise
 
     return result
+
+
+# ── Send Marathi Template Message via MSG91 ────────────────────────────
+
+def send_marathi_template_whatsapp(phone_number: str) -> dict:
+    """
+    Send the Marathi template after the 1st form submission.
+    """
+    if not is_configured():
+        logger.info("WhatsApp not configured, skipping marathi template.")
+        return {}
+
+    # Normalize phone number
+    phone = phone_number.strip().replace(" ", "").replace("-", "")
+    if phone.startswith("+"):
+        phone = phone[1:]
+    if not phone.startswith("91") and len(phone) == 10:
+        phone = "91" + phone
+
+    payload = {
+        "integrated_number": INTEGRATED_NUMBER,
+        "content_type": "template",
+        "payload": {
+            "messaging_product": "whatsapp",
+            "type": "template",
+            "template": {
+                "name": "marathi_templet",
+                "language": {
+                    "code": "mr",
+                    "policy": "deterministic"
+                },
+                "namespace": os.environ.get("WHATSAPP_TEMPLATE_NAMESPACE", "6978e867_1e6a_47c3_9f58_dc0c21c5a464"),
+                "to_and_components": [
+                    {
+                        "to": [
+                            phone
+                        ],
+                        "components": {}
+                    }
+                ]
+            }
+        }
+    }
+
+    try:
+        response = requests.post(
+            MSG91_API_URL,
+            headers=_headers(),
+            json=payload,
+        )
+        if response.status_code not in (200, 201, 202):
+            logger.error(f"MSG91 WhatsApp send failed: {response.status_code} {response.text}")
+            return {}
+        result = response.json()
+        if result.get("hasError"):
+            logger.error(f"MSG91 WhatsApp send returned error: {result}")
+            return {}
+        logger.info(f"Marathi template sent via MSG91: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to send marathi template via MSG91: {e}")
+        return {}
