@@ -1192,6 +1192,14 @@ class AdmissionViewSet(viewsets.ModelViewSet):
                 if branch:
                     qs = qs.filter(branch_id=branch.branch_id)
 
+            # Employee isolation: non-admin employees only see their own admissions
+            is_branch_admin = (
+                hasattr(user, 'role') and user.role and
+                user.role.name and 'branch admin' in user.role.name.lower()
+            )
+            if not is_branch_admin:
+                qs = qs.filter(manager=user)
+
         # Annotate with total paid
         qs = qs.annotate(
             total_paid=Coalesce(
@@ -1355,6 +1363,14 @@ class PaymentViewSet(viewsets.ModelViewSet):
                 if branch:
                     qs = qs.filter(admission__branch_id=branch.branch_id)
 
+            # Employee isolation: non-admin employees only see payments for their own admissions
+            is_branch_admin = (
+                hasattr(user, 'role') and user.role and
+                user.role.name and 'branch admin' in user.role.name.lower()
+            )
+            if not is_branch_admin:
+                qs = qs.filter(admission__manager=user)
+
         # Support filtering via query params (used by Reports)
         branch_id = self.request.query_params.get('branch')
         if branch_id and (user.is_superuser or (hasattr(user, 'role') and user.role and user.role.name == 'Super Admin')):
@@ -1492,6 +1508,14 @@ class ReceiptViewSet(viewsets.ModelViewSet):
                 branch = branch_mapping.first()
                 if branch:
                     qs = qs.filter(payment__admission__branch_id=branch.branch_id)
+
+            # Employee isolation: non-admin employees only see receipts for their own admissions
+            is_branch_admin = (
+                hasattr(user, 'role') and user.role and
+                user.role.name and 'branch admin' in user.role.name.lower()
+            )
+            if not is_branch_admin:
+                qs = qs.filter(payment__admission__manager=user)
         return qs
 
 class WhatsappConfigViewSet(viewsets.ModelViewSet):
