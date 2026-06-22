@@ -331,6 +331,14 @@ class EnquiryViewSet(viewsets.ModelViewSet):
                 branch = branch_mapping.first()
                 if branch:
                     qs = qs.filter(branch_id=branch.branch_id)
+
+            # Employee isolation: non-admin employees only see enquiries they created
+            is_branch_admin = (
+                hasattr(user, 'role') and user.role and
+                user.role.name and 'branch admin' in user.role.name.lower()
+            )
+            if not is_branch_admin:
+                qs = qs.filter(counselor=user)
                     
         branch_id = self.request.query_params.get('branch')
         if branch_id and (user.is_superuser or user.role.name == 'Super Admin'):
@@ -372,6 +380,14 @@ class StudentViewSet(viewsets.ModelViewSet):
                 branch = branch_mapping.first()
                 if branch:
                     qs = qs.filter(branch_id=branch.branch_id)
+
+            # Employee isolation: non-admin employees only see students they created
+            is_branch_admin = (
+                hasattr(user, 'role') and user.role and
+                user.role.name and 'branch admin' in user.role.name.lower()
+            )
+            if not is_branch_admin:
+                qs = qs.filter(counselor=user)
         return qs.order_by('-created_at')
 
 class StreamViewSet(viewsets.ModelViewSet):
