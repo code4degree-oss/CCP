@@ -146,7 +146,7 @@ export function EnquiriesModule() {
               <div>
                 <label className="text-[11px] text-txt-muted block mb-1">Category</label>
                 <select value={form.category} onChange={e => set('category', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40">
-                  <option value="">Select</option><option value="General">General</option><option value="OBC">OBC</option><option value="SC">SC</option><option value="ST">ST</option><option value="EWS">EWS</option>
+                  <option value="">Select</option><option value="OPEN">OPEN</option><option value="SC">SC</option><option value="ST">ST</option><option value="EWS">EWS</option><option value="OBC">OBC</option><option value="SEBC">SEBC</option><option value="SBC">SBC</option><option value="NT1">NT1</option><option value="NT2">NT2</option><option value="NT3">NT3</option><option value="VJDT">VJDT</option>
                 </select>
               </div>
               <div><label className="text-[11px] text-txt-muted block mb-1">Course Interest</label><input value={form.course_interest} onChange={e => set('course_interest', e.target.value)} className="w-full bg-bg-base border border-bg-border rounded-lg px-3 py-2 text-xs text-txt-primary outline-none focus:border-accent-blue/40" placeholder="e.g. MBBS, BDS" /></div>
