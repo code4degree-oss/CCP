@@ -108,7 +108,7 @@ function buildHTML(admission: any): string {
   html += tbl(section('Reservation Details', '#e11d48') + reservationRows)
 
   // SSC
-  html += tbl(section('SSC / 10th Qualification', '#d97706') + row('SSC Board', academic.ssc_board) + row('Year of Passing', academic.ssc_year) + row('SSC Seat Number', academic.ssc_roll_no) + row('Language / Medium', academic.ssc_language) + row('State of SSC Passing', academic.ssc_state) + row('District of SSC Passing', academic.ssc_district) + row('Taluka of SSC Passing', academic.ssc_taluka) + row('School Name', academic.ssc_school_name) + row('Maths Marks', academic.ssc_maths) + row('Science Marks', academic.ssc_science) + row('English Marks', academic.ssc_english))
+  html += tbl(section('SSC / 10th Qualification', '#d97706') + row('SSC Board', academic.ssc_board) + row('Year of Passing', academic.ssc_year) + row('SSC Seat Number', academic.ssc_roll_no) + row('Language / Medium', academic.ssc_language) + row('State of SSC Passing', academic.ssc_state) + row('District of SSC Passing', academic.ssc_district) + row('Taluka of SSC Passing', academic.ssc_taluka) + row('Maths Marks', academic.ssc_maths) + row('Science Marks', academic.ssc_science) + row('English Marks', academic.ssc_english))
 
   // HSC
   html += tbl(section('HSC / 12th Qualification', '#d97706') + row('Name as per HSC Marksheet', academic.hsc_name) + row("Mother's Name as per HSC Marksheet", academic.hsc_mother_name) + row('Examination Status', academic.hsc_exam_status) + row('Board / Examination', academic.hsc_exam) + row('Passing Year', academic.hsc_passing_year) + row('Roll No. / Seat No.', academic.hsc_roll_no) + row('State of HSC Passing', academic.hsc_state) + row('District of HSC Passing', academic.hsc_district) + row('Taluka of HSC Passing', academic.hsc_taluka) + row('Exam Session', academic.hsc_exam_session))
@@ -118,17 +118,19 @@ function buildHTML(admission: any): string {
   let marksHtml = marksHeader
   marksHtml += marksRow('Physics', academic.physics_obtained, 100)
   marksHtml += marksRow('Chemistry', academic.chemistry_obtained, 100)
-  if (academic.biology_obtained || academic.pcb_obtained) marksHtml += marksRow('Biology', academic.biology_obtained, 100)
-  if (academic.maths_obtained || academic.pcm_obtained) marksHtml += marksRow('Mathematics', academic.maths_obtained, 100)
+  if (isEng) {
+    marksHtml += marksRow('Mathematics', academic.maths_obtained, 100)
+  } else {
+    marksHtml += marksRow('Biology', academic.biology_obtained, 100)
+  }
   marksHtml += marksRow('English', academic.english_obtained, 100)
   marksHtml += marksRow('Highest Marks in Subject', academic.highest_marks_subject, 100)
-  if (academic.pcm_obtained) {
+  if (isEng) {
     marksHtml += marksRow('PCM Total', academic.pcm_obtained, 300)
     marksHtml += marksRow('PCME Total', academic.pcme_obtained, 400)
     marksHtml += marksRow('PCM Percentage', academic.pcm_percentage_obtained, 100)
     marksHtml += marksRow('PCME Percentage', academic.pcme_percentage_obtained, 100)
-  }
-  if (academic.pcb_obtained) {
+  } else {
     marksHtml += marksRow('PCB Total', academic.pcb_obtained, 300)
     marksHtml += marksRow('PCBE Total', academic.pcbe_obtained, 400)
     marksHtml += marksRow('PCB Percentage', academic.pcb_percentage_obtained, 100)
